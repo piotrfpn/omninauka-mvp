@@ -1,0 +1,138 @@
+// User Types
+export interface User {
+  id: string;
+  email: string;
+  name: string;
+  avatar?: string;
+  createdAt: Date;
+  plan: 'free' | 'premium' | 'family';
+}
+
+export interface AuthState {
+  user: User | null;
+  isAuthenticated: boolean;
+  isLoading: boolean;
+}
+
+// Upload Types
+export interface UploadedFile {
+  id: string;
+  file: File;
+  previewUrl: string;
+  croppedUrl?: string;
+  name: string;
+  size: number;
+  type: string;
+  uploadedAt: Date;
+}
+
+export interface UploadState {
+  files: UploadedFile[];
+  isUploading: boolean;
+  error: string | null;
+}
+
+// Analysis Types
+export interface KeyConcept {
+  id: string;
+  term: string;
+  definition: string;
+  category: 'definition' | 'date' | 'formula' | 'person' | 'event' | 'concept';
+}
+
+export interface FlashcardData {
+  id: string;
+  front: string;
+  back: string;
+  difficulty: 'easy' | 'medium' | 'hard';
+}
+
+export interface QuizQuestion {
+  id: string;
+  type: 'single_choice' | 'true_false' | 'short_answer';
+  question: string;
+  options?: string[];
+  correctAnswer: string | number;
+  explanation: string;
+  difficulty: 'easy' | 'medium' | 'hard';
+}
+
+export interface AnalysisResult {
+  id: string;
+  subject: string;
+  topic: string;
+  confidence: number;
+  keyConcepts: KeyConcept[];
+  flashcards: FlashcardData[];
+  quizQuestions: QuizQuestion[];
+  summary: string;
+  createdAt: Date;
+  sourceFileId: string;
+}
+
+// Study Session Types
+export interface StudySession {
+  id: string;
+  userId: string;
+  analysisId: string;
+  analysis: AnalysisResult;
+  status: 'in_progress' | 'completed' | 'abandoned';
+  startedAt: Date;
+  completedAt?: Date;
+  totalTimeMinutes: number;
+}
+
+// Quiz Session Types
+export interface QuizAnswer {
+  questionId: string;
+  selectedAnswer: string | number;
+  isCorrect: boolean;
+  timeSpentSeconds: number;
+}
+
+// Lesson/Tutor Types
+export interface LessonMessage {
+  id: string;
+  role: 'user' | 'assistant';
+  content: string;
+  timestamp: Date;
+  isStreaming?: boolean;
+}
+
+// Results Types
+export interface SubjectProgress {
+  subject: string;
+  totalSessions: number;
+  averageScore: number;
+  totalTimeMinutes: number;
+  lastStudiedAt?: Date;
+  masteryLevel: 'beginner' | 'intermediate' | 'advanced' | 'expert';
+}
+
+export interface StudyResult {
+  id: string;
+  userId: string;
+  sessionId: string;
+  subject: string;
+  topic: string;
+  score: number;
+  totalQuestions: number;
+  correctAnswers: number;
+  timeSpentMinutes: number;
+  weakAreas: string[];
+  strongAreas: string[];
+  recommendations: string[];
+  createdAt: Date;
+}
+
+// Dashboard Types
+export interface DashboardSummary {
+  totalStudySessions: number;
+  totalStudyTimeMinutes: number;
+  averageScore: number;
+  currentStreak: number;
+  longestStreak: number;
+  recentSessions: StudySession[];
+  subjectProgress: SubjectProgress[];
+  recentUploads: UploadedFile[];
+}

@@ -1,0 +1,73 @@
+/* OmniNauka App Styles */
+
+/* Ensure full height layout */
+#root {
+  min-height: 100vh;
+}
+
+/* Cropper styles */
+.react-easy-crop-container {
+  border-radius: 0.75rem;
+}
+
+/* Mobile optimizations */
+@media (max-width: 1024px) {
+  .omni-heading-1 {
+    font-size: 2rem;
+  }
+  
+  .omni-heading-2 {
+    font-size: 1.75rem;
+  }
+  
+  .omni-heading-3 {
+    font-size: 1.25rem;
+  }
+}
+
+/* Touch-friendly buttons on mobile */
+@media (max-width: 640px) {
+  .omni-btn-primary,
+  .omni-btn-secondary {
+    min-height: 48px;
+  }
+}
+
+/* Focus states for accessibility */
+button:focus-visible,
+a:focus-visible,
+input:focus-visible {
+  outline: 2px solid var(--omni-accent);
+  outline-offset: 2px;
+}
+
+/* Loading spinner */
+.spinner {
+  border: 3px solid rgba(99, 102, 241, 0.3);
+  border-top-color: var(--omni-accent);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Streaming cursor blink */
+.streaming-cursor {
+  display: inline-block;
+  width: 2px;
+  height: 1.2em;
+  background-color: var(--omni-accent);
+  animation: blink 1s step-end infinite;
+  margin-left: 2px;
+  vertical-align: middle;
+}
+
+@keyframes blink {
+  50% {
+    opacity: 0;
+  }
+}

@@ -1,0 +1,204 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 240 10% 3.9%;
+    --card: 0 0% 100%;
+    --card-foreground: 240 10% 3.9%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 240 10% 3.9%;
+    --primary: 240 5.9% 10%;
+    --primary-foreground: 0 0% 98%;
+    --secondary: 240 4.8% 95.9%;
+    --secondary-foreground: 240 5.9% 10%;
+    --muted: 240 4.8% 95.9%;
+    --muted-foreground: 240 3.8% 46.1%;
+    --accent: 240 4.8% 95.9%;
+    --accent-foreground: 240 5.9% 10%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 240 5.9% 90%;
+    --input: 240 5.9% 90%;
+    --ring: 240 5.9% 10%;
+    --radius: 0.625rem;
+    --sidebar-background: 0 0% 98%;
+    --sidebar-foreground: 240 5.3% 26.1%;
+    --sidebar-primary: 240 5.9% 10%;
+    --sidebar-primary-foreground: 0 0% 98%;
+    --sidebar-accent: 240 4.8% 95.9%;
+    --sidebar-accent-foreground: 240 5.9% 10%;
+    --sidebar-border: 220 13% 91%;
+    --sidebar-ring: 217.2 91.2% 59.8%;
+
+    /* OmniNauka Custom Colors */
+    --omni-bg: #f8f7fa;
+    --omni-bg-dark: #1a1a2e;
+    --omni-text: #1a1a2e;
+    --omni-text-muted: #6b6b7b;
+    --omni-accent: #6366f1;
+    --omni-lavender: #e8e5ff;
+    --omni-mint: #d1fae5;
+    --omni-butter: #fef3c7;
+    --omni-blush: #ffe4e6;
+    --omni-sky: #dbeafe;
+  }
+
+  .dark {
+    --background: 240 10% 3.9%;
+    --foreground: 0 0% 98%;
+    --card: 240 10% 3.9%;
+    --card-foreground: 0 0% 98%;
+    --popover: 240 10% 3.9%;
+    --popover-foreground: 0 0% 98%;
+    --primary: 0 0% 98%;
+    --primary-foreground: 240 5.9% 10%;
+    --secondary: 240 3.7% 15.9%;
+    --secondary-foreground: 0 0% 98%;
+    --muted: 240 3.7% 15.9%;
+    --muted-foreground: 240 5% 64.9%;
+    --accent: 240 3.7% 15.9%;
+    --accent-foreground: 0 0% 98%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 240 3.7% 15.9%;
+    --input: 240 3.7% 15.9%;
+    --ring: 240 4.9% 83.9%;
+    --sidebar-background: 240 5.9% 10%;
+    --sidebar-foreground: 240 4.8% 95.9%;
+    --sidebar-primary: 224.3 76.3% 48%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 240 3.7% 15.9%;
+    --sidebar-accent-foreground: 240 4.8% 95.9%;
+    --sidebar-border: 240 3.7% 15.9%;
+    --sidebar-ring: 217.2 91.2% 59.8%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+}
+
+/* OmniNauka Custom Styles */
+@layer components {
+  .omni-heading-1 {
+    @apply text-4xl lg:text-5xl font-bold tracking-tight;
+  }
+  
+  .omni-heading-2 {
+    @apply text-3xl lg:text-4xl font-bold tracking-tight;
+  }
+  
+  .omni-heading-3 {
+    @apply text-xl lg:text-2xl font-semibold;
+  }
+  
+  .omni-heading-4 {
+    @apply text-lg font-semibold;
+  }
+  
+  .omni-body {
+    @apply text-base text-[var(--omni-text-muted)] leading-relaxed;
+  }
+  
+  .omni-body-sm {
+    @apply text-sm text-[var(--omni-text-muted)] leading-relaxed;
+  }
+  
+  .omni-card {
+    @apply bg-white rounded-2xl border border-gray-100 shadow-sm;
+  }
+  
+  .omni-btn-primary {
+    @apply inline-flex items-center justify-center gap-2 px-6 py-3 bg-[var(--omni-accent)] text-white font-medium rounded-xl hover:opacity-90 transition-opacity;
+  }
+  
+  .omni-btn-secondary {
+    @apply inline-flex items-center justify-center gap-2 px-6 py-3 bg-gray-100 text-[var(--omni-text)] font-medium rounded-xl hover:bg-gray-200 transition-colors;
+  }
+  
+  .omni-chip {
+    @apply inline-flex items-center px-3 py-1 text-sm font-medium rounded-full;
+  }
+  
+  .omni-input {
+    @apply w-full px-4 py-3 bg-white border border-gray-200 rounded-xl text-[var(--omni-text)] placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-[var(--omni-accent)] transition-all;
+  }
+}
+
+/* Smooth scrolling */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #d1d5db;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #9ca3af;
+}
+
+/* Animation utilities */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.3s ease-out forwards;
+}
+
+/* Flip card animation for flashcards */
+.flip-card {
+  perspective: 1000px;
+}
+
+.flip-card-inner {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  transition: transform 0.6s;
+  transform-style: preserve-3d;
+}
+
+.flip-card.flipped .flip-card-inner {
+  transform: rotateY(180deg);
+}
+
+.flip-card-front,
+.flip-card-back {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+
+.flip-card-back {
+  transform: rotateY(180deg);
+}

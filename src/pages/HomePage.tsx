@@ -1,0 +1,246 @@
+import { useEffect } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { useAuth } from '../lib/auth-context';
+import { Scan, Brain, BookOpen, MessageCircle, BarChart3, ArrowRight, Check } from 'lucide-react';
+
+export default function HomePage() {
+  const { isAuthenticated } = useAuth();
+  const navigate = useNavigate();
+
+  // Redirect to app if already logged in
+  useEffect(() => {
+    if (isAuthenticated) {
+      navigate('/app/dashboard');
+    }
+  }, [isAuthenticated, navigate]);
+
+  const features = [
+    {
+      icon: Scan,
+      title: 'Zeskanuj notatki',
+      description: 'Wgraj zdjęcie swoich notatek lub strony z podręcznika.',
+    },
+    {
+      icon: Brain,
+      title: 'AI analizuje',
+      description: 'Sztuczna inteligencja wyciąga kluczowe pojęcia i tworzy materiał.',
+    },
+    {
+      icon: BookOpen,
+      title: 'Ucz się efektywnie',
+      description: 'Fiszki, quizy i lekcje dostosowane do Twoich materiałów.',
+    },
+    {
+      icon: MessageCircle,
+      title: 'Rozmawiaj z AI',
+      description: 'Zadawaj pytania i ucz się przez dialog z korepetytorem AI.',
+    },
+    {
+      icon: BarChart3,
+      title: 'Śledź postępy',
+      description: 'Monitoruj swoje wyniki i identyfikuj słabe punkty.',
+    },
+  ];
+
+  const pricingPlans = [
+    {
+      name: 'Darmowy',
+      price: '0 zł',
+      period: '/miesiąc',
+      features: ['3 skany dziennie', 'Podstawowe fiszki', 'Quizy z wyjaśnieniami'],
+      cta: 'Zacznij za darmo',
+      primary: false,
+    },
+    {
+      name: 'Premium',
+      price: '29 zł',
+      period: '/miesiąc',
+      features: [
+        'Nielimitowane skany',
+        'Rozmowa głosowa z AI',
+        'Tryb sprawdzianu',
+        'Arkusze CKE',
+      ],
+      cta: 'Wypróbuj 7 dni',
+      primary: true,
+    },
+    {
+      name: 'Rodzinny',
+      price: '59 zł',
+      period: '/miesiąc',
+      features: [
+        'Do 4 kont uczniowskich',
+        'Panel rodzica',
+        'Wszystko z Premium',
+        'Priorytetowe AI',
+      ],
+      cta: 'Wybierz plan',
+      primary: false,
+    },
+  ];
+
+  return (
+    <div className="min-h-screen bg-[var(--omni-bg)]">
+      {/* Navigation */}
+      <nav className="w-full px-6 py-4 flex items-center justify-between">
+        <Link to="/" className="flex items-center gap-2">
+          <div className="w-10 h-10 rounded-xl bg-[var(--omni-bg-dark)] flex items-center justify-center">
+            <span className="text-white font-bold text-lg">O</span>
+          </div>
+          <span className="font-semibold text-xl text-[var(--omni-text)]">
+            OmniNauka
+          </span>
+        </Link>
+        <div className="flex items-center gap-4">
+          <Link
+            to="/login"
+            className="hidden sm:inline-flex px-4 py-2 text-[var(--omni-text)] font-medium hover:text-[var(--omni-accent)] transition-colors"
+          >
+            Zaloguj się
+          </Link>
+          <Link to="/login" className="omni-btn-primary text-sm">
+            Wypróbuj za darmo
+          </Link>
+        </div>
+      </nav>
+
+      {/* Hero Section */}
+      <section className="px-6 py-16 lg:py-24">
+        <div className="max-w-6xl mx-auto text-center">
+          <h1 className="omni-heading-1 text-[var(--omni-text)] mb-6">
+            Nauka, która ożywa
+          </h1>
+          <p className="omni-body text-[var(--omni-text-muted)] max-w-2xl mx-auto mb-10 text-lg">
+            Zeskanuj notatki. OmniNauka stworzy fiszki, quizy i głosowe powtórki
+            dopasowane do Twoich materiałów.
+          </p>
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+            <Link to="/login" className="omni-btn-primary">
+              Wypróbuj za darmo
+              <ArrowRight className="w-5 h-5" />
+            </Link>
+            <Link to="#jak-to-dziala" className="omni-btn-secondary">
+              Zobacz jak działa
+            </Link>
+          </div>
+        </div>
+      </section>
+
+      {/* Features Section */}
+      <section id="jak-to-dziala" className="px-6 py-16 lg:py-24">
+        <div className="max-w-6xl mx-auto">
+          <h2 className="omni-heading-2 text-[var(--omni-text)] text-center mb-12">
+            Jak to działa?
+          </h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {features.map((feature, index) => (
+              <div
+                key={index}
+                className="omni-card p-6 hover:shadow-xl transition-shadow"
+              >
+                <div className="w-12 h-12 rounded-xl bg-[var(--omni-lavender)] flex items-center justify-center mb-4">
+                  <feature.icon className="w-6 h-6 text-[var(--omni-text)]" />
+                </div>
+                <h3 className="font-semibold text-xl text-[var(--omni-text)] mb-2">
+                  {feature.title}
+                </h3>
+                <p className="text-[var(--omni-text-muted)]">
+                  {feature.description}
+                </p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Pricing Section */}
+      <section id="cennik" className="px-6 py-16 lg:py-24">
+        <div className="max-w-6xl mx-auto">
+          <h2 className="omni-heading-2 text-[var(--omni-text)] text-center mb-12">
+            Wybierz plan
+          </h2>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {pricingPlans.map((plan, index) => (
+              <div
+                key={index}
+                className={`omni-card p-6 ${
+                  plan.primary ? 'ring-2 ring-[var(--omni-accent)]' : ''
+                }`}
+              >
+                {plan.primary && (
+                  <span className="omni-chip bg-[var(--omni-accent)] text-white text-xs mb-4">
+                    Najpopularniejszy
+                  </span>
+                )}
+                <h3 className="font-semibold text-xl text-[var(--omni-text)] mb-2">
+                  {plan.name}
+                </h3>
+                <div className="flex items-baseline mb-4">
+                  <span className="text-4xl font-bold text-[var(--omni-text)]">
+                    {plan.price}
+                  </span>
+                  <span className="text-[var(--omni-text-muted)] ml-1">
+                    {plan.period}
+                  </span>
+                </div>
+                <ul className="space-y-3 mb-6">
+                  {plan.features.map((feature, fIndex) => (
+                    <li key={fIndex} className="flex items-center gap-2">
+                      <Check className="w-5 h-5 text-green-500 flex-shrink-0" />
+                      <span className="text-[var(--omni-text)]">{feature}</span>
+                    </li>
+                  ))}
+                </ul>
+                <Link
+                  to="/login"
+                  className={`w-full text-center py-3 rounded-full font-semibold transition-all ${
+                    plan.primary
+                      ? 'bg-[var(--omni-accent)] text-white hover:shadow-lg'
+                      : 'bg-gray-100 text-[var(--omni-text)] hover:bg-gray-200'
+                  }`}
+                >
+                  {plan.cta}
+                </Link>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* CTA Section */}
+      <section className="px-6 py-16 lg:py-24">
+        <div className="max-w-4xl mx-auto text-center bg-[var(--omni-bg-dark)] rounded-3xl p-8 lg:p-12">
+          <h2 className="omni-heading-2 text-white mb-4">
+            Gotowy, by zacząć?
+          </h2>
+          <p className="text-[var(--omni-text-muted-light)] mb-8 text-lg">
+            Dołącz do tysięcy uczniów, którzy uczą się mądrzej, nie ciężej.
+          </p>
+          <Link to="/login" className="omni-btn-primary inline-flex">
+            Wypróbuj za darmo
+            <ArrowRight className="w-5 h-5" />
+          </Link>
+        </div>
+      </section>
+
+      {/* Footer */}
+      <footer className="px-6 py-12 border-t border-[var(--omni-text)]/10">
+        <div className="max-w-6xl mx-auto">
+          <div className="flex flex-col md:flex-row items-center justify-between gap-6">
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 rounded-lg bg-[var(--omni-bg-dark)] flex items-center justify-center">
+                <span className="text-white font-bold text-sm">O</span>
+              </div>
+              <span className="font-semibold text-[var(--omni-text)]">
+                OmniNauka
+              </span>
+            </div>
+            <p className="text-[var(--omni-text-muted)] text-sm">
+              © 2025 OmniNauka. Wszelkie prawa zastrzeżone.
+            </p>
+          </div>
+        </div>
+      </footer>
+    </div>
+  );
+}

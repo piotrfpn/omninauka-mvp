@@ -1,0 +1,215 @@
+import { useState } from 'react';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { useAuth } from '../../lib/auth-context';
+import {
+  LayoutDashboard,
+  Upload,
+  BookOpen,
+  HelpCircle,
+  MessageCircle,
+  BarChart3,
+  History,
+  Settings,
+  User,
+  Menu,
+  X,
+  LogOut,
+  ChevronRight,
+} from 'lucide-react';
+
+interface AppShellProps {
+  children: React.ReactNode;
+}
+
+const navItems = [
+  { label: 'Dashboard', href: '/app/dashboard', icon: LayoutDashboard },
+  { label: 'Upload', href: '/app/upload', icon: Upload },
+  { label: 'Fiszki', href: '/app/flashcards', icon: BookOpen },
+  { label: 'Quiz', href: '/app/quiz', icon: HelpCircle },
+  { label: 'Lekcja AI', href: '/app/lesson', icon: MessageCircle },
+  { label: 'Wyniki', href: '/app/results', icon: BarChart3 },
+  { label: 'Historia', href: '/app/history', icon: History },
+];
+
+const bottomNavItems = [
+  { label: 'Profil', href: '/app/profile', icon: User },
+  { label: 'Ustawienia', href: '/app/settings', icon: Settings },
+];
+
+export function AppShell({ children }: AppShellProps) {
+  const { user, logout } = useAuth();
+  const location = useLocation();
+  const navigate = useNavigate();
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
+  const isActive = (href: string) => location.pathname === href || location.pathname.startsWith(href + '/');
+
+  const handleLogout = () => {
+    logout();
+    navigate('/');
+  };
+
+  return (
+    <div className="min-h-screen bg-[var(--omni-bg)] flex">
+      {/* Desktop Sidebar */}
+      <aside className="hidden lg:flex flex-col w-64 bg-white h-screen sticky top-0 border-r border-gray-100">
+        {/* Logo */}
+        <div className="p-6">
+          <Link to="/app/dashboard" className="flex items-center gap-2">
+            <div className="w-10 h-10 rounded-xl bg-[var(--omni-bg-dark)] flex items-center justify-center">
+              <span className="text-white font-bold text-lg">O</span>
+            </div>
+            <span className="font-semibold text-xl text-[var(--omni-text)]">
+              OmniNauka
+            </span>
+          </Link>
+        </div>
+
+        {/* Navigation */}
+        <nav className="flex-1 px-4 py-4 overflow-y-auto">
+          <div className="space-y-1">
+            {navItems.map((item) => (
+              <Link
+                key={item.href}
+                to={item.href}
+                className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${
+                  isActive(item.href)
+                    ? 'bg-[var(--omni-accent)] text-white'
+                    : 'text-[var(--omni-text-muted)] hover:bg-gray-100 hover:text-[var(--omni-text)]'
+                }`}
+              >
+                <item.icon className="w-5 h-5" />
+                <span className="font-medium">{item.label}</span>
+              </Link>
+            ))}
+          </div>
+        </nav>
+
+        {/* Bottom Navigation */}
+        <div className="p-4 border-t border-gray-100">
+          <div className="space-y-1 mb-4">
+            {bottomNavItems.map((item) => (
+              <Link
+                key={item.href}
+                to={item.href}
+                className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${
+                  isActive(item.href)
+                    ? 'bg-[var(--omni-lavender)] text-[var(--omni-text)]'
+                    : 'text-[var(--omni-text-muted)] hover:bg-gray-100 hover:text-[var(--omni-text)]'
+                }`}
+              >
+                <item.icon className="w-5 h-5" />
+                <span className="font-medium">{item.label}</span>
+              </Link>
+            ))}
+          </div>
+
+          {/* User */}
+          <div className="flex items-center gap-3 px-4 py-3">
+            <div className="w-10 h-10 rounded-full bg-[var(--omni-lavender)] flex items-center justify-center">
+              <span className="font-semibold text-[var(--omni-text)]">
+                {user?.name?.charAt(0) || 'U'}
+              </span>
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="font-medium text-[var(--omni-text)] truncate">
+                {user?.name || 'Użytkownik'}
+              </p>
+              <p className="text-xs text-[var(--omni-text-muted)] truncate">
+                {user?.plan === 'premium' ? 'Premium' : 'Darmowy'}
+              </p>
+            </div>
+            <button
+              onClick={handleLogout}
+              className="p-2 text-[var(--omni-text-muted)] hover:text-red-500 transition-colors"
+              title="Wyloguj"
+            >
+              <LogOut className="w-5 h-5" />
+            </button>
+          </div>
+        </div>
+      </aside>
+
+      {/* Mobile Header */}
+      <div className="lg:hidden fixed top-0 left-0 right-0 z-50 bg-white border-b border-gray-100">
+        <div className="flex items-center justify-between px-4 py-3">
+          <Link to="/app/dashboard" className="flex items-center gap-2">
+            <div className="w-8 h-8 rounded-lg bg-[var(--omni-bg-dark)] flex items-center justify-center">
+              <span className="text-white font-bold text-sm">O</span>
+            </div>
+            <span className="font-semibold text-[var(--omni-text)]">
+              OmniNauka
+            </span>
+          </Link>
+          <button
+            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+            className="p-2 text-[var(--omni-text)]"
+          >
+            {isMobileMenuOpen ? (
+              <X className="w-6 h-6" />
+            ) : (
+              <Menu className="w-6 h-6" />
+            )}
+          </button>
+        </div>
+
+        {/* Mobile Menu */}
+        {isMobileMenuOpen && (
+          <div className="absolute top-full left-0 right-0 bg-white border-b border-gray-100 shadow-lg">
+            <nav className="p-4">
+              <div className="space-y-1">
+                {navItems.map((item) => (
+                  <Link
+                    key={item.href}
+                    to={item.href}
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${
+                      isActive(item.href)
+                        ? 'bg-[var(--omni-accent)] text-white'
+                        : 'text-[var(--omni-text-muted)] hover:bg-gray-100'
+                    }`}
+                  >
+                    <item.icon className="w-5 h-5" />
+                    <span className="font-medium">{item.label}</span>
+                    <ChevronRight className="w-4 h-4 ml-auto" />
+                  </Link>
+                ))}
+              </div>
+              <div className="mt-4 pt-4 border-t border-gray-100 space-y-1">
+                {bottomNavItems.map((item) => (
+                  <Link
+                    key={item.href}
+                    to={item.href}
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${
+                      isActive(item.href)
+                        ? 'bg-[var(--omni-lavender)] text-[var(--omni-text)]'
+                        : 'text-[var(--omni-text-muted)] hover:bg-gray-100'
+                    }`}
+                  >
+                    <item.icon className="w-5 h-5" />
+                    <span className="font-medium">{item.label}</span>
+                  </Link>
+                ))}
+                <button
+                  onClick={handleLogout}
+                  className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-red-500 hover:bg-red-50"
+                >
+                  <LogOut className="w-5 h-5" />
+                  <span className="font-medium">Wyloguj</span>
+                </button>
+              </div>
+            </nav>
+          </div>
+        )}
+      </div>
+
+      {/* Main Content */}
+      <main className="flex-1 min-h-screen lg:ml-0 pt-16 lg:pt-0">
+        <div className="p-4 lg:p-8 max-w-6xl mx-auto">
+          {children}
+        </div>
+      </main>
+    </div>
+  );
+}
