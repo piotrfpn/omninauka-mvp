@@ -92,19 +92,12 @@ Demo mode uses:
 
 ## Known Limitations
 
-- No real OCR service (mocked analysis)
-- No real AI service (mocked responses)
-- Demo Mode bypasses actual database integration for data mapping
+- No real AI service for Tutor Chat yet (mocked responses via LessonPage)
 
 ## Next Steps for Production
 
-1. Connect to backend API
-2. Integrate OCR service (e.g., Google Vision, AWS Textract)
-3. Connect to AI service (OpenAI, Claude, etc.)
-4. Add real authentication (Supabase Auth, Firebase Auth, etc.)
-5. Add database for user data and study history
-6. Add file storage for uploaded images
-7. Add error tracking and analytics
+1. Optimize streaming edge functions for Tutor Chat integrating Vercel SDK
+2. Add error tracking and analytics
 
 ## Documentation
 

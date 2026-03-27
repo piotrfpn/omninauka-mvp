@@ -228,17 +228,9 @@ const { messages, input, handleInputChange, handleSubmit } = useChat({
 ```
 
 ### Database Integration
-**Locations:** All data fetching in page components
+**Locations:** `DashboardPage`, `HistoryPage`, `AnalysisPage`
 
-**Current:** Mock data from `mock/data.ts`
-
-**Future:** API calls to backend:
-```typescript
-const { data: sessions } = useQuery({
-  queryKey: ['study-sessions'],
-  queryFn: () => api.get('/api/sessions'),
-});
-```
+**Current:** Directly utilizing `@supabase/supabase-js` to select, insert, and query real `study_sessions` and `users` tables securely using proper row isolation policies. Fallbacks only trigger inside demo states.
 
 ### Authentication Service Integration
 **Location:** `lib/auth-context.tsx`

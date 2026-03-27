@@ -2,13 +2,8 @@
 
 ## Critical Issues (P0)
 
-### 1. No Real Backend Integration for History/Profile [PARTIALLY RESOLVED]
-**Status:** App is mapped to Supabase for Core Analysis. History Arrays still mocked.
-**Impact:** High
-**Description:** All data is mocked. No real OCR, AI, or persistence.
-**Workaround:** Demo mode works for testing UI/UX
-**Fix:** Removed OCR/AI mocks in Sprint 2B. Awaiting Dashboard replacement in 2C.
-
+### 1. No Real Backend Integration [RESOLVED - SPRINT 2A/2B/2C]
+**Fix:** Connected Supabase Auth, Storage, Edge Functions (OCR+AI) and fully migrated Dashboard and History views to pull real `study_sessions` instead of hardcoded mock data.
 ---
 
 ## High Priority Issues (P1)
