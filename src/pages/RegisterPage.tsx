@@ -11,6 +11,7 @@ export default function RegisterPage() {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
+  const [successMessage, setSuccessMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
   // Redirect if already logged in
@@ -25,19 +26,26 @@ export default function RegisterPage() {
     setError('');
     setIsLoading(true);
 
-    if (password.length < 4) {
-      setError('Hasło musi mieć co najmniej 4 znaki');
+    if (password.length < 6) {
+      setError('Hasło musi mieć co najmniej 6 znaków');
       setIsLoading(false);
       return;
     }
 
     try {
-      const success = await register(email, password, name);
-      if (!success) {
-        setError('Nie udało się utworzyć konta');
+      const result = await register(email, password, name);
+      
+      if (!result.success) {
+        setError(result.message || 'Nie udało się utworzyć konta.');
+      } else if (result.requireEmailVerification) {
+        setSuccessMessage('Konto zostało utworzone. Sprawdź email i potwierdź adres, aby się zalogować.');
+        // Clear sensitive inputs
+        setPassword('');
+      } else {
+        // Automatically logged in (handled by onAuthStateChange in AuthProvider routing to /app/dashboard)
       }
-    } catch {
-      setError('Wystąpił błąd podczas rejestracji');
+    } catch (err: any) {
+      setError(err?.message || 'Wystąpił błąd podczas rejestracji');
     } finally {
       setIsLoading(false);
     }
@@ -125,30 +133,41 @@ export default function RegisterPage() {
                 </button>
               </div>
               <p className="text-xs text-[var(--omni-text-muted)] mt-1">
-                Minimum 4 znaki
+                Minimum 6 znaków
               </p>
             </div>
 
             {error && (
-              <div className="p-3 bg-red-50 text-red-600 rounded-lg text-sm">
+              <div className="p-3 bg-red-50 text-red-600 rounded-lg text-sm border border-red-200">
                 {error}
               </div>
             )}
 
-            <button
-              type="submit"
-              disabled={isLoading}
-              className="w-full omni-btn-primary disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {isLoading ? (
-                <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-              ) : (
-                <>
-                  Utwórz konto
-                  <ArrowRight className="w-5 h-5" />
-                </>
-              )}
-            </button>
+            {successMessage && (
+              <div className="p-4 bg-green-50 border border-green-200 text-green-700 rounded-lg text-sm flex flex-col gap-3 animate-in fade-in zoom-in duration-300">
+                <p className="font-semibold text-base">{successMessage}</p>
+                <Link to="/login" className="inline-flex items-center text-green-800 hover:text-green-900 font-medium">
+                  Przejdź do logowania <ArrowRight className="ml-1 w-4 h-4" />
+                </Link>
+              </div>
+            )}
+
+            {!successMessage && (
+              <button
+                type="submit"
+                disabled={isLoading}
+                className="w-full omni-btn-primary disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isLoading ? (
+                  <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                ) : (
+                  <>
+                    Utwórz konto
+                    <ArrowRight className="w-5 h-5" />
+                  </>
+                )}
+              </button>
+            )}
           </form>
 
           <div className="mt-6 text-center">

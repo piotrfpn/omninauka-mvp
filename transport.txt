@@ -1,0 +1,37 @@
+class DefaultChatTransport<UI_MESSAGE extends UIMessage> extends HttpChatTransport<UI_MESSAGE> {
+    constructor(options?: HttpChatTransportInitOptions<UI_MESSAGE>);
+    protected processResponseStream(stream: ReadableStream<Uint8Array<ArrayBufferLike>>): ReadableStream<UIMessageChunk>;
+}
+
+/**
+ * Options for the `DirectChatTransport` class.
+ */
+type DirectChatTransportOptions<CALL_OPTIONS, TOOLS extends ToolSet, OUTPUT extends Output, UI_MESSAGE extends UIMessage<unknown, never, InferUITools<TOOLS>>> = {
+    /**
+     * The agent to use for generating responses.
+     */
+    agent: Agent<CALL_OPTIONS, TOOLS, OUTPUT>;
+    /**
+     * Options to pass to the agent when calling it.
+     */
+    options?: CALL_OPTIONS;
+} & Omit<UIMessageStreamOptions<UI_MESSAGE>, 'onFinish'>;
+/**
+ * A transport that directly communicates with an Agent in-process,
+ * without going through HTTP. This is useful for:
+ * - Server-side rendering scenarios
+ * - Testing without network
+ * - Single-process applications
+ *
+ * @example
+ * ```tsx
+ * import { useChat } from '@ai-sdk/react';
+ * import { DirectChatTransport } from 'ai';
+ * import { myAgent } from './my-agent';
+ *
+ * const { messages, sendMessage } = useChat({
+ *   transport: new DirectChatTransport({ agent: myAgent }),
+ * });
+ * ```
+ */
+declare class DirectChatTransport<CALL_OPTIONS = never, TOOLS extends ToolSet = {}, OUTPUT extends Output = never, UI_MESSAGE extends UIMessage<unknown, never, InferUITools<TOOLS>> = UIMessage<unknown, never, InferUI

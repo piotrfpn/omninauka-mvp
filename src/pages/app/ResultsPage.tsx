@@ -58,8 +58,8 @@ export default function ResultsPage() {
     );
   }
 
-  const score = Math.round((results.correctAnswers / results.totalQuestions) * 100);
-  const incorrectAnswers = results.totalQuestions - results.correctAnswers;
+  const score = results.totalQuestions > 0 ? Math.min(100, Math.max(0, Math.round((results.correctAnswers / results.totalQuestions) * 100))) : 0;
+  const incorrectAnswers = Math.max(0, results.totalQuestions - results.correctAnswers);
 
   const getScoreColor = () => {
     if (score >= 80) return 'text-green-500';

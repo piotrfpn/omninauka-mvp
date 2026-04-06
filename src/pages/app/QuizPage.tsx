@@ -58,17 +58,11 @@ export default function QuizPage() {
     } else {
       setIsFinished(true);
       // Store results
-      const correctCount = answers.filter(a => a.isCorrect).length + 
-        (selectedAnswer === currentQuestion.correctAnswer ? 1 : 0);
+      const correctCount = answers.filter(a => a.isCorrect).length;
       sessionStorage.setItem('quizResults', JSON.stringify({
         totalQuestions: questions.length,
         correctAnswers: correctCount,
-        answers: [...answers, {
-          questionId: currentQuestion.id,
-          selectedAnswer: selectedAnswer!,
-          isCorrect: selectedAnswer === currentQuestion.correctAnswer,
-          timeSpentSeconds: Math.round((Date.now() - startTime) / 1000),
-        }],
+        answers: answers,
       }));
     }
   };
@@ -96,9 +90,8 @@ export default function QuizPage() {
   }
 
   if (isFinished) {
-    const correctCount = answers.filter(a => a.isCorrect).length + 
-      (selectedAnswer === currentQuestion.correctAnswer ? 1 : 0);
-    const score = Math.round((correctCount / questions.length) * 100);
+    const correctCount = answers.filter(a => a.isCorrect).length;
+    const score = questions.length > 0 ? Math.min(100, Math.max(0, Math.round((correctCount / questions.length) * 100))) : 0;
 
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh]">

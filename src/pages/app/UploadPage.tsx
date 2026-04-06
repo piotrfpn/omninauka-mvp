@@ -36,7 +36,7 @@ export default function UploadPage() {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
-  const { user } = useAuth();
+  const { user, isDemoMode } = useAuth();
 
   const onDrop = useCallback((acceptedFiles: File[]) => {
     setError(null);
@@ -176,8 +176,8 @@ export default function UploadPage() {
     setError(null);
     
     // DEMO MODE BYPASS (since anonymous users might not have storage RLS access)
-    // The mock user ID from data.ts is '1'
-    if (!user || user.id === '1') {
+    // Avoids cloud uploads entirely if user is in demo mode
+    if (!user || isDemoMode) {
       sessionStorage.setItem('demoImageBase64', croppedImage);
       sessionStorage.setItem('currentSessionId', 'demo-session');
       await new Promise(resolve => setTimeout(resolve, 2000));
@@ -263,6 +263,12 @@ export default function UploadPage() {
         <p className="text-[var(--omni-text-muted)]">
           Zeskanuj swoje notatki, a AI przygotuje materiał do nauki.
         </p>
+        {isDemoMode && (
+          <div className="mt-4 p-3 bg-blue-50 text-blue-700 rounded-lg flex items-center gap-3 text-sm border border-blue-100">
+            <AlertCircle className="w-5 h-5 flex-shrink-0" />
+            <p className="font-medium">Jesteś w trybie demo (tylko podgląd). Zdjęcie zostanie przetworzone tylko u Ciebie i nie trafi do chmury.</p>
+          </div>
+        )}
       </div>
 
       {/* Error */}

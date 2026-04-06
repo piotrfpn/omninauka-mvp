@@ -6,14 +6,14 @@ import { useAuth } from '../../lib/auth-context';
 import { Calendar, Clock, Award, BookOpen, TrendingUp, ArrowRight } from 'lucide-react';
 
 export default function HistoryPage() {
-  const { user } = useAuth();
+  const { user, isDemoMode } = useAuth();
   const navigate = useNavigate();
   const [sessions, setSessions] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!user || user.id === '1') {
+    if (!user || isDemoMode) {
       setSessions(mockStudySessions);
       setIsLoading(false);
       return;
@@ -31,7 +31,7 @@ export default function HistoryPage() {
         setSessions(data || []);
       } catch (err: any) {
         console.error("History fetch error:", err);
-        setError("Nie udało się załadować historii nauki.");
+        setError(`Nie udało się załadować historii nauki: ${err.message || 'Błąd sieci.'}`);
       } finally {
         setIsLoading(false);
       }

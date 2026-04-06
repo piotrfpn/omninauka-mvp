@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.38.4";
+import { createClient } from "npm:@supabase/supabase-js@2";
+import { createRemoteJWKSet, jwtVerify, decodeProtectedHeader } from "npm:jose";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -12,52 +13,106 @@ serve(async (req) => {
   }
 
   try {
-    // 1. Authenticate Request via Auth Client
-    const supabaseClient = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
-      { global: { headers: { Authorization: req.headers.get('Authorization')! } } }
-    );
+    console.log("--- ANALYZE-NOTES INVOCATION START ---");
+    
+    const authHeader = req.headers.get('Authorization') || req.headers.get('authorization');
 
-    const { data: { user }, error: userError } = await supabaseClient.auth.getUser();
-    if (userError || !user) {
-      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+    if (!authHeader) {
+      console.error("[analyze-notes] 401: Missing Authorization header");
+      return new Response(JSON.stringify({ error: 'Unauthorized: missing authorization header' }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 401,
       });
     }
 
-    const { sessionId } = await req.json();
-    if (!sessionId) {
-      return new Response(JSON.stringify({ error: 'Missing sessionId' }), {
-         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-         status: 400 
+    const parts = authHeader.trim().split(/\s+/);
+
+    if (parts.length !== 2 || parts[0].toLowerCase() !== 'bearer') {
+      console.error("[analyze-notes] 401: Invalid bearer format");
+      return new Response(JSON.stringify({ error: 'Unauthorized: invalid authorization format' }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 401,
       });
     }
 
-    // 2. Initialize Admin Service Client for Secure Internal Database/Storage Operations
-    // (Bypasses UI-level RLS restrictions inside trusted server environment)
+    const token = parts[1].trim();
+
+    if (!token) {
+      console.error("[analyze-notes] 401: Empty token");
+      return new Response(JSON.stringify({ error: 'Unauthorized: empty bearer token' }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 401,
+      });
+    }
+
+    // Verify JWT via official Supabase JWKS pattern
+    const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? '';
+    if (!supabaseUrl) {
+      console.error("[analyze-notes] 500: SUPABASE_URL missing");
+      return new Response(JSON.stringify({ error: 'Server misconfiguration' }), {
+         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+         status: 500,
+      });
+    }
+
+    const JWKS = createRemoteJWKSet(new URL(`${supabaseUrl}/auth/v1/.well-known/jwks.json`));
+
+    let userId: string;
+    try {
+      const { payload } = await jwtVerify(token, JWKS, {
+        issuer: `${supabaseUrl}/auth/v1`,
+      });
+      if (!payload.sub) throw new Error("Missing sub claim");
+      userId = payload.sub;
+    } catch (err: any) {
+      console.error("[analyze-notes] 401: JWT verification failed ->", err?.message);
+      return new Response(JSON.stringify({ error: 'Unauthorized: token validation failed' }), {
+         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+         status: 401,
+      });
+    }
+
+    const body = await req.json();
+    const sessionId = body.sessionId;
+
+    if (!sessionId) {
+      console.error("[analyze-notes] 400: Missing sessionId");
+      return new Response(JSON.stringify({ error: 'Missing sessionId' }), {
+         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+         status: 400
+      });
+    }
+
+    // Admin client for storage + DB access (bypasses RLS)
     const adminClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
+      { auth: { persistSession: false } }
     );
 
-    // Fetch Session
     const { data: sessionData, error: dbError } = await adminClient
       .from('study_sessions')
-      .select('image_url, subject')
+      .select('image_url, subject, user_id')
       .eq('id', sessionId)
-      .eq('user_id', user.id)
       .single();
 
     if (dbError || !sessionData) {
-      return new Response(JSON.stringify({ error: 'Session not found or forbidden' }), {
+      console.error("[analyze-notes] 404: Session not found ->", sessionId);
+      return new Response(JSON.stringify({ error: 'Session not found' }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 404
       });
     }
 
-    // Idempotency Check: Don't double-charge APIs if already processed
+    if (sessionData.user_id !== userId) {
+       console.error("[analyze-notes] 403: Ownership mismatch");
+       return new Response(JSON.stringify({ error: 'Forbidden: session belongs to another user' }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 403
+       });
+    }
+
+    // Idempotency guard: skip if already processed
     if (sessionData.subject) {
       return new Response(JSON.stringify({ success: true, alreadyAnalyzed: true }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -65,19 +120,38 @@ serve(async (req) => {
       });
     }
 
-    // 3. Download Base64 payload from private Storage securely via Admin
+    // 3. Download image from private Storage via admin client
     const { data: fileData, error: downloadError } = await adminClient.storage
       .from('study-materials')
       .download(sessionData.image_url);
 
     if (downloadError || !fileData) {
-      throw new Error(`Failed to download image securely: ${downloadError?.message}`);
+      console.error("[analyze-notes] 500: Storage download failed ->", downloadError?.message);
+      return new Response(JSON.stringify({ error: `Storage download failed: ${downloadError?.message || 'no payload'}` }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 500
+      });
     }
 
     const arrayBuffer = await fileData.arrayBuffer();
-    const base64Image = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
+    const bytes = new Uint8Array(arrayBuffer);
 
-    // 4. Trigger Google Cloud Vision OCR
+    if (bytes.length === 0) {
+      console.error("[analyze-notes] 400: Empty image payload");
+      return new Response(JSON.stringify({ error: "Invalid/empty image payload returned from Storage" }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 400
+      });
+    }
+
+    let binary = '';
+    const chunkSize = 32768;
+    for (let i = 0; i < bytes.length; i += chunkSize) {
+       binary += String.fromCharCode(...bytes.subarray(i, i + chunkSize));
+    }
+    const base64Image = btoa(binary);
+
+    // 4. Google Cloud Vision OCR
     const GOOGLE_VISION_KEY = Deno.env.get('GOOGLE_VISION_API_KEY');
     if (!GOOGLE_VISION_KEY) throw new Error("Google Vision API Key missing");
 
@@ -92,10 +166,33 @@ serve(async (req) => {
       })
     });
 
-    const visionData = await visionResponse.json();
-    const ocrText = visionData.responses?.[0]?.fullTextAnnotation?.text || "";
+    const rawVisionText = await visionResponse.text();
+    let visionData: any = {};
+    try {
+       visionData = JSON.parse(rawVisionText);
+    } catch(e) {
+       console.error("[analyze-notes] Vision response not valid JSON");
+    }
 
-    // Gracefully handle empty images (e.g. blurry/blank pages)
+    const topLevelError = visionData.error;
+    const responsesExist = Array.isArray(visionData.responses) && visionData.responses.length > 0;
+    const responseItem = responsesExist ? visionData.responses[0] : null;
+    const hasVisionError = !!responseItem?.error;
+
+    if (!visionResponse.ok || topLevelError || hasVisionError) {
+       const exactMessage = topLevelError?.message || responseItem?.error?.message || "Unknown Error";
+       console.error("[analyze-notes] 502: Google Vision error ->", exactMessage);
+       return new Response(JSON.stringify({ 
+          error: `Google Vision error: ${exactMessage}`
+       }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 502
+       });
+    }
+
+    const ocrText = responseItem?.fullTextAnnotation?.text || "";
+    console.log("[analyze-notes] OCR chars extracted:", ocrText.length);
+
     if (!ocrText || ocrText.trim().length === 0) {
       return new Response(JSON.stringify({ error: "Nie wykryto żadnego tekstu na zdjęciu." }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -103,7 +200,18 @@ serve(async (req) => {
       });
     }
 
-    // 5. Send to OpenAI for structured generation
+    // Quiz mode configuration — allows future quick/standard/extended support
+    // quizMode: 'quick' = 8 questions | 'standard' = 12 | 'extended' = 20
+    const QUIZ_MODE = 'standard';
+    const QUIZ_COUNTS: Record<string, { easy: number; medium: number; hard: number }> = {
+      quick:    { easy: 3, medium: 3, hard: 2 },
+      standard: { easy: 4, medium: 5, hard: 3 },
+      extended: { easy: 6, medium: 9, hard: 5 },
+    };
+    const qc = QUIZ_COUNTS[QUIZ_MODE];
+    const totalQuiz = qc.easy + qc.medium + qc.hard;
+
+    // 5. OpenAI structured generation
     const OPENAI_KEY = Deno.env.get('OPENAI_API_KEY');
     if (!OPENAI_KEY) throw new Error("OpenAI API Key missing");
 
@@ -119,12 +227,13 @@ serve(async (req) => {
         messages: [
           {
             role: "system",
-            content: `You are an expert Polish educational AI. You receive absolute raw OCR text. Extract and structure studying materials identically to the provided JSON schema. Output ONLY valid JSON.
-Schema:
+            content: `You are an expert Polish educational AI. You receive raw OCR text from study materials. Extract and structure them into the provided JSON schema. Output ONLY valid JSON, no prose.
+
+SCHEMA:
 {
   "subject": "String (e.g. Biologia)",
   "topic": "String (e.g. Budowa Komórki)",
-  "summary": "String (A high-level educational summary)",
+  "summary": "String (2-4 sentence high-level summary in Polish)",
   "keyConcepts": [
      { "term": "String", "definition": "String", "category": "definition" | "date" | "formula" | "person" | "event" | "concept" }
   ],
@@ -132,29 +241,75 @@ Schema:
      { "front": "String", "back": "String", "difficulty": "easy" | "medium" | "hard" }
   ],
   "quizQuestions": [
-     { "question": "String", "options": ["String", "String", "String", "String"], "correctIndex": "Number (0-3)", "explanation": "String", "difficulty": "easy" | "medium" | "hard" }
+     { "question": "String", "options": ["String", "String", "String", "String"], "correctIndex": number (0-3), "explanation": "String", "difficulty": "easy" | "medium" | "hard" }
   ]
-}`
+}
+
+QUIZ RULES — CRITICAL, MUST FOLLOW EXACTLY:
+- Generate EXACTLY ${totalQuiz} quiz questions total.
+- Difficulty distribution MUST be: ${qc.easy} easy, ${qc.medium} medium, ${qc.hard} hard.
+- Order: easy questions first, then medium, then hard.
+- Each question must have EXACTLY 4 answer options.
+- correctIndex must be a number 0-3 (not a string).
+- Each question must include a clear Polish explanation of why the correct answer is right.
+- Questions must test understanding of the material, not surface reading.
+- Do not repeat questions or rephrase the same fact.
+- All text (questions, options, explanations) must be in Polish.`
           },
           { role: "user", content: `Raw OCR Text:\n${ocrText}` }
         ],
-        temperature: 0.2
+        temperature: 0.2,
+        max_tokens: 4000
       })
     });
 
-    const aiData = await openAiResponse.json();
-    let parsedGeneration: any = {};
-    
-    // Schema Safety Guard
+    const rawAiText = await openAiResponse.text();
+    let aiData: any = {};
     try {
-      if (aiData.choices && aiData.choices[0] && aiData.choices[0].message) {
+      aiData = JSON.parse(rawAiText);
+    } catch (e) {
+      console.error("[analyze-notes] OpenAI response not valid JSON");
+      return new Response(JSON.stringify({ error: "AI processing error: invalid response format" }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 502
+      });
+    }
+
+    if (aiData.error) {
+      console.error("[analyze-notes] 502: OpenAI API error ->", aiData.error?.message);
+      return new Response(JSON.stringify({ error: `OpenAI API error: ${aiData.error?.message || 'Unknown'}` }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 502
+      });
+    }
+
+    if (!openAiResponse.ok) {
+      console.error("[analyze-notes] OpenAI non-ok status ->", openAiResponse.status);
+      return new Response(JSON.stringify({ error: `OpenAI HTTP error ${openAiResponse.status}` }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 502
+      });
+    }
+
+    const hasContent = Array.isArray(aiData.choices) && !!aiData.choices[0]?.message?.content;
+
+    let parsedGeneration: any = {};
+    try {
+      if (hasContent) {
          parsedGeneration = JSON.parse(aiData.choices[0].message.content);
       } else {
-         throw new Error("Invalid OpenAI response shape");
+         console.error("[analyze-notes] OpenAI unexpected response shape");
+         return new Response(JSON.stringify({ error: "AI processing error: unexpected response shape" }), {
+           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+           status: 502
+         });
       }
-    } catch (parseErr) {
-       console.error("OpenAI JSON Parse Failure.", aiData);
-       throw new Error("Wystąpił błąd podczas interpretacji tekstu przez AI.");
+    } catch (parseErr: any) {
+       console.error("[analyze-notes] JSON.parse failed ->", parseErr?.message);
+       return new Response(JSON.stringify({ error: `AI processing error: JSON parse failed` }), {
+         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+         status: 502
+       });
     }
 
     // Ensure strict arrays exist fallback to empty

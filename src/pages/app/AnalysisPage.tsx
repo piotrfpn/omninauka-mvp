@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import type { AnalysisResult, KeyConcept } from '../../types';
 import { getDemoAnalysis } from '../../mock/data';
 import { supabase } from '../../lib/supabase';
+import { useAuth } from '../../lib/auth-context';
 
 import {
   BookOpen,
@@ -19,6 +20,7 @@ import {
 
 export default function AnalysisPage() {
   const navigate = useNavigate();
+  const { isDemoMode } = useAuth();
   const [analysis, setAnalysis] = useState<AnalysisResult | null>(null);
   const [uploadedImage, setUploadedImage] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -68,15 +70,49 @@ export default function AnalysisPage() {
           }
         }
         if (sessionData && !sessionData.subject) {
-          // Trigger the real OCR and AI pipeline via Supabase Edge Functions
-          const { data: responseData, error: invokeError } = await supabase.functions.invoke('analyze-notes', {
-            body: { sessionId }
+          // Retrieve session explicitly to ensure token is fresh
+          const { data: { session } } = await supabase.auth.getSession();
+          
+          const functionUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/analyze-notes`;
+          
+          const rawResponse = await fetch(functionUrl, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY,
+              ...(session ? { 'Authorization': `Bearer ${session.access_token}` } : {})
+            },
+            body: JSON.stringify({ sessionId })
           });
 
-          // Check for native HTTP layer errors or explicitly surfaced application errors
-          if (invokeError || (responseData && responseData.error)) {
-            const errorMsg = invokeError?.message || responseData?.error || "Nie udało się przeanalizować notatek.";
-            console.error("Edge function analysis failed:", errorMsg);
+          let backendPayload = "";
+          try {
+            backendPayload = await rawResponse.text();
+          } catch (e) {
+            backendPayload = "Failed to parse body text";
+          }
+
+          if (!rawResponse.ok || (backendPayload.includes("error") && !rawResponse.ok)) {
+            let errorMsg = "Wystąpił problem z serwerem analizy AI. Spróbuj ponownie lub skontaktuj się ze wsparciem.";
+            
+            if (rawResponse.status === 422 || backendPayload.includes("Nie wykryto") || backendPayload.includes("no text")) {
+               errorMsg = "Nie udało się odczytać tekstu ze zdjęcia. Spróbuj zrobić zdjęcie bliżej, przy lepszym świetle i tak, aby tekst był wyraźny.";
+            } else if (rawResponse.status === 401 || rawResponse.status === 403 || backendPayload.includes("Unauthorized") || backendPayload.includes("validation failed")) {
+               errorMsg = "Uwierzytelnienie sesji wygasło. Odśwież stronę i w razie potrzeby zaloguj się ponownie.";
+            } else if (rawResponse.status === 404 || backendPayload.includes("Session not found")) {
+               errorMsg = "Sesja analizy wygasła lub nie została poprawnie zapisana. Prześlij notatkę ponownie.";
+            } else if (backendPayload.includes("Failed to download image")) {
+               errorMsg = "Błąd uprawnień do wczytania obrazu. Spróbuj powtórzyć wgranie pliku.";
+            } else if (backendPayload.includes("interpretacji tekstu") || backendPayload.includes("OpenAI")) {
+               errorMsg = "Model AI miał problem ze zrozumieniem tych notatek. Spróbuj wyraźniejszego ujęcia.";
+            } else if (rawResponse.status >= 500) {
+               errorMsg = "Wystąpił tymczasowy błąd serwera. Spróbuj za chwilę.";
+            }
+
+            // Developer diagnostic logging kept strictly inside the console
+            console.error(`Edge function analysis failed (Status ${rawResponse.status}):`, backendPayload);
+            
+            // Clean UX message mapping returned to the UI instead of raw debug strings
             setAnalysisError(errorMsg);
             setIsLoading(false);
             return;
@@ -217,6 +253,11 @@ export default function AnalysisPage() {
             <span className="text-sm text-[var(--omni-text-muted)]">
               Pewność: {Math.round(analysis.confidence * 100)}%
             </span>
+            {isDemoMode && (
+              <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full font-medium">
+                Tryb Demo
+              </span>
+            )}
           </div>
           <h1 className="omni-heading-3 text-[var(--omni-text)]">
             {analysis.topic}

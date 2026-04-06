@@ -17,7 +17,7 @@ import {
 } from 'lucide-react';
 
 export default function DashboardPage() {
-  const { user } = useAuth();
+  const { user, isDemoMode } = useAuth();
   
   const [sessions, setSessions] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -33,7 +33,7 @@ export default function DashboardPage() {
   });
 
   useEffect(() => {
-    if (!user || user.id === '1') {
+    if (!user || isDemoMode) {
       // 100% Mock Mode for Demo Account
       setSessions(mockStudySessions.slice(0, 3));
       setComputedStats({

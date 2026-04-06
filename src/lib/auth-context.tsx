@@ -5,9 +5,10 @@ import { supabase } from './supabase';
 
 interface AuthContextType extends AuthState {
   login: (email: string, password: string) => Promise<boolean>;
-  register: (email: string, password: string, name: string) => Promise<boolean>;
+  register: (email: string, password: string, name: string) => Promise<{ success: boolean; message?: string; requireEmailVerification?: boolean }>;
   logout: () => void;
   loginAsDemo: () => void;
+  isDemoMode: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -95,9 +96,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return true;
   };
 
-  const register = async (email: string, password: string, name: string): Promise<boolean> => {
+  const register = async (email: string, password: string, name: string) => {
     setIsDemoMode(false);
-    const { error } = await supabase.auth.signUp({
+    const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: {
@@ -108,10 +109,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     });
 
     if (error) {
-      console.error(error);
-      return false;
+      console.error("SignUp Error:", error);
+      let errorMessage = error.message;
+      if (errorMessage.toLowerCase().includes('rate limit')) {
+        errorMessage = 'Przekroczono chwilowy limit prób mailowych. Odczekaj chwilę i spróbuj ponownie.';
+      } else if (errorMessage.toLowerCase().includes('password')) {
+        errorMessage = 'Hasło jest zbyt proste lub brakuje mu znaków (minimum 6).';
+      }
+      return { success: false, message: errorMessage };
     }
-    return true;
+
+    // Supabase obfuscates "User Already Exists" by returning a fake success with an empty identities array
+    // to prevent email enumeration. We must check this to provide explicit UX feedback.
+    if (data.user && data.user.identities && data.user.identities.length === 0) {
+      return { success: false, message: "Konto powiązane z tym adresem email już istnieje." };
+    }
+
+    // If session is null, it means email confirmation is required before login
+    if (data.user && !data.session) {
+      return { success: true, requireEmailVerification: true };
+    }
+
+    return { success: true };
   };
 
   const logout = async () => {
@@ -140,6 +159,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         register,
         logout,
         loginAsDemo,
+        isDemoMode,
       }}
     >
       {children}

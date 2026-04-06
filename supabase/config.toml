@@ -1,0 +1,4 @@
+[functions.analyze-notes]
+verify_jwt = false
+[functions.chat-tutor]
+verify_jwt = false
