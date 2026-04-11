@@ -120,85 +120,141 @@ serve(async (req) => {
       });
     }
 
-    // 3. Download image from private Storage via admin client
-    const { data: fileData, error: downloadError } = await adminClient.storage
-      .from('study-materials')
-      .download(sessionData.image_url);
+    // 3. Collect all image paths for this session
+    // Primary image from study_sessions.image_url (always present for backward compat)
+    // Additional images from session_images child table (Sprint 2)
+    const imagePaths: string[] = [];
 
-    if (downloadError || !fileData) {
-      console.error("[analyze-notes] 500: Storage download failed ->", downloadError?.message);
-      return new Response(JSON.stringify({ error: `Storage download failed: ${downloadError?.message || 'no payload'}` }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 500
-      });
+    if (sessionData.image_url) {
+      imagePaths.push(sessionData.image_url);
     }
 
-    const arrayBuffer = await fileData.arrayBuffer();
-    const bytes = new Uint8Array(arrayBuffer);
+    const { data: childImages } = await adminClient
+      .from('session_images')
+      .select('image_url, position')
+      .eq('session_id', sessionId)
+      .order('position', { ascending: true });
 
-    if (bytes.length === 0) {
-      console.error("[analyze-notes] 400: Empty image payload");
-      return new Response(JSON.stringify({ error: "Invalid/empty image payload returned from Storage" }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 400
-      });
+    if (childImages && childImages.length > 0) {
+      for (const ci of childImages) {
+        if (ci.image_url && !imagePaths.includes(ci.image_url)) {
+          imagePaths.push(ci.image_url);
+        }
+      }
     }
 
-    let binary = '';
-    const chunkSize = 32768;
-    for (let i = 0; i < bytes.length; i += chunkSize) {
-       binary += String.fromCharCode(...bytes.subarray(i, i + chunkSize));
-    }
-    const base64Image = btoa(binary);
+    console.log(`[analyze-notes] Processing ${imagePaths.length} image(s) for session:`, sessionId);
 
-    // 4. Google Cloud Vision OCR
+    // 4. Google Cloud Vision OCR — sequential per image, concatenate results
     const GOOGLE_VISION_KEY = Deno.env.get('GOOGLE_VISION_API_KEY');
     if (!GOOGLE_VISION_KEY) throw new Error("Google Vision API Key missing");
 
-    const visionResponse = await fetch(`https://vision.googleapis.com/v1/images:annotate?key=${GOOGLE_VISION_KEY}`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        requests: [{
-          image: { content: base64Image },
-          features: [{ type: "DOCUMENT_TEXT_DETECTION" }]
-        }]
-      })
-    });
+    const ocrParts: string[] = [];
 
-    const rawVisionText = await visionResponse.text();
-    let visionData: any = {};
-    try {
-       visionData = JSON.parse(rawVisionText);
-    } catch(e) {
-       console.error("[analyze-notes] Vision response not valid JSON");
+    for (let imgIdx = 0; imgIdx < imagePaths.length; imgIdx++) {
+      const imgPath = imagePaths[imgIdx];
+      console.log(`[analyze-notes] OCR image ${imgIdx + 1}/${imagePaths.length}: ${imgPath}`);
+
+      // Download image from private Storage
+      const { data: fileData, error: downloadError } = await adminClient.storage
+        .from('study-materials')
+        .download(imgPath);
+
+      if (downloadError || !fileData) {
+        console.error(`[analyze-notes] Storage download failed for image ${imgIdx + 1} ->`, downloadError?.message);
+        // Non-fatal for multi-image: log and skip this image
+        if (imagePaths.length === 1) {
+          return new Response(JSON.stringify({ error: `Storage download failed: ${downloadError?.message || 'no payload'}` }), {
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            status: 500
+          });
+        }
+        ocrParts.push(`[Strona ${imgIdx + 1}: błąd pobierania obrazu]`);
+        continue;
+      }
+
+      const arrayBuffer = await fileData.arrayBuffer();
+      const bytes = new Uint8Array(arrayBuffer);
+
+      if (bytes.length === 0) {
+        console.error(`[analyze-notes] Empty image payload for image ${imgIdx + 1}`);
+        ocrParts.push(`[Strona ${imgIdx + 1}: pusty plik]`);
+        continue;
+      }
+
+      // Convert to base64
+      let binary = '';
+      const chunkSize = 32768;
+      for (let i = 0; i < bytes.length; i += chunkSize) {
+        binary += String.fromCharCode(...bytes.subarray(i, i + chunkSize));
+      }
+      const base64Image = btoa(binary);
+
+      // Call Google Vision OCR
+      const visionResponse = await fetch(`https://vision.googleapis.com/v1/images:annotate?key=${GOOGLE_VISION_KEY}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          requests: [{
+            image: { content: base64Image },
+            features: [{ type: "DOCUMENT_TEXT_DETECTION" }]
+          }]
+        })
+      });
+
+      const rawVisionText = await visionResponse.text();
+      let visionData: any = {};
+      try {
+        visionData = JSON.parse(rawVisionText);
+      } catch(e) {
+        console.error(`[analyze-notes] Vision response not valid JSON for image ${imgIdx + 1}`);
+      }
+
+      const topLevelError = visionData.error;
+      const responsesExist = Array.isArray(visionData.responses) && visionData.responses.length > 0;
+      const responseItem = responsesExist ? visionData.responses[0] : null;
+      const hasVisionError = !!responseItem?.error;
+
+      if (!visionResponse.ok || topLevelError || hasVisionError) {
+        const exactMessage = topLevelError?.message || responseItem?.error?.message || "Unknown Error";
+        console.error(`[analyze-notes] Vision error for image ${imgIdx + 1} ->`, exactMessage);
+        // Fatal only for single-image sessions
+        if (imagePaths.length === 1) {
+          return new Response(JSON.stringify({ error: `Google Vision error: ${exactMessage}` }), {
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            status: 502
+          });
+        }
+        ocrParts.push(`[Strona ${imgIdx + 1}: błąd OCR - ${exactMessage}]`);
+        continue;
+      }
+
+      const pageText = responseItem?.fullTextAnnotation?.text || "";
+      console.log(`[analyze-notes] Image ${imgIdx + 1} OCR chars:`, pageText.length);
+
+      if (pageText.trim().length > 0) {
+        ocrParts.push(imgIdx === 0 ? pageText : `--- Strona ${imgIdx + 1} ---\n${pageText}`);
+      }
     }
 
-    const topLevelError = visionData.error;
-    const responsesExist = Array.isArray(visionData.responses) && visionData.responses.length > 0;
-    const responseItem = responsesExist ? visionData.responses[0] : null;
-    const hasVisionError = !!responseItem?.error;
+    // Combine all OCR text
+    let ocrText = ocrParts.join('\n\n');
+    console.log("[analyze-notes] Total OCR chars before cap:", ocrText.length);
 
-    if (!visionResponse.ok || topLevelError || hasVisionError) {
-       const exactMessage = topLevelError?.message || responseItem?.error?.message || "Unknown Error";
-       console.error("[analyze-notes] 502: Google Vision error ->", exactMessage);
-       return new Response(JSON.stringify({ 
-          error: `Google Vision error: ${exactMessage}`
-       }), {
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          status: 502
-       });
+    // Cost protection: cap combined OCR at 8000 chars to avoid OpenAI context overflow
+    const OCR_CHAR_CAP = 8000;
+    if (ocrText.length > OCR_CHAR_CAP) {
+      console.warn(`[analyze-notes] OCR text truncated from ${ocrText.length} to ${OCR_CHAR_CAP} chars`);
+      ocrText = ocrText.substring(0, OCR_CHAR_CAP) + '\n[...tekst obcięty - za długi materiał]';
     }
-
-    const ocrText = responseItem?.fullTextAnnotation?.text || "";
-    console.log("[analyze-notes] OCR chars extracted:", ocrText.length);
 
     if (!ocrText || ocrText.trim().length === 0) {
-      return new Response(JSON.stringify({ error: "Nie wykryto żadnego tekstu na zdjęciu." }), {
+      return new Response(JSON.stringify({ error: "Nie wykryto żadnego tekstu na zdjęciach." }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 422
       });
     }
+
 
     // Quiz mode configuration — allows future quick/standard/extended support
     // quizMode: 'quick' = 8 questions | 'standard' = 12 | 'extended' = 20
@@ -227,13 +283,13 @@ serve(async (req) => {
         messages: [
           {
             role: "system",
-            content: `You are an expert Polish educational AI. You receive raw OCR text from study materials. Extract and structure them into the provided JSON schema. Output ONLY valid JSON, no prose.
+            content: `Jesteś ekspertem edukacyjnym tworzącym wysokiej jakości materiały do nauki w języku polskim. Otrzymujesz surowy tekst OCR z notatek. Wyodrębnij i ustrukturyzuj dane w podanym schemacie JSON. Zwróć TYLKO poprawny JSON, bez żadnego dodatkowego tekstu.
 
 SCHEMA:
 {
-  "subject": "String (e.g. Biologia)",
-  "topic": "String (e.g. Budowa Komórki)",
-  "summary": "String (2-4 sentence high-level summary in Polish)",
+  "subject": "String (np. Biologia)",
+  "topic": "String (np. Budowa Komórki)",
+  "summary": "String (2-4 zdania po polsku)",
   "keyConcepts": [
      { "term": "String", "definition": "String", "category": "definition" | "date" | "formula" | "person" | "event" | "concept" }
   ],
@@ -245,18 +301,46 @@ SCHEMA:
   ]
 }
 
-QUIZ RULES — CRITICAL, MUST FOLLOW EXACTLY:
-- Generate EXACTLY ${totalQuiz} quiz questions total.
-- Difficulty distribution MUST be: ${qc.easy} easy, ${qc.medium} medium, ${qc.hard} hard.
-- Order: easy questions first, then medium, then hard.
-- Each question must have EXACTLY 4 answer options.
-- correctIndex must be a number 0-3 (not a string).
-- Each question must include a clear Polish explanation of why the correct answer is right.
-- Questions must test understanding of the material, not surface reading.
-- Do not repeat questions or rephrase the same fact.
-- All text (questions, options, explanations) must be in Polish.`
+ZASADY FISZEK — KRYTYCZNE, MUSZĄ BYĆ BEZWZGLĘDNIE PRZESTRZEGANE:
+
+1. UNIKALNOŚĆ: Każda fiszka musi dotyczyć INNEGO faktu, pojęcia lub zależności.
+   - ZAKAZ tworzenia dwóch fiszek o tym samym znaczeniu, nawet innymi słowami.
+   - ZAKAZ fiszek, których odpowiedź jest wariantem innej fiszki.
+   - Przed dodaniem nowej fiszki sprawdź, czy nie pokrywa się z już dodaną.
+
+2. RÓŻNORODNOŚĆ TYPÓW — obowiązkowo mieszaj poniższe kategorie:
+   a) Definicja: "Co to jest X?" → zwięzła definicja
+   b) Przykład: "Przykład zastosowania X?" → konkretny przykład z życia
+   c) Porównanie: "Czym różni się A od B?" → kluczowe różnice
+   d) Przyczyna-skutek: "Dlaczego X prowadzi do Y?" → mechanizm
+   e) Dane twarde: osoba / data / wzór / kluczowy termin
+   f) Zastosowanie: "Gdzie wykorzystuje się X?" → kontekst praktyczny
+   Nie generuj wyłącznie fiszek typu definicja.
+
+3. DYNAMICZNA ILOŚĆ:
+   - Jeśli materiał jest krótki (< 200 słów): wygeneruj 3–5 fiszek.
+   - Jeśli materiał jest średni (200–600 słów): wygeneruj 6–10 fiszek.
+   - Jeśli materiał jest długi (> 600 słów): wygeneruj 10–15 fiszek.
+   - NIE twórz "zapychaczy" tylko po to, żeby dobić do limitu.
+   - Jakość i unikalność > ilość.
+
+4. FORMAT FISZKI:
+   - front: pytanie lub hasło (max 120 znaków, po polsku)
+   - back: odpowiedź (zwięzła, konkretna, po polsku)
+   - difficulty: easy / medium / hard (proporcjonalnie)
+
+ZASADY QUIZU — KRYTYCZNE, MUSZĄ BYĆ BEZWZGLĘDNIE PRZESTRZEGANE:
+- Wygeneruj DOKŁADNIE ${totalQuiz} pytań quizowych.
+- Rozkład trudności MUSI wynosić: ${qc.easy} easy, ${qc.medium} medium, ${qc.hard} hard.
+- Kolejność: najpierw easy, potem medium, potem hard.
+- Każde pytanie musi mieć DOKŁADNIE 4 opcje odpowiedzi.
+- correctIndex musi być liczbą 0-3 (nie stringiem).
+- Każde pytanie musi zawierać polskie wyjaśnienie dlaczego poprawna odpowiedź jest właściwa.
+- Pytania muszą testować zrozumienie, nie powierzchowne czytanie.
+- Nie powtarzaj pytań ani nie parafrazuj tego samego faktu.
+- Cały tekst (pytania, opcje, wyjaśnienia) musi być po polsku.`
           },
-          { role: "user", content: `Raw OCR Text:\n${ocrText}` }
+          { role: "user", content: `Tekst OCR do analizy:\n${ocrText}` }
         ],
         temperature: 0.2,
         max_tokens: 4000
@@ -312,10 +396,71 @@ QUIZ RULES — CRITICAL, MUST FOLLOW EXACTLY:
        });
     }
 
-    // Ensure strict arrays exist fallback to empty
+    // ── Deduplication helpers ─────────────────────────────────────────────────
+
+    // Normalise a string for comparison: lowercase, collapse whitespace, remove punctuation
+    const normalise = (s: string): string =>
+      (s || '').toLowerCase().replace(/[^\p{L}\p{N}\s]/gu, '').replace(/\s+/g, ' ').trim();
+
+    // Tokenise into a Set of words (words ≥ 3 chars to skip stopwords)
+    const tokenSet = (s: string): Set<string> =>
+      new Set(normalise(s).split(' ').filter(w => w.length >= 3));
+
+    // Jaccard similarity between two strings (0 = no overlap, 1 = identical)
+    const jaccard = (a: string, b: string): number => {
+      const sa = tokenSet(a);
+      const sb = tokenSet(b);
+      if (sa.size === 0 && sb.size === 0) return 1;
+      if (sa.size === 0 || sb.size === 0) return 0;
+      let intersection = 0;
+      for (const t of sa) { if (sb.has(t)) intersection++; }
+      return intersection / (sa.size + sb.size - intersection);
+    };
+
+    // Deduplicate flashcards:
+    // Remove a card if its front OR back is ≥ 0.75 Jaccard similar to an already-kept card.
+    const deduplicateFlashcards = (cards: any[]): any[] => {
+      const kept: any[] = [];
+      for (const card of cards) {
+        const frontN = normalise(card.front ?? '');
+        const backN  = normalise(card.back  ?? '');
+        if (!frontN && !backN) continue;          // skip empty
+        let isDuplicate = false;
+        for (const k of kept) {
+          const frontSim = jaccard(frontN, normalise(k.front ?? ''));
+          const backSim  = jaccard(backN,  normalise(k.back  ?? ''));
+          if (frontSim >= 0.75 || backSim >= 0.75) {
+            isDuplicate = true;
+            break;
+          }
+        }
+        if (!isDuplicate) kept.push(card);
+      }
+      return kept;
+    };
+
+    // Deduplicate quiz questions on the `question` field only (answers can overlap)
+    const deduplicateQuiz = (questions: any[]): any[] => {
+      const kept: any[] = [];
+      for (const q of questions) {
+        const qN = normalise(q.question ?? '');
+        if (!qN) continue;
+        const isDuplicate = kept.some(k => jaccard(qN, normalise(k.question ?? '')) >= 0.75);
+        if (!isDuplicate) kept.push(q);
+      }
+      return kept;
+    };
+
+    // ── Ensure strict arrays, then deduplicate ────────────────────────────────
     const key_concepts = Array.isArray(parsedGeneration.keyConcepts) ? parsedGeneration.keyConcepts : [];
-    const flashcards = Array.isArray(parsedGeneration.flashcards) ? parsedGeneration.flashcards : [];
-    const quiz_questions = Array.isArray(parsedGeneration.quizQuestions) ? parsedGeneration.quizQuestions : [];
+    const rawFlashcards   = Array.isArray(parsedGeneration.flashcards)    ? parsedGeneration.flashcards    : [];
+    const rawQuizQuestions = Array.isArray(parsedGeneration.quizQuestions) ? parsedGeneration.quizQuestions : [];
+
+    const flashcards     = deduplicateFlashcards(rawFlashcards);
+    const quiz_questions = deduplicateQuiz(rawQuizQuestions);
+
+    console.log(`[analyze-notes] Flashcards: ${rawFlashcards.length} raw → ${flashcards.length} after dedup`);
+    console.log(`[analyze-notes] Quiz questions: ${rawQuizQuestions.length} raw → ${quiz_questions.length} after dedup`);
 
     // 6. Save generated results to Postgres securely via Admin Client
     const { error: updateError } = await adminClient

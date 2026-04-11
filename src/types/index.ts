@@ -88,6 +88,15 @@ export interface DbStudySession {
   created_at: string;
 }
 
+// Sprint 2: child image row for multi-image sessions
+export interface SessionImage {
+  id: string;
+  session_id: string;
+  image_url: string;
+  position: number;
+  created_at: string;
+}
+
 // Study Session Types
 export interface StudySession {
   id: string;

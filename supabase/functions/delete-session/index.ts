@@ -105,16 +105,38 @@ serve(async (req) => {
       });
     }
 
-    // 5. Delete image from Storage (best-effort, log but don't block on failure)
+    // 5. Delete ALL images from Storage (primary + session_images children)
+    // Collect all paths: primary image_url + any session_images rows
+    const allPaths: string[] = [];
+
     if (sessionData.image_url) {
+      allPaths.push(sessionData.image_url);
+    }
+
+    // Fetch child images (Sprint 2: session_images table)
+    const { data: imageRows } = await adminClient
+      .from('session_images')
+      .select('image_url')
+      .eq('session_id', sessionId);
+
+    if (imageRows && imageRows.length > 0) {
+      for (const row of imageRows) {
+        // Avoid duplicating the primary image_url if it was also inserted into session_images
+        if (row.image_url && !allPaths.includes(row.image_url)) {
+          allPaths.push(row.image_url);
+        }
+      }
+    }
+
+    if (allPaths.length > 0) {
       const { error: storageError } = await adminClient.storage
         .from('study-materials')
-        .remove([sessionData.image_url]);
+        .remove(allPaths);
 
       if (storageError) {
         console.error("[delete-session] Storage delete failed (non-blocking) ->", storageError.message);
       } else {
-        console.log("[delete-session] Storage file deleted:", sessionData.image_url);
+        console.log("[delete-session] Storage files deleted:", allPaths.length);
       }
     }
 
