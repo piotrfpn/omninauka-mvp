@@ -19,6 +19,7 @@ import {
   Pencil,
   Check,
   X,
+  Image as ImageIcon,
 } from 'lucide-react';
 
 export default function AnalysisPage() {
@@ -26,6 +27,8 @@ export default function AnalysisPage() {
   const { isDemoMode } = useAuth();
   const [analysis, setAnalysis] = useState<AnalysisResult | null>(null);
   const [uploadedImage, setUploadedImage] = useState<string | null>(null);
+  const [sessionImages, setSessionImages] = useState<string[]>([]);
+  const [activeImageIdx, setActiveImageIdx] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
   const [analysisError, setAnalysisError] = useState<string | null>(null);
   // Sprint 1: lesson title
@@ -45,7 +48,10 @@ export default function AnalysisPage() {
     // DEMO BYPASS: We retrieve the explicitly mocked base64
     if (sessionId === 'demo-session') {
       const demoImg = sessionStorage.getItem('demoImageBase64');
-      setUploadedImage(demoImg);
+      if (demoImg) {
+        setUploadedImage(demoImg);
+        setSessionImages([demoImg]);
+      }
       
       const timer = setTimeout(() => {
         const result = getDemoAnalysis();
@@ -66,16 +72,34 @@ export default function AnalysisPage() {
           .eq('id', sessionId)
           .single();
 
-        if (sessionData && sessionData.image_url) {
-          // Generate a securely signed URL valid for 1 hour to display to the user
-          const { data: signedData, error: signError } = await supabase.storage
-            .from('study-materials')
-            .createSignedUrl(sessionData.image_url, 3600);
+        // 1. Fetch all associated images from session_images
+        const { data: imagesData } = await supabase
+          .from('session_images')
+          .select('image_url, position')
+          .eq('session_id', sessionId)
+          .order('position', { ascending: true });
 
-          if (signedData) {
-            setUploadedImage(signedData.signedUrl);
-          } else {
-             console.error("Failed to sign url:", signError);
+        // 2. Logic for paths (including fallback for Sprint 1 sessions)
+        let paths: string[] = [];
+        if (imagesData && imagesData.length > 0) {
+          paths = imagesData.map(img => img.image_url);
+        } else if (sessionData && sessionData.image_url) {
+          // Backward compatibility fallback
+          paths = [sessionData.image_url];
+        }
+
+        // 3. Batch generate signed URLs
+        if (paths.length > 0) {
+          const { data: signedResults, error: signError } = await supabase.storage
+            .from('study-materials')
+            .createSignedUrls(paths, 3600);
+
+          if (signError) {
+            console.error("Failed to sign URLs:", signError);
+          } else if (signedResults) {
+            const urls = signedResults.map(s => s.signedUrl);
+            setSessionImages(urls);
+            setUploadedImage(urls[0]); // Default to first image
           }
         }
         if (sessionData && !sessionData.subject) {
@@ -346,12 +370,45 @@ export default function AnalysisPage() {
           )}
         </div>
         {uploadedImage && (
-          <div className="w-24 h-24 lg:w-32 lg:h-32 rounded-xl overflow-hidden flex-shrink-0">
-            <img
-              src={uploadedImage}
-              alt="Analyzed"
-              className="w-full h-full object-cover"
-            />
+          <div className="flex flex-col gap-3 flex-shrink-0">
+             {/* Main Preview */}
+            <div className="w-24 h-24 lg:w-48 lg:h-48 rounded-xl overflow-hidden shadow-sm bg-gray-100 flex items-center justify-center border border-gray-100">
+              <img
+                src={uploadedImage}
+                alt="Analyzed"
+                className="w-full h-full object-cover cursor-zoom-in"
+                onClick={() => window.open(uploadedImage, '_blank')}
+                title="Kliknij, aby otworzyć w pełnym rozmiarze"
+              />
+            </div>
+            
+            {/* Thumbnail Gallery (only show if > 1 images) */}
+            {sessionImages.length > 1 && (
+              <div className="flex gap-2 p-1 overflow-x-auto max-w-[200px] lg:max-w-[300px] no-scrollbar">
+                {sessionImages.map((url, idx) => (
+                  <button
+                    key={idx}
+                    onClick={() => {
+                      setUploadedImage(url);
+                      setActiveImageIdx(idx);
+                    }}
+                    className={`relative w-10 h-10 lg:w-12 lg:h-12 rounded-lg overflow-hidden flex-shrink-0 border-2 transition-all 
+                      ${uploadedImage === url ? 'border-[var(--omni-accent)] scale-105' : 'border-transparent opacity-60 hover:opacity-100'}`}
+                  >
+                    <img src={url} alt={`Strona ${idx + 1}`} className="w-full h-full object-cover" />
+                    <div className="absolute bottom-0 right-0 bg-black/50 text-white text-[8px] px-1 rounded-tl">
+                      {idx + 1}
+                    </div>
+                  </button>
+                ))}
+              </div>
+            )}
+            
+            {sessionImages.length > 1 && (
+              <p className="text-[10px] text-[var(--omni-text-muted)] text-center">
+                Strona {activeImageIdx + 1} z {sessionImages.length}
+              </p>
+            )}
           </div>
         )}
       </div>
