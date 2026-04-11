@@ -70,6 +70,24 @@ export interface AnalysisResult {
   sourceFileId: string;
 }
 
+// DB Study Session row (as returned from Supabase)
+export interface DbStudySession {
+  id: string;
+  user_id: string;
+  image_url: string;
+  raw_ocr_text?: string;
+  subject?: string;
+  topic?: string;
+  summary?: string;
+  confidence?: number;
+  key_concepts: any[];
+  flashcards: any[];
+  quiz_questions: any[];
+  lesson_title?: string;       // Sprint 1: lesson grouping
+  deleted_at?: string | null;  // Sprint 1: soft delete
+  created_at: string;
+}
+
 // Study Session Types
 export interface StudySession {
   id: string;
@@ -81,6 +99,7 @@ export interface StudySession {
   completedAt?: Date;
   totalTimeMinutes: number;
 }
+
 
 // Quiz Session Types
 export interface QuizAnswer {

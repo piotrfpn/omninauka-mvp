@@ -16,6 +16,9 @@ import {
   User,
   Hash,
   CheckCircle,
+  Pencil,
+  Check,
+  X,
 } from 'lucide-react';
 
 export default function AnalysisPage() {
@@ -25,6 +28,12 @@ export default function AnalysisPage() {
   const [uploadedImage, setUploadedImage] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [analysisError, setAnalysisError] = useState<string | null>(null);
+  // Sprint 1: lesson title
+  const [lessonTitle, setLessonTitle] = useState<string>('');
+  const [editingTitle, setEditingTitle] = useState(false);
+  const [titleInput, setTitleInput] = useState<string>('');
+  const [savingTitle, setSavingTitle] = useState(false);
+  const currentSessionId = sessionStorage.getItem('currentSessionId') ?? '';
 
   useEffect(() => {
     const sessionId = sessionStorage.getItem('currentSessionId');
@@ -127,11 +136,13 @@ export default function AnalysisPage() {
 
           if (updatedSession && updatedSession.subject) {
             applySessionToState(updatedSession);
+            setLessonTitle(updatedSession.lesson_title || '');
           }
           
         } else if (sessionData && sessionData.subject) {
           // Session already generated, just read it
           applySessionToState(sessionData);
+          setLessonTitle(sessionData.lesson_title || '');
         }
 
         setIsLoading(false);
@@ -185,19 +196,39 @@ export default function AnalysisPage() {
 
   const getCategoryLabel = (category: KeyConcept['category']) => {
     switch (category) {
-      case 'definition':
-        return 'Definicja';
-      case 'date':
-        return 'Data';
-      case 'formula':
-        return 'Wzór';
-      case 'person':
-        return 'Osoba';
-      case 'event':
-        return 'Wydarzenie';
-      default:
-        return 'Pojęcie';
+      case 'definition': return 'Definicja';
+      case 'date': return 'Data';
+      case 'formula': return 'Wzór';
+      case 'person': return 'Osoba';
+      case 'event': return 'Wydarzenie';
+      default: return 'Pojęcie';
     }
+  };
+
+  // Sprint 1: save lesson title to DB
+  const handleSaveLessonTitle = async () => {
+    if (savingTitle || isDemoMode || !currentSessionId) return;
+    const trimmed = titleInput.trim();
+    setSavingTitle(true);
+    try {
+      const { error } = await supabase
+        .from('study_sessions')
+        .update({ lesson_title: trimmed || null })
+        .eq('id', currentSessionId);
+      if (error) throw error;
+      setLessonTitle(trimmed);
+      setEditingTitle(false);
+    } catch (err) {
+      console.error('Lesson title save failed:', err);
+    } finally {
+      setSavingTitle(false);
+    }
+  };
+
+  const startEditingTitle = () => {
+    if (isDemoMode) return;
+    setTitleInput(lessonTitle);
+    setEditingTitle(true);
   };
 
   if (isLoading) {
@@ -259,9 +290,60 @@ export default function AnalysisPage() {
               </span>
             )}
           </div>
-          <h1 className="omni-heading-3 text-[var(--omni-text)]">
+          <h1 className="omni-heading-3 text-[var(--omni-text)] mb-3">
             {analysis.topic}
           </h1>
+
+          {/* Sprint 1: Lesson title editor */}
+          {!isDemoMode && (
+            <div className="flex items-center gap-2">
+              {editingTitle ? (
+                <>
+                  <input
+                    autoFocus
+                    type="text"
+                    value={titleInput}
+                    onChange={e => setTitleInput(e.target.value)}
+                    onKeyDown={e => {
+                      if (e.key === 'Enter') handleSaveLessonTitle();
+                      if (e.key === 'Escape') setEditingTitle(false);
+                    }}
+                    maxLength={80}
+                    placeholder="Nazwa lekcji..."
+                    className="text-sm border border-indigo-300 rounded-lg px-3 py-1.5 outline-none focus:ring-2 focus:ring-indigo-400 bg-white text-[var(--omni-text)] min-w-[200px]"
+                  />
+                  <button
+                    onClick={handleSaveLessonTitle}
+                    disabled={savingTitle}
+                    className="p-1.5 rounded-lg bg-indigo-100 hover:bg-indigo-200 text-indigo-700 transition-colors disabled:opacity-50"
+                    title="Zapisz"
+                  >
+                    {savingTitle
+                      ? <div className="w-4 h-4 border-2 border-indigo-400/30 border-t-indigo-600 rounded-full animate-spin" />
+                      : <Check className="w-4 h-4" />}
+                  </button>
+                  <button
+                    onClick={() => setEditingTitle(false)}
+                    className="p-1.5 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-600 transition-colors"
+                    title="Anuluj"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </>
+              ) : (
+                <button
+                  onClick={startEditingTitle}
+                  className="flex items-center gap-1.5 text-sm group/title"
+                  title="Kliknij aby nadać nazwę lekcji"
+                >
+                  <span className={lessonTitle ? 'text-indigo-600 font-medium' : 'text-[var(--omni-text-muted)] italic'}>
+                    {lessonTitle || 'Dodaj nazwę lekcji...'}
+                  </span>
+                  <Pencil className="w-3.5 h-3.5 text-[var(--omni-text-muted)] opacity-0 group-hover/title:opacity-100 transition-opacity" />
+                </button>
+              )}
+            </div>
+          )}
         </div>
         {uploadedImage && (
           <div className="w-24 h-24 lg:w-32 lg:h-32 rounded-xl overflow-hidden flex-shrink-0">

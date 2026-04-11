@@ -14,6 +14,7 @@ import {
   Flame,
   ArrowRight,
   Calendar,
+  Trash2,
 } from 'lucide-react';
 
 export default function DashboardPage() {
@@ -22,6 +23,7 @@ export default function DashboardPage() {
   const [sessions, setSessions] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   // Stats derived from actual user data
   const [computedStats, setComputedStats] = useState({
@@ -53,6 +55,7 @@ export default function DashboardPage() {
           .from('study_sessions')
           .select('*')
           .eq('user_id', user.id)
+          .is('deleted_at', null)          // Sprint 1: filter soft-deleted
           .order('created_at', { ascending: false });
 
         if (dbError) throw dbError;
@@ -93,6 +96,34 @@ export default function DashboardPage() {
 
     fetchDashboard();
   }, [user]);
+
+  const handleDeleteSession = async (e: React.MouseEvent, sessionId: string) => {
+    e.stopPropagation();
+    if (isDemoMode) return;
+    if (!window.confirm('Czy na pewno chcesz usunąć tę sesję?')) return;
+
+    setDeletingId(sessionId);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const functionUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/delete-session`;
+      const response = await fetch(functionUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY,
+          ...(session ? { 'Authorization': `Bearer ${session.access_token}` } : {}),
+        },
+        body: JSON.stringify({ sessionId }),
+      });
+      if (response.ok) {
+        setSessions(prev => prev.filter(s => s.id !== sessionId));
+      }
+    } catch (err) {
+      console.error('Delete session failed:', err);
+    } finally {
+      setDeletingId(null);
+    }
+  };
 
   const quickActions = [
     { label: 'Nowy upload', href: '/app/upload', icon: Upload, color: 'bg-[var(--omni-lavender)]' },
@@ -183,7 +214,7 @@ export default function DashboardPage() {
             {sessions.map((session) => (
               <div key={session.id} className="omni-card p-4 flex items-center justify-between group cursor-pointer" onClick={() => {
                 sessionStorage.setItem('currentSessionId', session.id);
-                window.location.href = '/app/analysis'; // Quick navigation logic
+                window.location.href = '/app/analysis';
               }}>
                 <div className="flex items-center gap-4">
                   <div className="w-12 h-12 bg-[var(--omni-lavender)] rounded-xl flex items-center justify-center">
@@ -198,8 +229,20 @@ export default function DashboardPage() {
                     </p>
                   </div>
                 </div>
-                <div className="text-right">
+                <div className="flex items-center gap-2">
                   <p className="text-sm text-green-500 font-medium">Ukończono</p>
+                  {!isDemoMode && (
+                    <button
+                      onClick={e => handleDeleteSession(e, session.id)}
+                      disabled={deletingId === session.id}
+                      className="p-1.5 rounded-lg text-red-400 hover:text-red-600 hover:bg-red-50 transition-colors disabled:opacity-50 opacity-0 group-hover:opacity-100"
+                      title="Usuń sesję"
+                    >
+                      {deletingId === session.id
+                        ? <div className="w-4 h-4 border-2 border-red-400/30 border-t-red-400 rounded-full animate-spin" />
+                        : <Trash2 className="w-4 h-4" />}
+                    </button>
+                  )}
                 </div>
               </div>
             ))}

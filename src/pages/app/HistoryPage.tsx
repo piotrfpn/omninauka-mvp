@@ -1,16 +1,161 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { mockStudySessions } from '../../mock/data';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../lib/auth-context';
-import { Calendar, Clock, Award, BookOpen, TrendingUp, ArrowRight } from 'lucide-react';
+import { Calendar, Clock, Award, BookOpen, TrendingUp, ArrowRight, Trash2, Pencil, Check, X } from 'lucide-react';
 
+// ─── Lesson title inline editor ───────────────────────────────────────────────
+function LessonTitleEditor({
+  sessionId,
+  initialTitle,
+  onSaved,
+}: {
+  sessionId: string;
+  initialTitle: string;
+  onSaved: (newTitle: string) => void;
+}) {
+  const [editing, setEditing] = useState(false);
+  const [value, setValue] = useState(initialTitle);
+  const [saving, setSaving] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (editing) inputRef.current?.focus();
+  }, [editing]);
+
+  const handleSave = async () => {
+    if (saving) return;
+    const trimmed = value.trim();
+    setSaving(true);
+    try {
+      const { error } = await supabase
+        .from('study_sessions')
+        .update({ lesson_title: trimmed || null })
+        .eq('id', sessionId);
+      if (error) throw error;
+      onSaved(trimmed);
+      setEditing(false);
+    } catch (err) {
+      console.error('Lesson title save failed:', err);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') handleSave();
+    if (e.key === 'Escape') { setValue(initialTitle); setEditing(false); }
+  };
+
+  if (editing) {
+    return (
+      <div className="flex items-center gap-2 mb-2" onClick={e => e.stopPropagation()}>
+        <input
+          ref={inputRef}
+          type="text"
+          value={value}
+          onChange={e => setValue(e.target.value)}
+          onKeyDown={handleKeyDown}
+          maxLength={80}
+          placeholder="Nazwa lekcji..."
+          className="flex-1 text-sm border border-indigo-300 rounded-lg px-3 py-1.5 outline-none focus:ring-2 focus:ring-indigo-400 bg-white text-[var(--omni-text)]"
+        />
+        <button
+          onClick={handleSave}
+          disabled={saving}
+          className="p-1.5 rounded-lg bg-indigo-100 hover:bg-indigo-200 text-indigo-700 transition-colors disabled:opacity-50"
+          title="Zapisz"
+        >
+          <Check className="w-4 h-4" />
+        </button>
+        <button
+          onClick={() => { setValue(initialTitle); setEditing(false); }}
+          className="p-1.5 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-600 transition-colors"
+          title="Anuluj"
+        >
+          <X className="w-4 h-4" />
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <button
+      onClick={e => { e.stopPropagation(); setEditing(true); }}
+      className="flex items-center gap-1.5 mb-2 group/title"
+      title="Kliknij, aby edytować nazwę lekcji"
+    >
+      <span className={`text-xs font-medium ${value ? 'text-indigo-600 dark:text-indigo-400' : 'text-[var(--omni-text-muted)] italic'}`}>
+        {value || 'Bez nazwy'}
+      </span>
+      <Pencil className="w-3 h-3 text-[var(--omni-text-muted)] opacity-0 group-hover/title:opacity-100 transition-opacity" />
+    </button>
+  );
+}
+
+// ─── Delete confirmation dialog ────────────────────────────────────────────────
+function DeleteConfirmDialog({
+  onConfirm,
+  onCancel,
+  isDeleting,
+}: {
+  onConfirm: () => void;
+  onCancel: () => void;
+  isDeleting: boolean;
+}) {
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm"
+      onClick={onCancel}
+    >
+      <div
+        className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl p-6 max-w-sm w-full mx-4 border border-gray-100 dark:border-slate-700"
+        onClick={e => e.stopPropagation()}
+      >
+        <div className="flex items-center justify-center w-14 h-14 rounded-full bg-red-100 mx-auto mb-4">
+          <Trash2 className="w-7 h-7 text-red-600" />
+        </div>
+        <h3 className="text-lg font-semibold text-center text-[var(--omni-text)] mb-2">Usuń sesję?</h3>
+        <p className="text-sm text-center text-[var(--omni-text-muted)] mb-6">
+          Sesja zostanie usunięta z Twojego konta. Tej operacji nie można cofnąć.
+        </p>
+        <div className="flex gap-3">
+          <button
+            onClick={onCancel}
+            disabled={isDeleting}
+            className="flex-1 px-4 py-2.5 rounded-xl border border-gray-200 text-[var(--omni-text)] font-medium hover:bg-gray-50 transition-colors disabled:opacity-50"
+          >
+            Anuluj
+          </button>
+          <button
+            onClick={onConfirm}
+            disabled={isDeleting}
+            className="flex-1 px-4 py-2.5 rounded-xl bg-red-600 text-white font-medium hover:bg-red-700 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+          >
+            {isDeleting ? (
+              <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+            ) : (
+              <Trash2 className="w-4 h-4" />
+            )}
+            Usuń
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Main HistoryPage ──────────────────────────────────────────────────────────
 export default function HistoryPage() {
   const { user, isDemoMode } = useAuth();
   const navigate = useNavigate();
   const [sessions, setSessions] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!user || isDemoMode) {
@@ -25,6 +170,7 @@ export default function HistoryPage() {
           .from('study_sessions')
           .select('*')
           .eq('user_id', user.id)
+          .is('deleted_at', null)          // Sprint 1: filter out soft-deleted
           .order('created_at', { ascending: false });
 
         if (dbError) throw dbError;
@@ -49,6 +195,48 @@ export default function HistoryPage() {
   const handleOpenSession = (sessionId: string) => {
     sessionStorage.setItem('currentSessionId', sessionId);
     navigate('/app/analysis');
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!confirmDeleteId || isDemoMode) return;
+
+    setDeletingId(confirmDeleteId);
+    setDeleteError(null);
+
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const functionUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/delete-session`;
+
+      const response = await fetch(functionUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY,
+          ...(session ? { 'Authorization': `Bearer ${session.access_token}` } : {}),
+        },
+        body: JSON.stringify({ sessionId: confirmDeleteId }),
+      });
+
+      if (!response.ok) {
+        const errText = await response.text();
+        throw new Error(`Status ${response.status}: ${errText}`);
+      }
+
+      // Optimistic removal from local state
+      setSessions(prev => prev.filter(s => s.id !== confirmDeleteId));
+    } catch (err: any) {
+      console.error('Delete session failed:', err);
+      setDeleteError('Nie udało się usunąć sesji. Spróbuj ponownie.');
+    } finally {
+      setDeletingId(null);
+      setConfirmDeleteId(null);
+    }
+  };
+
+  const handleLessonTitleSaved = (sessionId: string, newTitle: string) => {
+    setSessions(prev =>
+      prev.map(s => s.id === sessionId ? { ...s, lesson_title: newTitle || null } : s)
+    );
   };
 
   if (isLoading) {
@@ -84,12 +272,30 @@ export default function HistoryPage() {
     );
   }
 
-  // Pre-calculations for Top HUD stats
   const uniqueSubjects = new Set(sessions.map(s => s.subject || (s.analysis && s.analysis.subject) || 'Nieznany')).size;
   const totalProxyMinutes = sessions.length * 15;
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
+      {/* Delete confirmation dialog */}
+      {confirmDeleteId && (
+        <DeleteConfirmDialog
+          onConfirm={handleDeleteConfirm}
+          onCancel={() => setConfirmDeleteId(null)}
+          isDeleting={!!deletingId}
+        />
+      )}
+
+      {/* Delete error toast */}
+      {deleteError && (
+        <div className="p-4 bg-red-50 border border-red-200 text-red-700 rounded-xl flex items-center justify-between">
+          <span className="text-sm">{deleteError}</span>
+          <button onClick={() => setDeleteError(null)} className="ml-4 text-red-500 hover:text-red-700">
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+      )}
+
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
@@ -127,7 +333,7 @@ export default function HistoryPage() {
         </div>
       </div>
 
-      {/* Sessions Table Mapping */}
+      {/* Sessions List */}
       <div className="space-y-3">
         {sessions.map((session) => (
           <div
@@ -141,6 +347,19 @@ export default function HistoryPage() {
               </div>
 
               <div className="flex-1 min-w-0">
+                {/* Lesson title editor — demo mode is read-only */}
+                {!isDemoMode ? (
+                  <LessonTitleEditor
+                    sessionId={session.id}
+                    initialTitle={session.lesson_title || ''}
+                    onSaved={(newTitle) => handleLessonTitleSaved(session.id, newTitle)}
+                  />
+                ) : (
+                  <span className="text-xs font-medium text-[var(--omni-text-muted)] italic mb-2 block">
+                    {session.lesson_title || 'Bez nazwy'}
+                  </span>
+                )}
+
                 <div className="flex flex-wrap items-center gap-2 mb-1">
                   <span className="omni-chip bg-[var(--omni-lavender)] text-[var(--omni-text)] text-xs font-semibold">
                     {session.subject || (session.analysis && session.analysis.subject) || "Brak przedmiotu"}
@@ -155,7 +374,7 @@ export default function HistoryPage() {
                 {session.summary && (
                   <p className="text-sm text-slate-500 mt-1 line-clamp-1">{session.summary}</p>
                 )}
-                
+
                 <div className="flex items-center gap-4 mt-3 text-sm text-[var(--omni-text-muted)]">
                   <span className="flex items-center gap-1">
                     <Award className="w-4 h-4 text-emerald-500" />
@@ -172,6 +391,19 @@ export default function HistoryPage() {
                 <span className="px-3 py-1 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 rounded-full text-xs font-medium uppercase tracking-wider">
                   Ukończono
                 </span>
+
+                {/* Delete button — hidden in demo mode */}
+                {!isDemoMode && (
+                  <button
+                    onClick={e => { e.stopPropagation(); setConfirmDeleteId(session.id); }}
+                    disabled={deletingId === session.id}
+                    className="p-2 rounded-lg text-red-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/30 transition-colors disabled:opacity-50"
+                    title="Usuń sesję"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                )}
+
                 <div className="p-2 text-[var(--omni-accent)] bg-slate-50 dark:bg-slate-800 group-hover:bg-indigo-100 dark:group-hover:bg-indigo-900 rounded-lg transition-colors">
                   <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
                 </div>
