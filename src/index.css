@@ -36,14 +36,19 @@
     /* OmniNauka Custom Colors */
     --omni-bg: #f8f7fa;
     --omni-bg-dark: #1a1a2e;
-    --omni-text: #1a1a2e;
-    --omni-text-muted: #6b6b7b;
     --omni-accent: #6366f1;
-    --omni-lavender: #e8e5ff;
-    --omni-mint: #d1fae5;
-    --omni-butter: #fef3c7;
-    --omni-blush: #ffe4e6;
-    --omni-sky: #dbeafe;
+    --omni-lavender: #f5f3ff;
+    --omni-sky: #e0f2fe;
+    --omni-butter: #fef9c3;
+    --omni-blush: #fee2e2;
+    --omni-text: #1e293b;
+    --omni-text-muted: #64748b;
+  
+    /* Layout */
+    --header-height: 72px;
+    --footer-height: 0px; /* No footer in this MVP layout */
+    --safe-area-top: env(safe-area-inset-top, 0px);
+    --safe-area-bottom: env(safe-area-inset-bottom, 0px);
   }
 
   .dark {
@@ -138,23 +143,27 @@ html {
   scroll-behavior: smooth;
 }
 
-/* Custom scrollbar */
-::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
+/* Custom scrollbar utility */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 4px;
 }
 
-::-webkit-scrollbar-track {
+.custom-scrollbar::-webkit-scrollbar-track {
   background: transparent;
 }
 
-::-webkit-scrollbar-thumb {
-  background: #d1d5db;
-  border-radius: 4px;
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 10px;
 }
 
-::-webkit-scrollbar-thumb:hover {
-  background: #9ca3af;
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+.custom-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: #cbd5e1 transparent;
 }
 
 /* Animation utilities */
@@ -201,4 +210,30 @@ html {
 
 .flip-card-back {
   transform: rotateY(180deg);
+}
+
+/* Mobile Fit Helpers */
+.min-h-screen-dvh {
+  min-height: 100dvh;
+}
+
+.h-screen-dvh {
+  height: 100dvh;
+}
+
+.pb-safe {
+  padding-bottom: var(--safe-area-bottom);
+}
+
+.pt-safe {
+  padding-top: var(--safe-area-top);
+}
+
+@supports not (height: 100dvh) {
+  .h-screen-dvh {
+    height: 100vh;
+  }
+  .min-h-screen-dvh {
+    min-height: 100vh;
+  }
 }

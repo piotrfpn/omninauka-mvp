@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 import type { AnalysisResult, KeyConcept } from '../../types';
 import { getDemoAnalysis } from '../../mock/data';
 import { supabase } from '../../lib/supabase';
@@ -16,11 +16,11 @@ import {
   User,
   Hash,
   CheckCircle,
-  Pencil,
-  Check,
-  X,
   Image as ImageIcon,
 } from 'lucide-react';
+import { LessonTitleEditor } from '../../components/lessons/lesson-title-editor';
+import { AnalysisSkeleton } from '../../components/ui/page-skeletons';
+import { ConceptDetailSheet } from '../../components/lessons/concept-detail-sheet';
 
 export default function AnalysisPage() {
   const navigate = useNavigate();
@@ -31,15 +31,15 @@ export default function AnalysisPage() {
   const [activeImageIdx, setActiveImageIdx] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
   const [analysisError, setAnalysisError] = useState<string | null>(null);
+  const [selectedConcept, setSelectedConcept] = useState<KeyConcept | null>(null);
+  const [isConceptModalOpen, setIsConceptModalOpen] = useState(false);
   // Sprint 1: lesson title
   const [lessonTitle, setLessonTitle] = useState<string>('');
-  const [editingTitle, setEditingTitle] = useState(false);
-  const [titleInput, setTitleInput] = useState<string>('');
-  const [savingTitle, setSavingTitle] = useState(false);
-  const currentSessionId = sessionStorage.getItem('currentSessionId') ?? '';
+  const { id: routeId } = useParams();
+  const currentSessionId = routeId || sessionStorage.getItem('currentSessionId') || '';
 
   useEffect(() => {
-    const sessionId = sessionStorage.getItem('currentSessionId');
+    const sessionId = currentSessionId;
     if (!sessionId) {
       navigate('/app/upload');
       return;
@@ -229,48 +229,9 @@ export default function AnalysisPage() {
     }
   };
 
-  // Sprint 1: save lesson title to DB
-  const handleSaveLessonTitle = async () => {
-    if (savingTitle || isDemoMode || !currentSessionId) return;
-    const trimmed = titleInput.trim();
-    setSavingTitle(true);
-    try {
-      const { error } = await supabase
-        .from('study_sessions')
-        .update({ lesson_title: trimmed || null })
-        .eq('id', currentSessionId);
-      if (error) throw error;
-      setLessonTitle(trimmed);
-      setEditingTitle(false);
-    } catch (err) {
-      console.error('Lesson title save failed:', err);
-    } finally {
-      setSavingTitle(false);
-    }
-  };
-
-  const startEditingTitle = () => {
-    if (isDemoMode) return;
-    setTitleInput(lessonTitle);
-    setEditingTitle(true);
-  };
 
   if (isLoading) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-[60vh]">
-        <div className="w-16 h-16 border-4 border-[var(--omni-accent)]/30 border-t-[var(--omni-accent)] rounded-full animate-spin mb-6" />
-        <h2 className="omni-heading-3 text-[var(--omni-text)] mb-2">
-          Analizuję Twoje notatki...
-        </h2>
-        <p className="text-[var(--omni-text-muted)]">
-          To może potrwać kilka sekund
-        </p>
-        <div className="mt-8 flex items-center gap-2 text-sm text-[var(--omni-text-muted)]">
-          <Sparkles className="w-4 h-4" />
-          <span>AI wykrywa kluczowe pojęcia, daty i definicje</span>
-        </div>
-      </div>
-    );
+    return <AnalysisSkeleton />;
   }
 
   if (analysisError) {
@@ -318,56 +279,20 @@ export default function AnalysisPage() {
             {analysis.topic}
           </h1>
 
-          {/* Sprint 1: Lesson title editor */}
-          {!isDemoMode && (
-            <div className="flex items-center gap-2">
-              {editingTitle ? (
-                <>
-                  <input
-                    autoFocus
-                    type="text"
-                    value={titleInput}
-                    onChange={e => setTitleInput(e.target.value)}
-                    onKeyDown={e => {
-                      if (e.key === 'Enter') handleSaveLessonTitle();
-                      if (e.key === 'Escape') setEditingTitle(false);
-                    }}
-                    maxLength={80}
-                    placeholder="Nazwa lekcji..."
-                    className="text-sm border border-indigo-300 rounded-lg px-3 py-1.5 outline-none focus:ring-2 focus:ring-indigo-400 bg-white text-[var(--omni-text)] min-w-[200px]"
-                  />
-                  <button
-                    onClick={handleSaveLessonTitle}
-                    disabled={savingTitle}
-                    className="p-1.5 rounded-lg bg-indigo-100 hover:bg-indigo-200 text-indigo-700 transition-colors disabled:opacity-50"
-                    title="Zapisz"
-                  >
-                    {savingTitle
-                      ? <div className="w-4 h-4 border-2 border-indigo-400/30 border-t-indigo-600 rounded-full animate-spin" />
-                      : <Check className="w-4 h-4" />}
-                  </button>
-                  <button
-                    onClick={() => setEditingTitle(false)}
-                    className="p-1.5 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-600 transition-colors"
-                    title="Anuluj"
-                  >
-                    <X className="w-4 h-4" />
-                  </button>
-                </>
-              ) : (
-                <button
-                  onClick={startEditingTitle}
-                  className="flex items-center gap-1.5 text-sm group/title"
-                  title="Kliknij aby nadać nazwę lekcji"
-                >
-                  <span className={lessonTitle ? 'text-indigo-600 font-medium' : 'text-[var(--omni-text-muted)] italic'}>
-                    {lessonTitle || 'Dodaj nazwę lekcji...'}
-                  </span>
-                  <Pencil className="w-3.5 h-3.5 text-[var(--omni-text-muted)] opacity-0 group-hover/title:opacity-100 transition-opacity" />
-                </button>
-              )}
-            </div>
-          )}
+          {/* Sprint 1 & 3: Lesson title editor */}
+          <div className="flex flex-col gap-1">
+            {!lessonTitle && !isLoading && !analysisError && (
+              <p className="text-[10px] text-orange-500 font-medium animate-pulse flex items-center gap-1">
+                <Sparkles className="w-3 h-3" /> Nazwij tę lekcję, aby łatwiej ją znaleźć w przyszłości
+              </p>
+            )}
+            <LessonTitleEditor
+              sessionId={currentSessionId}
+              initialTitle={lessonTitle}
+              onSaved={(newTitle) => setLessonTitle(newTitle)}
+              isDemoMode={isDemoMode}
+            />
+          </div>
         </div>
         {uploadedImage && (
           <div className="flex flex-col gap-3 flex-shrink-0">
@@ -413,39 +338,115 @@ export default function AnalysisPage() {
         )}
       </div>
 
+      {/* Action Hub - Primary Hierarchy */}
+      <div className="space-y-4">
+        <h3 className="font-semibold text-[var(--omni-text)] flex items-center gap-2">
+          <Sparkles className="w-5 h-5 text-[var(--omni-accent)]" />
+          Rozpocznij naukę
+        </h3>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {/* Primary Action: AI Lesson */}
+          <Link
+            to={`/app/lesson/${currentSessionId}`}
+            className="sm:col-span-2 lg:col-span-1 omni-card p-5 md:p-6 bg-indigo-600 text-white hover:bg-indigo-700 active:scale-[0.98] transition-all group flex items-center gap-4 border-none shadow-md"
+          >
+            <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform">
+              <MessageCircle className="w-6 h-6 text-white" />
+            </div>
+            <div className="flex-1">
+              <h4 className="font-bold text-white mb-0.5">
+                Lekcja z AI (Sokratyczna)
+              </h4>
+              <p className="text-xs text-indigo-100 line-clamp-1">
+                Rozmawiaj i zrozum materiał przez dialog
+              </p>
+            </div>
+            <ArrowRight className="w-5 h-5 text-white/50 group-hover:translate-x-1 transition-transform" />
+          </Link>
+
+          {/* Secondary Action: Quiz */}
+          <Link
+            to={`/app/quiz/${currentSessionId}`}
+            className="omni-card p-4 hover:shadow-md active:scale-[0.98] transition-all group flex items-center gap-3 border-l-4 border-l-red-400"
+          >
+            <div className="w-10 h-10 bg-[var(--omni-blush)] rounded-lg flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform">
+              <HelpCircle className="w-5 h-5 text-[var(--omni-text)]" />
+            </div>
+            <div className="flex-1">
+              <h4 className="font-semibold text-[var(--omni-text)] text-sm">
+                Rozwiąż quiz
+              </h4>
+              <p className="text-[10px] text-[var(--omni-text-muted)]">
+                {analysis.quizQuestions.length} pytań sprawdzających
+              </p>
+            </div>
+            <ArrowRight className="w-4 h-4 text-[var(--omni-text-muted)] group-hover:translate-x-1 transition-transform" />
+          </Link>
+
+          {/* Secondary Action: Flashcards */}
+          <Link
+            to={`/app/flashcards/${currentSessionId}`}
+            className="omni-card p-4 hover:shadow-md active:scale-[0.98] transition-all group flex items-center gap-3 border-l-4 border-l-yellow-400"
+          >
+            <div className="w-10 h-10 bg-[var(--omni-butter)] rounded-lg flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform">
+              <BookOpen className="w-5 h-5 text-[var(--omni-text)]" />
+            </div>
+            <div className="flex-1">
+              <h4 className="font-semibold text-[var(--omni-text)] text-sm">
+                Ucz się fiszek
+              </h4>
+              <p className="text-[10px] text-[var(--omni-text-muted)]">
+                {analysis.flashcards.length} pojęć do opanowania
+              </p>
+            </div>
+            <ArrowRight className="w-4 h-4 text-[var(--omni-text-muted)] group-hover:translate-x-1 transition-transform" />
+          </Link>
+        </div>
+      </div>
+
       {/* Summary */}
       <div className="omni-card p-4 lg:p-6 bg-[var(--omni-mint)]/30">
         <h3 className="font-semibold text-[var(--omni-text)] mb-2 flex items-center gap-2">
-          <Sparkles className="w-5 h-5" />
-          Podsumowanie
+          <Lightbulb className="w-5 h-5 text-amber-500" />
+          Podsumowanie lekcji
         </h3>
-        <p className="text-[var(--omni-text-muted)]">{analysis.summary}</p>
+        <p className="text-sm text-[var(--omni-text-muted)] leading-relaxed">{analysis.summary}</p>
       </div>
 
       {/* Key Concepts */}
       <div>
-        <h3 className="font-semibold text-[var(--omni-text)] mb-4">
-          Kluczowe pojęcia ({analysis.keyConcepts.length})
-        </h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="font-semibold text-[var(--omni-text)]">
+            Kluczowe pojęcia ({analysis.keyConcepts.length})
+          </h3>
+          <span className="text-[10px] text-[var(--omni-text-muted)] uppercase tracking-wider font-bold">Kliknij pojęcie, by je zgłębić</span>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
           {analysis.keyConcepts.map((concept) => {
             const Icon = getCategoryIcon(concept.category);
             return (
-              <div key={concept.id} className="omni-card p-4">
+              <div 
+                key={concept.id} 
+                className="omni-card p-3 md:p-4 hover:border-indigo-200 cursor-pointer active:scale-[0.99] transition-all group"
+                onClick={() => {
+                  setSelectedConcept(concept);
+                  setIsConceptModalOpen(true);
+                }}
+              >
                 <div className="flex items-start gap-3">
-                  <div className="w-10 h-10 bg-[var(--omni-lavender)] rounded-lg flex items-center justify-center flex-shrink-0">
-                    <Icon className="w-5 h-5 text-[var(--omni-text)]" />
+                  <div className="w-8 h-8 bg-[var(--omni-lavender)] rounded-lg flex items-center justify-center flex-shrink-0 group-hover:bg-indigo-100 transition-colors">
+                    <Icon className="w-4 h-4 text-[var(--omni-text)]" />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-1">
-                      <span className="font-medium text-[var(--omni-text)]">
+                    <div className="flex items-center gap-2 mb-0.5 flex-wrap">
+                      <span className="font-bold text-[var(--omni-text)] text-sm">
                         {concept.term}
                       </span>
-                      <span className="text-xs text-[var(--omni-text-muted)]">
-                        ({getCategoryLabel(concept.category)})
+                      <span className="text-[10px] text-[var(--omni-text-muted)] bg-gray-100 px-1.5 rounded">
+                        {getCategoryLabel(concept.category)}
                       </span>
                     </div>
-                    <p className="text-sm text-[var(--omni-text-muted)]">
+                    <p className="text-xs text-[var(--omni-text-muted)] line-clamp-2 leading-relaxed">
                       {concept.definition}
                     </p>
                   </div>
@@ -456,102 +457,36 @@ export default function AnalysisPage() {
         </div>
       </div>
 
-      {/* Actions */}
-      <div>
-        <h3 className="font-semibold text-[var(--omni-text)] mb-4">
-          Co chcesz zrobić?
-        </h3>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <Link
-            to="/app/flashcards"
-            className="omni-card p-6 hover:shadow-lg transition-shadow group"
-          >
-            <div className="w-14 h-14 bg-[var(--omni-butter)] rounded-2xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
-              <BookOpen className="w-7 h-7 text-[var(--omni-text)]" />
-            </div>
-            <h4 className="font-semibold text-[var(--omni-text)] mb-1">
-              Ucz się fiszek
-            </h4>
-            <p className="text-sm text-[var(--omni-text-muted)] mb-4">
-              {analysis.flashcards.length} fiszek do nauki
-            </p>
-            <span className="text-[var(--omni-accent)] font-medium flex items-center gap-1">
-              Rozpocznij
-              <ArrowRight className="w-4 h-4" />
-            </span>
-          </Link>
-
-          <Link
-            to="/app/quiz"
-            className="omni-card p-6 hover:shadow-lg transition-shadow group"
-          >
-            <div className="w-14 h-14 bg-[var(--omni-blush)] rounded-2xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
-              <HelpCircle className="w-7 h-7 text-[var(--omni-text)]" />
-            </div>
-            <h4 className="font-semibold text-[var(--omni-text)] mb-1">
-              Rozwiąż quiz
-            </h4>
-            <p className="text-sm text-[var(--omni-text-muted)] mb-4">
-              {analysis.quizQuestions.length} pytań
-            </p>
-            <span className="text-[var(--omni-accent)] font-medium flex items-center gap-1">
-              Rozpocznij
-              <ArrowRight className="w-4 h-4" />
-            </span>
-          </Link>
-
-          <Link
-            to="/app/lesson"
-            className="omni-card p-6 hover:shadow-lg transition-shadow group"
-          >
-            <div className="w-14 h-14 bg-[var(--omni-sky)] rounded-2xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
-              <MessageCircle className="w-7 h-7 text-[var(--omni-text)]" />
-            </div>
-            <h4 className="font-semibold text-[var(--omni-text)] mb-1">
-              Lekcja z AI
-            </h4>
-            <p className="text-sm text-[var(--omni-text-muted)] mb-4">
-              Rozmawiaj i ucz się przez dialog
-            </p>
-            <span className="text-[var(--omni-accent)] font-medium flex items-center gap-1">
-              Rozpocznij
-              <ArrowRight className="w-4 h-4" />
-            </span>
-          </Link>
-        </div>
-      </div>
-
-      {/* Stats */}
-      <div className="omni-card p-4 lg:p-6">
-        <div className="flex items-center gap-2 mb-4">
-          <CheckCircle className="w-5 h-5 text-green-500" />
-          <h3 className="font-semibold text-[var(--omni-text)]">
-            Wygenerowano materiał
-          </h3>
-        </div>
-        <div className="grid grid-cols-3 gap-4">
-          <div className="text-center p-4 bg-gray-50 rounded-xl">
-            <p className="text-2xl font-bold text-[var(--omni-text)]">
+      {/* Stats - Final footer context */}
+      <div className="omni-card p-4 bg-gray-50 border-dashed border-2">
+        <div className="grid grid-cols-3 gap-2">
+          <div className="text-center p-2">
+            <p className="text-xl font-bold text-[var(--omni-text)]">
               {analysis.keyConcepts.length}
             </p>
-            <p className="text-sm text-[var(--omni-text-muted)]">
-              Kluczowych pojęć
-            </p>
+            <p className="text-[9px] text-[var(--omni-text-muted)] uppercase">Pojęć</p>
           </div>
-          <div className="text-center p-4 bg-gray-50 rounded-xl">
-            <p className="text-2xl font-bold text-[var(--omni-text)]">
+          <div className="text-center p-2 border-x border-gray-200">
+            <p className="text-xl font-bold text-[var(--omni-text)]">
               {analysis.flashcards.length}
             </p>
-            <p className="text-sm text-[var(--omni-text-muted)]">Fiszek</p>
+            <p className="text-[9px] text-[var(--omni-text-muted)] uppercase">Fiszek</p>
           </div>
-          <div className="text-center p-4 bg-gray-50 rounded-xl">
-            <p className="text-2xl font-bold text-[var(--omni-text)]">
+          <div className="text-center p-2">
+            <p className="text-xl font-bold text-[var(--omni-text)]">
               {analysis.quizQuestions.length}
             </p>
-            <p className="text-sm text-[var(--omni-text-muted)]">Pytań</p>
+            <p className="text-[9px] text-[var(--omni-text-muted)] uppercase">Pytań</p>
           </div>
         </div>
       </div>
+
+      <ConceptDetailSheet
+        concept={selectedConcept}
+        isOpen={isConceptModalOpen}
+        onClose={() => setIsConceptModalOpen(false)}
+        sessionId={currentSessionId}
+      />
     </div>
   );
 }

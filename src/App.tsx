@@ -63,9 +63,13 @@ function AppRoutes() {
                   <Route path="dashboard" element={<DashboardPage />} />
                   <Route path="upload" element={<UploadPage />} />
                   <Route path="analysis" element={<AnalysisPage />} />
+                  <Route path="analysis/:id" element={<AnalysisPage />} />
                   <Route path="flashcards" element={<FlashcardsPage />} />
+                  <Route path="flashcards/:id" element={<FlashcardsPage />} />
                   <Route path="quiz" element={<QuizPage />} />
+                  <Route path="quiz/:id" element={<QuizPage />} />
                   <Route path="lesson" element={<LessonPage />} />
+                  <Route path="lesson/:id" element={<LessonPage />} />
                   <Route path="results" element={<ResultsPage />} />
                   <Route path="history" element={<HistoryPage />} />
                   <Route path="profile" element={<ProfilePage />} />

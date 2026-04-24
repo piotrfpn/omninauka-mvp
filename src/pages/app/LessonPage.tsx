@@ -1,9 +1,11 @@
 import { useState, useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Send, Bot, User, Mic, MicOff, AlertCircle, RefreshCw } from 'lucide-react';
+import { useNavigate, useParams } from 'react-router-dom';
+import { Send, Bot, User, Mic, MicOff, AlertCircle, RefreshCw, MessageCircle, LayoutDashboard, History } from 'lucide-react';
 import type { LessonMessage } from '../../types';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../lib/auth-context';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 
 // ==========================================
 // MOCK LESSON CHAT (For Demo Mode Zero-Cost)
@@ -153,14 +155,14 @@ function MockLessonChat() {
   }
 
   return (
-    <div className="h-[calc(100vh-120px)] flex flex-col">
-      {/* Header */}
-      <div className="flex items-center justify-between mb-4">
-        <div>
-          <h1 className="omni-heading-3 text-[var(--omni-text)] mb-1">
-            Lekcja z AI <span className="text-sm font-medium bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full ml-2">Tryb Demo</span>
+    <div className="flex-1 flex flex-col h-full bg-[var(--omni-bg)] overflow-hidden">
+      {/* Header - Mobile First */}
+      <div className="px-4 py-3 bg-white border-b border-gray-100 flex items-center justify-between">
+        <div className="min-w-0">
+          <h1 className="text-base font-bold text-[var(--omni-text)] truncate">
+            Lekcja z AI <span className="text-[10px] font-medium bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full ml-1">Demo</span>
           </h1>
-          <p className="text-[var(--omni-text-muted)]">
+          <p className="text-xs text-[var(--omni-text-muted)] truncate">
             {topic}
           </p>
         </div>
@@ -175,41 +177,49 @@ function MockLessonChat() {
       </div>
 
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto space-y-4 mb-4 pr-2">
-        {messages.map((message) => (
-          <div key={message.id} className={`flex items-start gap-3 ${message.role === 'user' ? 'flex-row-reverse' : ''}`}>
-             <div className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${message.role === 'user' ? 'bg-[var(--omni-accent)]' : 'bg-[var(--omni-lavender)]'}`}>
-              {message.role === 'user' ? <User className="w-5 h-5 text-white" /> : <Bot className="w-5 h-5 text-[var(--omni-text)]" />}
-             </div>
-             <div className={`max-w-[80%] p-4 rounded-2xl ${message.role === 'user' ? 'bg-[var(--omni-accent)] text-white rounded-tr-sm' : 'bg-white rounded-tl-sm shadow-sm border border-gray-100'}`}>
-                <p className={message.role === 'user' ? 'text-white' : 'text-[var(--omni-text)]'}>
-                  {message.content}
-                  {message.isStreaming && <span className="inline-block w-2 h-4 ml-1 bg-current animate-pulse" />}
-                </p>
-             </div>
-          </div>
-        ))}
-        <div ref={messagesEndRef} />
+      <div className="flex-1 overflow-y-auto px-4 py-4 space-y-6 custom-scrollbar">
+        <div className="max-w-4xl mx-auto w-full space-y-6">
+          {messages.map((message) => (
+            <div key={message.id} className={`flex items-start gap-2.5 ${message.role === 'user' ? 'flex-row-reverse' : ''}`}>
+               <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 shadow-sm ${message.role === 'user' ? 'bg-[var(--omni-accent)]' : 'bg-white border border-gray-100'}`}>
+                {message.role === 'user' ? <User className="w-4 h-4 text-white" /> : <Bot className="w-4 h-4 text-[var(--omni-accent)]" />}
+               </div>
+               <div className={`max-w-[85%] md:max-w-[75%] p-3.5 rounded-2xl text-sm leading-relaxed ${
+                 message.role === 'user' 
+                   ? 'bg-[var(--omni-accent)] text-white rounded-tr-sm' 
+                   : 'bg-white text-[var(--omni-text)] rounded-tl-sm shadow-sm border border-gray-100'
+               } break-words min-w-0`}>
+                  <p className="whitespace-pre-wrap">
+                    {message.content}
+                    {message.isStreaming && <span className="inline-block w-1.5 h-3.5 ml-1 bg-current animate-pulse align-middle" />}
+                  </p>
+               </div>
+            </div>
+          ))}
+          <div ref={messagesEndRef} />
+        </div>
       </div>
 
-      {/* Input */}
-      <div className="flex items-center gap-3 p-4 bg-white rounded-2xl shadow-lg border border-gray-100">
-        <input
-          type="text"
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          onKeyDown={handleKeyDown}
-          placeholder="Zadaj pytanie (Symulowane opóźnienie)..."
-          disabled={isStreaming}
-          className="flex-1 bg-transparent border-none outline-none text-[var(--omni-text)] placeholder:text-gray-400"
-        />
-        <button
-          onClick={handleSend}
-          disabled={!input.trim() || isStreaming}
-          className="p-3 bg-[var(--omni-accent)] text-white rounded-xl disabled:opacity-50 disabled:cursor-not-allowed hover:scale-105 transition-transform"
-        >
-          {isStreaming ? <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <Send className="w-5 h-5" />}
-        </button>
+      {/* Input - Full Width on Mobile */}
+      <div className="bg-white border-t border-gray-100 pb-safe shadow-[0_-4px_12px_rgba(0,0,0,0.03)]">
+        <div className="max-w-4xl mx-auto w-full p-3 md:p-4 flex items-center gap-2">
+          <input
+            type="text"
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            onKeyDown={handleKeyDown}
+            placeholder="Zadaj pytanie..."
+            disabled={isStreaming}
+            className="flex-1 bg-gray-50 border-none outline-none text-sm text-[var(--omni-text)] placeholder:text-gray-400 px-4 py-3 rounded-xl focus:ring-1 focus:ring-[var(--omni-accent)]/20 transition-all"
+          />
+          <button
+            onClick={handleSend}
+            disabled={!input.trim() || isStreaming}
+            className="w-11 h-11 flex items-center justify-center bg-[var(--omni-accent)] text-white rounded-xl disabled:opacity-50 hover:scale-105 active:scale-95 transition-all shadow-sm shadow-indigo-200 flex-shrink-0"
+          >
+            {isStreaming ? <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <Send className="w-5 h-5" />}
+          </button>
+        </div>
       </div>
     </div>
   );
@@ -227,53 +237,231 @@ interface ChatMessage {
 
 function RealLessonChat() {
   const navigate = useNavigate();
+  const { id: routeId } = useParams();
   const [topic, setTopic] = useState('');
   const [sessionContext, setSessionContext] = useState<any>(null);
   const [isInitializing, setIsInitializing] = useState(true);
   const [contextError, setContextError] = useState<string | null>(null);
+  const [isEmptyState, setIsEmptyState] = useState(false);
   const [authToken, setAuthToken] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [isVoiceMode, setIsVoiceMode] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [chatError, setChatError] = useState<string | null>(null);
   const [input, setInput] = useState('');
-  const [messages, setMessages] = useState<ChatMessage[]>([
-    {
-      id: 'msg-welcome',
-      role: 'assistant',
-      content: 'Cześć! Jestem Twoim AI korepetytorem z zapisanego tematu. Oczekuję na Twoje pytania!'
-    }
-  ]);
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [threadId, setThreadId] = useState<string | null>(null);
+  const [contextSnapshot, setContextSnapshot] = useState<any>(null);
+  const [isFreshingSnapshot, setIsFreshingSnapshot] = useState(false);
 
   useEffect(() => {
     const initSession = async () => {
       try {
-        const sessionId = sessionStorage.getItem('currentSessionId');
+        const sessionId = routeId || sessionStorage.getItem('currentSessionId');
+        
+        // Product Rule: Plain route without any stored context = Immediate Empty State
         if (!sessionId) {
-          navigate('/app/upload');
+          setIsEmptyState(true);
+          setIsInitializing(false);
           return;
         }
 
         const { data: dbData, error: dbError } = await supabase
           .from('study_sessions')
-          .select('subject, topic, summary')
+          .select('subject, topic, summary, key_concepts, flashcards, quiz_result, flashcard_progress, folder_id, updated_at')
           .eq('id', sessionId)
           .single();
 
-        if (dbError) throw dbError;
-        if (!dbData) throw new Error("Sesja nie istnieje.");
+        // If loading failed but we are on the base route, fallback to empty state instead of error banner
+        if (dbError || !dbData) {
+          if (!routeId) {
+            setIsEmptyState(true);
+            setIsInitializing(false);
+            return;
+          }
+          throw dbError || new Error("Sesja nie została znaleziona.");
+        }
 
         setTopic(dbData.topic || 'Sekcji bez tytułu');
-        setSessionContext(dbData);
-
+        
         const { data: authData } = await supabase.auth.getSession();
-        if (authData.session) {
-          setAuthToken(authData.session.access_token);
+        const currentToken = authData.session?.access_token || null;
+        setAuthToken(currentToken);
+
+
+        // Phase 10A: Detect Score Drop (Self-Referential)
+        let prevScore = null;
+        if (dbData.folder_id) {
+          const { data: prevData } = await supabase
+            .from('study_sessions')
+            .select('quiz_result')
+            .eq('folder_id', dbData.folder_id)
+            .neq('id', sessionId)
+            .not('quiz_result', 'is', null)
+            .order('created_at', { ascending: false })
+            .limit(1);
+          
+          if (prevData && prevData[0]?.quiz_result) {
+            prevScore = prevData[0].quiz_result.percentage;
+          }
+        }
+
+        const buildMasterySummary = () => {
+          const quizResult = dbData.quiz_result;
+          const flashcardProgress = dbData.flashcard_progress || {};
+          const flashcards = dbData.flashcards || [];
+
+          const difficultCardFronts = Object.entries(flashcardProgress)
+            .filter(([_, prog]: [string, any]) => prog.status === 'dont_know')
+            .map(([id, _]) => flashcards.find((fc: any) => fc.id === id)?.front)
+            .filter(Boolean);
+
+          const repeatingStruggles = Object.entries(flashcardProgress)
+            .filter(([_, prog]: [string, any]) => prog.dont_know_count >= 2)
+            .map(([id, _]) => flashcards.find((fc: any) => fc.id === id)?.front)
+            .filter(Boolean);
+
+          let summary = `POSTĘPY UCZNIA:`;
+          if (quizResult) {
+            summary += `\n- Wynik quizu: ${quizResult.percentage}%.`;
+            if (prevScore !== null && quizResult.percentage <= prevScore - 20) {
+              summary += ` (UWAGA: Wynik spadł o ${prevScore - quizResult.percentage} pkt względem poprzedniej sesji).`;
+            }
+          }
+          if (difficultCardFronts.length > 0) {
+            summary += `\n- Trudne pojęcia (${difficultCardFronts.length}): ${difficultCardFronts.slice(0, 5).join(', ')}.`;
+          }
+          if (repeatingStruggles.length > 0) {
+            summary += `\n- Pojęcia sprawiające powracający problem: ${repeatingStruggles.join(', ')}.`;
+          }
+          return summary;
+        };
+
+        const latestContext = {
+          topic: dbData.topic,
+          summary: dbData.summary,
+          subject: dbData.subject,
+          key_concepts: dbData.key_concepts,
+          mastery_summary: buildMasterySummary()
+        };
+
+        // --- Sprint 5 / Stabilized: Idempotent thread bootstrap ---
+        // Strategy: attempt upsert (ignore conflict on unique_session_thread),
+        // then always SELECT the existing row. This is race-safe regardless of
+        // how many concurrent calls hit this code (React Strict Mode, mobile
+        // fast-refresh, etc).
+        const upsertResult = await supabase
+          .from('tutor_threads')
+          .upsert(
+            {
+              session_id: sessionId,
+              user_id: authData.session?.user.id,
+              context_snapshot: latestContext,
+              snapshot_updated_at: new Date().toISOString()
+            },
+            {
+              onConflict: 'session_id',
+              ignoreDuplicates: true   // if row exists, skip — don't overwrite history
+            }
+          );
+
+        if (upsertResult.error) {
+          // Only throw for non-conflict errors
+          const isConflict = upsertResult.error.code === '23505';
+          if (!isConflict) throw upsertResult.error;
+          console.warn('[Tutor] Upsert conflict on unique_session_thread — row already exists, continuing.');
+        }
+
+        // Always select the now-guaranteed existing thread
+        const { data: thread, error: selectError } = await supabase
+          .from('tutor_threads')
+          .select('*')
+          .eq('session_id', sessionId)
+          .single();
+
+        if (selectError) throw selectError;
+        if (!thread) throw new Error('Thread not found after upsert.');
+
+        // Fetch existing chat history for this thread
+        const { data: existingMessages } = await supabase
+          .from('tutor_messages')
+          .select('id, role, content')
+          .eq('thread_id', thread.id)
+          .order('created_at', { ascending: true });
+
+        // Check if snapshot needs refreshing (existing thread may be stale)
+        if (thread) {
+          const sessionUpdatedAt = dbData.updated_at ? new Date(dbData.updated_at) : new Date(0);
+          const snapshotUpdatedAt = new Date(thread.snapshot_updated_at);
+
+          if (sessionUpdatedAt > snapshotUpdatedAt) {
+            console.log('[Tutor] Snapshot stale, refreshing...');
+            setIsFreshingSnapshot(true);
+            const { error: updateError } = await supabase
+              .from('tutor_threads')
+              .update({
+                context_snapshot: latestContext,
+                snapshot_updated_at: new Date().toISOString()
+              })
+              .eq('id', thread.id);
+
+            if (updateError) console.error('Failed to refresh snapshot:', updateError);
+            setIsFreshingSnapshot(false);
+          }
+
+          setThreadId(thread.id);
+          setContextSnapshot(thread.context_snapshot);
+
+          if (existingMessages && existingMessages.length > 0) {
+            setMessages(existingMessages.map(m => ({
+              id: m.id,
+              role: m.role,
+              content: m.content
+            })));
+          } else {
+            // Phase 10B: Proactive Coaching Welcome
+            const quizResult = dbData.quiz_result;
+            const flashcardProgress = dbData.flashcard_progress || {};
+            const difficultCount = Object.values(flashcardProgress).filter((p: any) => p.status === 'dont_know').length;
+            const hasRepeatedDifficulty = Object.values(flashcardProgress).some((p: any) => p.dont_know_count >= 2);
+
+            let proactiveMsg = 'Cześć! Jestem Twoim Osobistym Korepetytorem. W czym mogę Ci dzisiaj pomóc?';
+
+            // Struggle Logic
+            if (quizResult && quizResult.percentage < 60) {
+              proactiveMsg = `Cześć! Widzę, że ostatni quiz był sporym wyzwaniem (${quizResult.percentage}%). Chcesz, żebyśmy wspólnie przejrzeli te trudniejsze pytania?`;
+            } else if (difficultCount >= 3) {
+              proactiveMsg = `Cześć! Widzę, że kilka pojęć (${difficultCount}) sprawiło Ci dzisiaj trudność. Może przećwiczymy je teraz razem?`;
+            } else if (hasRepeatedDifficulty) {
+              proactiveMsg = `Cześć! Zauważyłem, że niektóre tematy powracają jako trudne. Chcesz, żebym spróbował wyjaśnić je w inny, prostszy sposób?`;
+            } else if (prevScore !== null && quizResult && quizResult.percentage <= prevScore - 20) {
+              proactiveMsg = `Cześć! Widzę, że dzisiejszy temat sprawił Ci trochę więcej trudności niż poprzednio. Zrobimy krótką i spokojną powtórkę?`;
+            } 
+            // Success Logic (Quiet Reinforcement - 30% chance)
+            else if (quizResult && quizResult.percentage >= 90 && difficultCount === 0 && Math.random() < 0.3) {
+              proactiveMsg = `Cześć! Świetnie Ci dzisiaj idzie! Quiz poszedł wzorowo (${quizResult.percentage}%). Chcesz zgłębić jakiś konkretny, trudniejszy szczegół z tego tematu?`;
+            }
+            // Neutral
+            else if (quizResult && quizResult.percentage >= 60) {
+              proactiveMsg = `Cześć! Masz za sobą solidną powtórkę. Od czego dzisiaj zaczynamy naszą rozmowę?`;
+            }
+
+            setMessages([{
+              id: 'msg-welcome',
+              role: 'assistant',
+              content: proactiveMsg
+            }]);
+          }
         }
 
       } catch (err: any) {
-        console.error("Failed to init secure lesson DB context:", err);
-        setContextError("Nie udało się załadować danych o sesji z Bazy Danych. Skontaktuj się z obsługą.");
+        console.error('Failed to init secure lesson DB context:', err);
+        // Fallback to empty state only if we aren't on an explicit /:id route
+        if (!routeId) {
+          setIsEmptyState(true);
+        } else {
+          setContextError('Nie udało się załadować danych o sesji. Spróbuj ponownie lub wybierz lekcję z Historii.');
+        }
       } finally {
         setIsInitializing(false);
       }
@@ -282,10 +470,141 @@ function RealLessonChat() {
   }, []);
 
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages]);
+    // Determine if user is near the bottom
+    const container = messagesEndRef.current?.parentElement;
+    if (container) {
+      const isNearBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 150;
+      if (isNearBottom || isLoading) {
+         messagesEndRef.current?.scrollIntoView({ behavior: isLoading ? 'auto' : 'smooth' });
+      }
+    } else {
+      messagesEndRef.current?.scrollIntoView({ behavior: 'auto' });
+    }
+  }, [messages, isLoading]);
 
-  const toggleVoiceMode = () => setIsVoiceMode(!isVoiceMode);
+  // Phase 11: Keyboard-safe viewport handling
+  useEffect(() => {
+    if (!window.visualViewport) return;
+
+    const handleVisualViewportChange = () => {
+      const viewport = window.visualViewport;
+      if (!viewport) return;
+      
+      // If viewport height decreased significantly (likely keyboard open)
+      // or if it changed at all, ensure we are showing the latest message
+      if (messagesEndRef.current) {
+        const container = messagesEndRef.current.parentElement;
+        if (container) {
+           // We use a small timeout to allow the browser to finish its internal layout shift
+           setTimeout(() => {
+             messagesEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
+           }, 100);
+        }
+      }
+    };
+
+    window.visualViewport.addEventListener('resize', handleVisualViewportChange);
+    window.visualViewport.addEventListener('scroll', handleVisualViewportChange);
+    
+    return () => {
+      window.visualViewport?.removeEventListener('resize', handleVisualViewportChange);
+      window.visualViewport?.removeEventListener('scroll', handleVisualViewportChange);
+    };
+  }, []);
+
+  const recognitionRef = useRef<any>(null);
+  const [baseInput, setBaseInput] = useState('');
+
+  useEffect(() => {
+    if (isVoiceMode) {
+      setBaseInput(input); // Snapshot what they typed before pressing mic
+      const SpeechRecognition = window.SpeechRecognition || (window as any).webkitSpeechRecognition;
+      if (!SpeechRecognition) {
+        alert("Twoja przeglądarka nie obsługuje technologii rozpoznawania mowy.");
+        setIsVoiceMode(false);
+        return;
+      }
+      
+      const recognition = new SpeechRecognition();
+      recognition.lang = 'pl-PL';
+      recognition.continuous = true;
+      recognition.interimResults = true;
+      recognitionRef.current = recognition;
+
+      recognition.onresult = (event: any) => {
+        let transcript = '';
+        for (let i = event.resultIndex; i < event.results.length; ++i) {
+          transcript += event.results[i][0].transcript;
+        }
+
+        // Lightweight post-processing normalization layer for Polish dictation
+        const normalizePolishPunctuation = (text: string) => {
+          return text
+            .replace(/\bznak zapytania\b/gi, '?')
+            .replace(/\bkropka\b/gi, '.')
+            .replace(/\bprzecinek\b/gi, ',')
+            .replace(/\bdwukropek\b/gi, ':')
+            .replace(/\bśrednik\b/gi, ';')
+            .replace(/\bwykrzyknik\b/gi, '!')
+            .replace(/\bmyślnik\b/gi, '-')
+            .replace(/\bnowa linia\b/gi, '\n')
+            // Clean up accidental leading spaces resulting from mapping (e.g. "tekst ?" -> "tekst?")
+            .replace(/\s+([?.!,:;-])/g, '$1');
+        };
+
+        const normalizedTranscript = normalizePolishPunctuation(transcript);
+
+        // Capture a clean version appending strictly onto the base
+        const previousInput = baseInput ? baseInput + (baseInput.endsWith('\n') ? '' : ' ') : '';
+        setInput(previousInput + normalizedTranscript);
+      };
+
+      recognition.onerror = (event: any) => {
+        console.error("[chat-tutor] Speech recognition error:", event.error);
+        if (event.error !== 'no-speech') setIsVoiceMode(false);
+      };
+
+      recognition.onend = () => {
+        // Only flip state if we didn't manually stop it
+        if (recognitionRef.current) setIsVoiceMode(false);
+      };
+
+      try {
+        recognition.start();
+      } catch (e) {
+        console.error("[chat-tutor] Speech recognition start error", e);
+      }
+    } else {
+      if (recognitionRef.current) {
+        try { 
+           recognitionRef.current.stop(); 
+           recognitionRef.current = null;
+        } catch(e) {}
+      }
+    }
+    
+    return () => {
+      if (recognitionRef.current) {
+         try { recognitionRef.current.stop(); } catch(e){}
+      }
+    };
+  }, [isVoiceMode]); // Intentionally leaving input/baseInput out to avoid restart loops
+
+  const toggleVoiceMode = () => setIsVoiceMode(prev => !prev);
+
+  // handleSend is the click-friendly wrapper used by the send button and chips
+  const handleSend = () => {
+    if (!input.trim() || isLoading) return;
+    handleChatSubmit({ preventDefault: () => {} } as React.FormEvent);
+  };
+
+  // handleKeyDown submits on Enter (without Shift) for desktop convenience
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleSend();
+    }
+  };
 
   const handleChatSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -322,7 +641,8 @@ function RealLessonChat() {
         },
         body: JSON.stringify({
           messages: historyToSend,
-          context: sessionContext
+          context: contextSnapshot,
+          stream: true // Phase II Streaming enabled
         })
       });
 
@@ -335,18 +655,87 @@ function RealLessonChat() {
         return;
       }
 
-      // Parse plain JSON response — backend now returns { success, reply }
-      const data = await response.json();
-      const replyText = data.reply || '';
+      // Parse response handling streaming vs plain text/JSON
+      let replyText = '';
+      const contentType = response.headers.get('content-type') || '';
 
-      if (replyText) {
-        setMessages(prev =>
-          prev.map(m => m.id === assistantId ? { ...m, content: replyText } : m)
-        );
+      if (contentType.includes('text/event-stream')) {
+        const reader = response.body?.getReader();
+        const decoder = new TextDecoder();
+        if (reader) {
+          try {
+            let buffer = '';
+            while (true) {
+              const { done, value } = await reader.read();
+              if (done) break;
+              const chunk = decoder.decode(value, { stream: true });
+              buffer += chunk;
+              
+              const lines = buffer.split('\n');
+              // Keep the last segment in the buffer because it might be an incomplete line
+              buffer = lines.pop() || '';
+              
+              for (const line of lines) {
+                const trimmedLine = line.trim();
+                if (trimmedLine.startsWith('data: ')) {
+                  const dataStr = trimmedLine.slice(6).trim();
+                  if (dataStr === '[DONE]') continue;
+                  if (!dataStr) continue;
+                  try {
+                    const data = JSON.parse(dataStr);
+                    // Extract payload correctly whether it's OpenAI structured or raw generic format
+                    replyText += data.choices?.[0]?.delta?.content || data.reply || data.text || data.content || '';
+                  } catch (e) {
+                    console.warn("[chat-tutor] SSE JSON parse warning:", dataStr);
+                  }
+                }
+              }
+              
+              // Update UI incrementally without '...' jumps
+              const currentReplyText = replyText;
+              setMessages(prev =>
+                prev.map(m => m.id === assistantId ? { ...m, content: currentReplyText } : m)
+              );
+            }
+          } finally {
+            reader.releaseLock();
+          }
+        }
       } else {
-        setMessages(prev =>
-          prev.map(m => m.id === assistantId ? { ...m, content: '...' } : m)
-        );
+        const text = await response.text();
+        try {
+          const responseData = JSON.parse(text);
+          if (responseData.error) {
+            throw new Error(responseData.error.message || responseData.error || 'Wystąpił błąd serwera');
+          }
+          replyText = responseData.reply || responseData.message || responseData.content || text;
+        } catch (e: any) {
+           if (e.message !== 'Wystąpił błąd serwera' && text.trim()) {
+             // Not JSON, but valid text
+             replyText = text;
+           } else {
+             throw e;
+           }
+        }
+      }
+
+      if (!replyText || !replyText.trim()) {
+         replyText = 'Przepraszam, otrzymałem pustą odpowiedź.';
+      }
+
+      setMessages(prev =>
+        prev.map(m => m.id === assistantId ? { ...m, content: replyText } : m)
+      );
+
+      // Save history to DB client-side for Phase II persistence only AFTER stream is fully closed
+      if (threadId) {
+        const { data: userData } = await supabase.auth.getUser();
+        if (userData.user?.id) {
+          await supabase.from('tutor_messages').insert([
+            { thread_id: threadId, user_id: userData.user.id, role: 'user', content: userMessage.content },
+            { thread_id: threadId, user_id: userData.user.id, role: 'assistant', content: replyText }
+          ]);
+        }
       }
 
     } catch (err: any) {
@@ -361,100 +750,202 @@ function RealLessonChat() {
   if (isInitializing) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
-        <div className="w-12 h-12 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
-        <p className="text-[var(--omni-text-muted)] font-medium">Ładowanie kontekstu lekcji z serwera...</p>
+        <div className="w-12 h-12 border-4 border-[var(--omni-accent)]/20 border-t-[var(--omni-accent)] rounded-full animate-spin"></div>
+        <p className="text-[var(--omni-text-muted)] font-medium animate-pulse">Inicjowanie korepetytora...</p>
+      </div>
+    );
+  }
+
+  if (isEmptyState) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[70vh] p-6 text-center animate-in fade-in zoom-in duration-500">
+        <div className="w-20 h-20 bg-[var(--omni-accent)]/10 dark:bg-slate-800 rounded-3xl flex items-center justify-center mb-6">
+          <MessageCircle className="w-10 h-10 text-[var(--omni-accent)]" />
+        </div>
+        <h1 className="omni-heading-3 text-[var(--omni-text)] mb-3">
+          Wybierz lekcję, aby zacząć naukę z AI
+        </h1>
+        <p className="text-[var(--omni-text-muted)] max-w-sm mb-8 leading-relaxed">
+          Otwórz lekcję z Dashboardu lub Historii, aby korepetytor mógł pracować na Twoich materiałach.
+        </p>
+        <div className="flex flex-col sm:flex-row gap-4 w-full max-w-xs sm:max-w-md">
+          <button 
+            onClick={() => navigate('/app/dashboard')}
+            className="flex-1 px-6 py-3.5 bg-[var(--omni-accent)] text-white rounded-2xl font-bold shadow-lg shadow-indigo-500/20 hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-2"
+          >
+            <LayoutDashboard className="w-5 h-5" /> Przejdź do Dashboardu
+          </button>
+          <button 
+            onClick={() => navigate('/app/history')}
+            className="flex-1 px-6 py-3.5 bg-white dark:bg-slate-800 border border-gray-100 dark:border-slate-700 text-[var(--omni-text)] rounded-2xl font-bold shadow-sm hover:bg-gray-50 dark:hover:bg-slate-700 active:scale-95 transition-all flex items-center justify-center gap-2"
+          >
+            <History className="w-5 h-5" /> Przejdź do Historii
+          </button>
+        </div>
       </div>
     );
   }
 
   if (contextError) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[60vh]">
-         <div className="p-6 bg-red-50 text-red-600 rounded-2xl max-w-md text-center shadow-sm border border-red-100">
-           <AlertCircle className="w-10 h-10 mx-auto mb-4" />
-           <p className="font-semibold">{contextError}</p>
+      <div className="flex flex-col items-center justify-center min-h-[60vh] p-6 text-center">
+         <div className="w-16 h-16 bg-red-50 text-red-500 rounded-2xl flex items-center justify-center mb-4 border border-red-100">
+           <AlertCircle className="w-8 h-8" />
          </div>
+         <h2 className="text-xl font-bold text-[var(--omni-text)] mb-2">Błąd ładowania sesji</h2>
+         <p className="text-[var(--omni-text-muted)] mb-6 max-w-sm mx-auto">{contextError}</p>
+         <button 
+           onClick={() => window.location.reload()}
+           className="px-6 py-2.5 bg-gray-100 text-[var(--omni-text)] rounded-xl font-medium hover:bg-gray-200 transition-all flex items-center gap-2 mx-auto"
+         >
+           <RefreshCw className="w-4 h-4" /> Spróbuj ponownie
+         </button>
       </div>
     );
   }
 
   return (
-    <div className="h-[calc(100vh-120px)] flex flex-col">
-      {/* Header */}
-      <div className="flex items-center justify-between mb-4">
-        <div>
-          <h1 className="omni-heading-3 text-[var(--omni-text)] mb-1">
-            Lekcja z AI <span className="text-xs font-medium text-emerald-600 bg-emerald-100 px-2 py-0.5 rounded-full ml-1 align-middle">Live</span>
+    <div className="flex-1 flex flex-col h-full bg-[var(--omni-bg)] overflow-hidden">
+      {/* Header - Mobile First */}
+      <div className="px-4 py-3 bg-white border-b border-gray-100 flex items-center justify-between">
+        <div className="min-w-0">
+          <h1 className="text-base font-bold text-[var(--omni-text)] truncate">
+            Lekcja z AI <span className="text-[10px] font-medium text-emerald-600 bg-emerald-100 px-2 py-0.5 rounded-full ml-1 align-middle">Live</span>
           </h1>
-          <p className="text-[var(--omni-text-muted)]">
+          <p className="text-xs text-[var(--omni-text-muted)] truncate">
             {topic}
           </p>
         </div>
-        <button
-          onClick={toggleVoiceMode}
-          className={`p-3 rounded-full transition-colors ${
-            isVoiceMode ? 'bg-[var(--omni-accent)] text-white' : 'bg-gray-100 text-[var(--omni-text-muted)] hover:bg-gray-200'
-          }`}
-        >
-          {isVoiceMode ? <Mic className="w-5 h-5" /> : <MicOff className="w-5 h-5" />}
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={toggleVoiceMode}
+            className={`p-2.5 rounded-full transition-all ${
+              isVoiceMode ? 'bg-red-500 animate-pulse text-white shadow-md' : 'bg-gray-100 text-[var(--omni-text-muted)] hover:bg-gray-200'
+            }`}
+          >
+            {isVoiceMode ? <Mic className="w-4 h-4" /> : <MicOff className="w-4 h-4" />}
+          </button>
+        </div>
       </div>
 
-      {/* Messages */}
-      <div className="flex-1 overflow-y-auto space-y-4 mb-4 pr-2">
-        {messages.map((message) => (
-          <div key={message.id} className={`flex items-start gap-3 ${message.role === 'user' ? 'flex-row-reverse' : ''}`}>
-             <div className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${message.role === 'user' ? 'bg-[var(--omni-accent)]' : 'bg-[var(--omni-lavender)]'}`}>
-              {message.role === 'user' ? <User className="w-5 h-5 text-white" /> : <Bot className="w-5 h-5 text-[var(--omni-text)]" />}
-             </div>
-             <div className={`max-w-[80%] p-4 rounded-2xl ${message.role === 'user' ? 'bg-[var(--omni-accent)] text-white rounded-tr-sm' : 'bg-white rounded-tl-sm shadow-sm border border-gray-100'}`}>
-                <p className={`whitespace-pre-wrap ${message.role === 'user' ? 'text-white' : 'text-[var(--omni-text)]'}`}>
-                  {message.content}
-                  {isLoading && message.id.startsWith('msg-assistant-') && message.content === '' && (
-                    <span className="inline-flex gap-1 ml-1">
-                      <span className="inline-block w-2 h-2 bg-gray-300 rounded-full animate-bounce" />
-                      <span className="inline-block w-2 h-2 bg-gray-400 rounded-full animate-bounce delay-75" />
-                      <span className="inline-block w-2 h-2 bg-gray-500 rounded-full animate-bounce delay-150" />
-                    </span>
+      {/* Messages Area */}
+      <div className="flex-1 overflow-y-auto px-4 py-4 space-y-6 custom-scrollbar">
+        <div className="max-w-4xl mx-auto w-full space-y-6">
+          {messages.map((message) => (
+            <div key={message.id} className={`flex items-start gap-2.5 ${message.role === 'user' ? 'flex-row-reverse' : ''}`}>
+               <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 shadow-sm ${message.role === 'user' ? 'bg-[var(--omni-accent)]' : 'bg-white border border-gray-100'}`}>
+                {message.role === 'user' ? <User className="w-4 h-4 text-white" /> : <Bot className="w-4 h-4 text-[var(--omni-accent)]" />}
+               </div>
+               <div className={`max-w-[85%] md:max-w-[75%] p-3.5 rounded-2xl text-sm leading-relaxed ${
+                 message.role === 'user' 
+                   ? 'bg-[var(--omni-accent)] text-white rounded-tr-sm' 
+                   : 'bg-white text-[var(--omni-text)] rounded-tl-sm shadow-sm border border-gray-100'
+               } break-words min-w-0`}>
+                  {message.role === 'user' ? (
+                    <p className="whitespace-pre-wrap text-white">
+                      {message.content}
+                    </p>
+                  ) : (
+                    <div className="text-[var(--omni-text)] prose prose-sm max-w-none prose-p:leading-[1.6] prose-p:mb-3 last:prose-p:mb-0 prose-ul:list-disc prose-ul:pl-5 prose-ul:mb-3 prose-ul:space-y-1 prose-li:leading-[1.6] prose-strong:font-semibold prose-strong:text-gray-900 prose-headings:font-bold prose-headings:mb-2 prose-headings:mt-4 first:prose-headings:mt-0">
+                      <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                        {isLoading && message.id.startsWith('msg-assistant-')
+                          ? message.content.replace(/([*_~`#\[\]()]+)$/, '') + (message.content ? ' ▍' : '')
+                          : message.content}
+                      </ReactMarkdown>
+                      {isLoading && message.id.startsWith('msg-assistant-') && message.content === '' && (
+                        <span className="inline-flex gap-1 ml-1 mt-1">
+                          <span className="inline-block w-1.5 h-1.5 bg-gray-300 rounded-full animate-bounce" />
+                          <span className="inline-block w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce delay-75" />
+                          <span className="inline-block w-1.5 h-1.5 bg-gray-500 rounded-full animate-bounce delay-150" />
+                        </span>
+                      )}
+                    </div>
                   )}
-                </p>
-             </div>
-          </div>
-        ))}
-        <div ref={messagesEndRef} />
+               </div>
+            </div>
+          ))}
+          <div ref={messagesEndRef} />
+        </div>
       </div>
 
       {/* Error UI */}
       {chatError && (
-        <div className="mb-4 p-4 bg-red-50 rounded-xl flex items-center justify-between border border-red-100 shadow-sm">
-           <div className="flex items-center gap-3">
-              <AlertCircle className="w-5 h-5 text-red-600" />
-              <p className="text-sm font-medium text-red-800">{chatError}</p>
+        <div className="px-4 py-2 bg-red-50 border-y border-red-100 flex items-center justify-between">
+           <div className="flex items-center gap-2 min-w-0">
+              <AlertCircle className="w-4 h-4 text-red-600 flex-shrink-0" />
+              <p className="text-xs font-medium text-red-800 truncate">{chatError}</p>
            </div>
-           <button onClick={() => setChatError(null)} className="flex items-center gap-1 text-sm bg-red-100 hover:bg-red-200 text-red-700 px-3 py-1.5 rounded-lg transition-colors">
-              <RefreshCw className="w-4 h-4" /> Zamknij
+           <button onClick={() => setChatError(null)} className="text-[10px] bg-red-100 text-red-700 px-2 py-1 rounded transition-colors flex-shrink-0">
+              Zamknij
            </button>
         </div>
       )}
 
-      {/* Input Form */}
-      <form onSubmit={handleChatSubmit} className="flex items-center gap-3 p-4 bg-white rounded-2xl shadow-lg border border-gray-100">
-        <input
-          type="text"
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          placeholder="Zadaj pytanie korepetytorowi..."
-          disabled={isLoading}
-          className="flex-1 bg-transparent border-none outline-none text-[var(--omni-text)] placeholder:text-gray-400"
-        />
-        <button
-          type="submit"
-          disabled={!input.trim() || isLoading}
-          className="p-3 bg-[var(--omni-accent)] text-white rounded-xl disabled:opacity-50 disabled:cursor-not-allowed hover:scale-105 transition-transform"
-        >
-          {isLoading ? <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <Send className="w-5 h-5" />}
-        </button>
-      </form>
+      {/* Quick Action Chips */}
+      {!isLoading && messages.length > 0 && (
+        <div className="bg-white border-t border-gray-50">
+          <div className="max-w-4xl mx-auto w-full px-4 py-3">
+            <div className="flex items-center gap-2 overflow-x-auto no-scrollbar">
+              {(() => {
+                const chips = [];
+                const contextSummary = contextSnapshot?.mastery_summary || '';
+                const quizResult = contextSummary.includes('Wynik quizu');
+                const lowScoreMatch = contextSummary.match(/Wynik quizu: (\d+)%/);
+                const lowScore = lowScoreMatch ? parseInt(lowScoreMatch[1]) : 100;
+                const difficultCountMatch = contextSummary.match(/Trudne pojęcia \((\d+)\)/);
+                const difficultCount = difficultCountMatch ? parseInt(difficultCountMatch[1]) : 0;
+
+                if (quizResult && lowScore < 80) chips.push("🔍 Wyjaśnij błędy");
+                if (difficultCount > 0) chips.push("🧠 Przećwicz trudne pojęcia");
+                chips.push("📝 Powtórz kluczowe punkty");
+                chips.push("💡 Wyjaśnij prościej");
+
+                return chips.slice(0, 3).map((chipText) => (
+                  <button
+                    key={chipText}
+                    onClick={() => {
+                      setInput(chipText.replace(/^[^ ]+ /, ''));
+                      setTimeout(() => document.getElementById('chat-send-btn')?.click(), 50);
+                    }}
+                    className="whitespace-nowrap px-3.5 py-1.5 bg-gray-50 border border-gray-100 rounded-full text-[10px] font-bold text-[var(--omni-text)] hover:border-[var(--omni-accent)] transition-all active:scale-95 flex-shrink-0"
+                  >
+                    {chipText}
+                  </button>
+                ));
+              })()}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Input Area */}
+      <div className="bg-white border-t border-gray-100 pb-safe shadow-[0_-4px_12px_rgba(0,0,0,0.03)]">
+        <div className="max-w-4xl mx-auto w-full p-3 md:p-4 flex items-center gap-2">
+          <button
+            onClick={toggleVoiceMode}
+            className={`w-11 h-11 flex items-center justify-center rounded-xl transition-all ${isVoiceMode ? 'bg-red-500 text-white animate-pulse' : 'bg-gray-50 text-gray-400 hover:bg-gray-100'}`}
+          >
+            {isVoiceMode ? <MicOff className="w-5 h-5" /> : <Mic className="w-5 h-5" />}
+          </button>
+          <textarea
+            rows={1}
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            onKeyDown={handleKeyDown}
+            placeholder="Zadaj pytanie..."
+            disabled={isLoading}
+            className="flex-1 bg-gray-50 border-none outline-none text-sm text-[var(--omni-text)] placeholder:text-gray-400 px-4 py-3 rounded-xl focus:ring-1 focus:ring-[var(--omni-accent)]/20 transition-all resize-none max-h-32"
+          />
+          <button
+            id="chat-send-btn"
+            onClick={handleSend}
+            disabled={!input.trim() || isLoading}
+            className="w-11 h-11 flex items-center justify-center bg-[var(--omni-accent)] text-white rounded-xl disabled:opacity-50 hover:scale-105 active:scale-95 transition-all shadow-sm shadow-indigo-200 flex-shrink-0"
+          >
+            {isLoading ? <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <Send className="w-5 h-5" />}
+          </button>
+        </div>
+      </div>
     </div>
   );
 }

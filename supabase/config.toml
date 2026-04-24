@@ -4,3 +4,5 @@ verify_jwt = false
 verify_jwt = false
 [functions.delete-session]
 verify_jwt = false
+[functions.regenerate-module]
+verify_jwt = false

@@ -365,6 +365,7 @@ export default function UploadPage() {
         .insert({
           user_id: user.id,
           image_url: uploadedPaths[0],
+          folder_id: null,
         })
         .select()
         .single();
@@ -444,7 +445,34 @@ export default function UploadPage() {
 
       {/* ── Empty state: drop zone ── */}
       {images.length === 0 && (
-        <div className="space-y-4">
+        <div className="space-y-4 flex flex-col-reverse md:flex-col gap-4 md:gap-0 md:space-y-4">
+          {/* Camera — PRIMARY on mobile (rendered last in DOM but shown first via col-reverse) */}
+          <div>
+            <button
+              onClick={() => cameraInputRef.current?.click()}
+              className="w-full omni-btn-primary flex items-center justify-center gap-3 py-5 text-lg rounded-2xl shadow-lg active:scale-[0.98] transition-all"
+            >
+              <Camera className="w-7 h-7" />
+              Zrób zdjęcie notatek
+            </button>
+            <input
+              type="file"
+              accept="image/*"
+              capture="environment"
+              ref={cameraInputRef}
+              onChange={e => { if (e.target.files) addFiles(Array.from(e.target.files)); }}
+              className="hidden"
+            />
+          </div>
+
+          {/* Divider */}
+          <div className="flex items-center gap-4">
+            <div className="flex-1 h-px bg-gray-200" />
+            <span className="text-sm text-gray-400 font-medium">albo</span>
+            <div className="flex-1 h-px bg-gray-200" />
+          </div>
+
+          {/* Drop zone — PRIMARY on desktop, SECONDARY on mobile */}
           <div
             {...getRootProps()}
             className={`border-2 border-dashed rounded-2xl p-8 lg:p-12 text-center cursor-pointer transition-all ${
@@ -454,38 +482,16 @@ export default function UploadPage() {
             }`}
           >
             <input {...getInputProps()} />
-            <div className="w-16 h-16 bg-[var(--omni-lavender)] rounded-2xl flex items-center justify-center mx-auto mb-4">
-              <Images className="w-8 h-8 text-[var(--omni-text)]" />
+            <div className="w-14 h-14 bg-[var(--omni-lavender)] rounded-2xl flex items-center justify-center mx-auto mb-4">
+              <Images className="w-7 h-7 text-[var(--omni-text)]" />
             </div>
-            <p className="font-medium text-[var(--omni-text)] mb-2">
-              {isDragActive ? 'Upuść zdjęcia tutaj...' : 'Przeciągnij i upuść zdjęcia lub kliknij'}
+            <p className="font-medium text-[var(--omni-text)] mb-1">
+              {isDragActive ? 'Upuść zdjęcia tutaj...' : 'Wybierz pliki z urządzenia'}
             </p>
             <p className="text-sm text-[var(--omni-text-muted)]">
               JPG, PNG, WEBP · max {MAX_IMAGES} zdjęć · max 10MB każde
             </p>
           </div>
-
-          <div className="flex items-center gap-4">
-            <div className="flex-1 h-px bg-gray-200" />
-            <span className="text-sm text-gray-400 font-medium">albo</span>
-            <div className="flex-1 h-px bg-gray-200" />
-          </div>
-
-          <button
-            onClick={() => cameraInputRef.current?.click()}
-            className="w-full omni-btn-primary flex items-center justify-center gap-2 py-4 text-lg"
-          >
-            <Camera className="w-6 h-6" />
-            Zrób zdjęcie teraz
-          </button>
-          <input
-            type="file"
-            accept="image/*"
-            capture="environment"
-            ref={cameraInputRef}
-            onChange={e => { if (e.target.files) addFiles(Array.from(e.target.files)); }}
-            className="hidden"
-          />
         </div>
       )}
 

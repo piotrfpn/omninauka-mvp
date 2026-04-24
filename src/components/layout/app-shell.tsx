@@ -42,11 +42,35 @@ export function AppShell({ children }: AppShellProps) {
   const navigate = useNavigate();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
-  const isActive = (href: string) => location.pathname === href || location.pathname.startsWith(href + '/');
-
   const handleLogout = () => {
     logout();
     navigate('/');
+  };
+
+  // getActiveSessionId logic: URL (:id) > sessionStorage
+  const getActiveSessionId = () => {
+    // 1. Try to extract ID from URL (e.g., /app/analysis/123)
+    const match = location.pathname.match(/\/app\/(analysis|flashcards|quiz|lesson)\/([^/]+)/);
+    if (match && match[2]) return match[2];
+
+    // 2. Fallback to sessionStorage
+    return sessionStorage.getItem('currentSessionId');
+  };
+
+  const activeId = getActiveSessionId();
+
+  const dynamicNavItems = navItems.map(item => {
+    // Only apply to learning modules
+    if (activeId && ['Fiszki', 'Quiz', 'Lekcja AI'].includes(item.label)) {
+      return { ...item, href: `${item.href}/${activeId}` };
+    }
+    return item;
+  });
+
+  const isActive = (href: string) => {
+    // For dynamic routes, we want to match the base path too
+    const basePath = href.split('/:id')[0].split('/').slice(0, 3).join('/');
+    return location.pathname === href || (activeId && location.pathname.startsWith(basePath));
   };
 
   return (
@@ -68,7 +92,7 @@ export function AppShell({ children }: AppShellProps) {
         {/* Navigation */}
         <nav className="flex-1 px-4 py-4 overflow-y-auto">
           <div className="space-y-1">
-            {navItems.map((item) => (
+            {dynamicNavItems.map((item) => (
               <Link
                 key={item.href}
                 to={item.href}
@@ -158,7 +182,7 @@ export function AppShell({ children }: AppShellProps) {
           <div className="absolute top-full left-0 right-0 bg-white border-b border-gray-100 shadow-lg">
             <nav className="p-4">
               <div className="space-y-1">
-                {navItems.map((item) => (
+                {dynamicNavItems.map((item) => (
                   <Link
                     key={item.href}
                     to={item.href}
@@ -205,8 +229,11 @@ export function AppShell({ children }: AppShellProps) {
       </div>
 
       {/* Main Content */}
-      <main className="flex-1 min-h-screen lg:ml-0 pt-16 lg:pt-0">
-        <div className="p-4 lg:p-8 max-w-6xl mx-auto">
+      <main className={`flex-1 min-h-screen-dvh lg:ml-0 pt-16 lg:pt-0 ${isActive('/app/lesson') ? 'h-screen-dvh flex flex-col overflow-hidden' : ''}`}>
+        <div className={isActive('/app/lesson') 
+          ? "flex-1 flex flex-col h-full w-full" 
+          : "p-4 lg:p-8 max-w-6xl mx-auto"
+        }>
           {children}
         </div>
       </main>

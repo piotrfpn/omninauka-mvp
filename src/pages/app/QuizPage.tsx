@@ -1,10 +1,15 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import type { QuizQuestion, QuizAnswer } from '../../types';
-import { Check, X, ArrowRight, HelpCircle, Trophy } from 'lucide-react';
+import { Check, X, ArrowRight, HelpCircle, Trophy, RotateCw } from 'lucide-react';
+import { supabase } from '../../lib/supabase';
+import { useAuth } from '../../lib/auth-context';
 
 export default function QuizPage() {
   const navigate = useNavigate();
+  const { id: routeId } = useParams();
+  const { isDemoMode } = useAuth();
+  
   const [questions, setQuestions] = useState<QuizQuestion[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [answers, setAnswers] = useState<QuizAnswer[]>([]);
@@ -12,44 +17,216 @@ export default function QuizPage() {
   const [showFeedback, setShowFeedback] = useState(false);
   const [isFinished, setIsFinished] = useState(false);
   const [startTime, setStartTime] = useState<number>(Date.now());
+  const [isLoading, setIsLoading] = useState(true);
+  const [isRegenerating, setIsRegenerating] = useState(false);
+  const [regenerationMessage, setRegenerationMessage] = useState<string | null>(null);
+  
+  // Randomization state
+  const [attemptId, setAttemptId] = useState<string | null>(null);
+  const [orderMaps, setOrderMaps] = useState<Record<string, number[]>>({}); // questionId -> originalIndices[]
 
   useEffect(() => {
-    // Get questions from session storage
-    const analysisStr = sessionStorage.getItem('currentAnalysis');
-    if (analysisStr) {
-      try {
-        const analysis = JSON.parse(analysisStr);
-        setQuestions(analysis.quizQuestions || []);
-        setStartTime(Date.now());
-      } catch {
-        setQuestions([]);
+    const fetchQuiz = async () => {
+      const sessionId = routeId || sessionStorage.getItem('currentSessionId');
+      
+      if (!sessionId) {
+        navigate('/app/dashboard');
+        return;
       }
+
+      if (isDemoMode || sessionId === 'demo-session') {
+        const analysisStr = sessionStorage.getItem('currentAnalysis');
+        if (analysisStr) {
+          try {
+            const analysis = JSON.parse(analysisStr);
+            setQuestions(analysis.quizQuestions || []);
+            setStartTime(Date.now());
+          } catch {
+            setQuestions([]);
+          }
+        }
+        setIsLoading(false);
+        return;
+      }
+
+      try {
+        const { data, error } = await supabase
+          .from('study_sessions')
+          .select('quiz_questions')
+          .eq('id', sessionId)
+          .single();
+
+        if (error) throw error;
+
+        const mappedQuestions = (data?.quiz_questions || []).map((q: any) => ({
+          ...q,
+          id: q.id || crypto.randomUUID(),
+          type: q.type || 'single_choice',
+          correctAnswer: q.correctAnswer ?? q.correctIndex
+        }));
+
+        setQuestions(mappedQuestions);
+        setStartTime(Date.now());
+
+        // Restore Progress or Initialize New Attempt
+        const progressStr = localStorage.getItem(`quiz-progress-${sessionId}`);
+        let restoredProgress = null;
+        if (progressStr) {
+          try {
+            restoredProgress = JSON.parse(progressStr);
+          } catch (e) {
+            console.error("Failed to parse quiz progress", e);
+          }
+        }
+
+        if (restoredProgress && restoredProgress.attemptId && !restoredProgress.isFinished) {
+          // Resume existing attempt
+          setAttemptId(restoredProgress.attemptId);
+          if (typeof restoredProgress.currentIndex === 'number') setCurrentIndex(restoredProgress.currentIndex);
+          if (Array.isArray(restoredProgress.answers)) setAnswers(restoredProgress.answers);
+          if (restoredProgress.orderMaps) setOrderMaps(restoredProgress.orderMaps);
+        } else {
+          // Start fresh attempt
+          const newAttemptId = crypto.randomUUID();
+          setAttemptId(newAttemptId);
+          
+          // Generate order maps for all questions
+          const newOrderMaps: Record<string, number[]> = {};
+          mappedQuestions.forEach((q: QuizQuestion) => {
+            if (q.type === 'single_choice' && q.options) {
+              const indices = q.options.map((_, i) => i);
+              for (let i = indices.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [indices[i], indices[j]] = [indices[j], indices[i]];
+              }
+              newOrderMaps[q.id] = indices;
+            }
+          });
+          setOrderMaps(newOrderMaps);
+        }
+      } catch (err) {
+        console.error("Failed to load quiz from DB:", err);
+        setQuestions([]);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchQuiz();
+  }, [routeId, navigate, isDemoMode]);
+
+  // Persist progress when it changes
+  useEffect(() => {
+    const sessionId = routeId || sessionStorage.getItem('currentSessionId');
+    if (!sessionId || questions.length === 0 || !attemptId) return;
+    
+    localStorage.setItem(`quiz-progress-${sessionId}`, JSON.stringify({
+      attemptId,
+      currentIndex,
+      answers,
+      isFinished,
+      orderMaps
+    }));
+  }, [currentIndex, answers, isFinished, routeId, questions.length, attemptId, orderMaps]);
+
+  const handleRegenerate = async () => {
+    const sessionId = routeId || sessionStorage.getItem('currentSessionId');
+    if (!sessionId) return;
+
+    if (!confirm("Czy na pewno chcesz wygenerować nowy quiz? Obecne pytania zostaną zastąpione nowymi wyzwaniami z Twoich notatek.")) {
+      return;
     }
-  }, []);
+
+    setIsRegenerating(true);
+    setRegenerationMessage("Magia AI: Generowanie nowego quizu...");
+
+    try {
+      const { data: { session: authSession } } = await supabase.auth.getSession();
+      const functionUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/regenerate-module`;
+      const response = await fetch(functionUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY,
+          ...(authSession ? { 'Authorization': `Bearer ${authSession.access_token}` } : {})
+        },
+        body: JSON.stringify({ sessionId, module: 'quiz' })
+      });
+
+      if (!response.ok) {
+        const errText = await response.text();
+        throw new Error(`HTTP ${response.status}: ${errText}`);
+      }
+
+      const result = await response.json();
+
+      // 1. Update state with new data
+      const mappedQuestions = (result.data || []).map((qq: any) => ({
+        ...qq,
+        id: qq.id || crypto.randomUUID(),
+        type: 'single_choice',
+        correctAnswer: qq.correctIndex
+      }));
+      setQuestions(mappedQuestions);
+
+      // 2. Reset progress and start new attempt
+      const newAttemptId = crypto.randomUUID();
+      const newOrderMaps: Record<string, number[]> = {};
+      mappedQuestions.forEach((q: any) => {
+        if (q.type === 'single_choice' && q.options) {
+          const indices = q.options.map((_, i) => i);
+          for (let i = indices.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [indices[i], indices[j]] = [indices[j], indices[i]];
+          }
+          newOrderMaps[q.id] = indices;
+        }
+      });
+
+      setAttemptId(newAttemptId);
+      setOrderMaps(newOrderMaps);
+      setCurrentIndex(0);
+      setAnswers([]);
+      setIsFinished(false);
+      setShowFeedback(false);
+      localStorage.removeItem(`quiz-progress-${sessionId}`);
+
+      setRegenerationMessage("Quiz zaktualizowany pomyślnie!");
+      setTimeout(() => setRegenerationMessage(null), 3000);
+    } catch (err: any) {
+      console.error("Regeneration failed:", err);
+      alert("Błąd regeneracji: " + err.message);
+    } finally {
+      setIsRegenerating(false);
+    }
+  };
 
   const currentQuestion = questions[currentIndex];
   const progress = questions.length > 0 
     ? Math.round((currentIndex / questions.length) * 100) 
     : 0;
 
-  const handleAnswer = (answer: string | number) => {
+  const handleAnswer = (shuffledIndex: number) => {
     if (showFeedback) return;
     
-    setSelectedAnswer(answer);
+    const orderMap = orderMaps[currentQuestion.id];
+    const originalIndex = orderMap ? orderMap[shuffledIndex] : shuffledIndex;
+    
+    setSelectedAnswer(shuffledIndex);
     setShowFeedback(true);
 
-    const isCorrect = answer === currentQuestion.correctAnswer;
+    const isCorrect = originalIndex === currentQuestion.correctAnswer;
     const timeSpent = Math.round((Date.now() - startTime) / 1000);
 
     setAnswers(prev => [...prev, {
       questionId: currentQuestion.id,
-      selectedAnswer: answer,
+      selectedAnswer: originalIndex, // Store the original answer for persistence
       isCorrect,
       timeSpentSeconds: timeSpent,
     }]);
   };
 
-  const handleNext = () => {
+  const handleNext = async () => {
     if (currentIndex < questions.length - 1) {
       setCurrentIndex(currentIndex + 1);
       setSelectedAnswer(null);
@@ -59,13 +236,47 @@ export default function QuizPage() {
       setIsFinished(true);
       // Store results
       const correctCount = answers.filter(a => a.isCorrect).length;
+      const totalCount = questions.length;
+      const percentage = totalCount > 0 ? Math.round((correctCount / totalCount) * 100) : 0;
+      const completedAt = new Date().toISOString();
+
       sessionStorage.setItem('quizResults', JSON.stringify({
-        totalQuestions: questions.length,
+        totalQuestions: totalCount,
         correctAnswers: correctCount,
         answers: answers,
       }));
+
+      // Phase 8A: Persist to DB (Isolated update)
+      const sessionId = routeId || sessionStorage.getItem('currentSessionId');
+      if (sessionId) {
+        try {
+          await supabase
+            .from('study_sessions')
+            .update({ 
+              quiz_result: {
+                score: correctCount,
+                total: totalCount,
+                percentage: percentage,
+                completed_at: completedAt
+              }
+            })
+            .eq('id', sessionId);
+          console.log("[Quiz] Progress persisted successfully.");
+        } catch (dbErr) {
+          // Non-blocking catch as per guardrails
+          console.error("[Quiz] DB Persist error:", dbErr);
+        }
+      }
     }
   };
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <div className="w-12 h-12 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
+      </div>
+    );
+  }
 
   if (questions.length === 0) {
     return (
@@ -110,19 +321,55 @@ export default function QuizPage() {
             {score}%
           </div>
 
-          <div className="flex flex-col sm:flex-row gap-3">
+          <div className="flex flex-col gap-3">
             <button
-              onClick={() => navigate('/app/results')}
+              onClick={() => {
+                const sessionId = routeId || sessionStorage.getItem('currentSessionId');
+                if (sessionId) {
+                  localStorage.removeItem(`quiz-progress-${sessionId}`);
+                  
+                  // Start new attempt
+                  const newAttemptId = crypto.randomUUID();
+                  const newOrderMaps: Record<string, number[]> = {};
+                  questions.forEach((q) => {
+                    if (q.type === 'single_choice' && q.options) {
+                      const indices = q.options.map((_, i) => i);
+                      for (let i = indices.length - 1; i > 0; i--) {
+                        const j = Math.floor(Math.random() * (i + 1));
+                        [indices[i], indices[j]] = [indices[j], indices[i]];
+                      }
+                      newOrderMaps[q.id] = indices;
+                    }
+                  });
+                  setAttemptId(newAttemptId);
+                  setOrderMaps(newOrderMaps);
+                }
+                setCurrentIndex(0);
+                setAnswers([]);
+                setIsFinished(false);
+                setShowFeedback(false);
+              }}
               className="omni-btn-primary"
             >
-              Zobacz szczegóły
-              <ArrowRight className="w-5 h-5" />
+              Rozwiąż ten sam quiz
             </button>
             <button
-              onClick={() => navigate('/app/dashboard')}
+              onClick={handleRegenerate}
+              disabled={isRegenerating}
+              className="omni-btn-secondary border-2 border-[var(--omni-accent)]/20 hover:border-[var(--omni-accent)] text-[var(--omni-accent)] flex items-center justify-center gap-2"
+            >
+              {isRegenerating ? (
+                <div className="w-4 h-4 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin" />
+              ) : (
+                <RotateCw className="w-4 h-4" />
+              )}
+              Wygeneruj nowy quiz
+            </button>
+            <button
+              onClick={() => navigate('/app/analysis/' + (routeId || ''))}
               className="omni-btn-secondary"
             >
-              Wróć do dashboardu
+              Wróć do analizy
             </button>
           </div>
         </div>
@@ -130,10 +377,31 @@ export default function QuizPage() {
     );
   }
 
-  const isCorrect = selectedAnswer === currentQuestion.correctAnswer;
+  const orderMap = orderMaps[currentQuestion.id];
+  const originalSelectedIdx = orderMap && typeof selectedAnswer === 'number' 
+    ? orderMap[selectedAnswer] 
+    : selectedAnswer;
+  const isCorrect = originalSelectedIdx === currentQuestion.correctAnswer;
 
   return (
-    <div className="space-y-6">
+    <div className="relative space-y-6">
+      {/* Regeneration Overlay */}
+      {isRegenerating && (
+        <div className="absolute inset-0 z-50 bg-white/80 backdrop-blur-sm flex flex-col items-center justify-center rounded-3xl transition-opacity animate-in fade-in duration-300">
+          <div className="w-12 h-12 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin mb-4" />
+          <p className="text-lg font-bold text-[var(--omni-text)] animate-pulse">
+            {regenerationMessage}
+          </p>
+        </div>
+      )}
+
+      {/* Success Notification */}
+      {regenerationMessage && !isRegenerating && (
+        <div className="fixed top-24 left-1/2 -translate-x-1/2 z-[60] bg-green-500 text-white px-6 py-3 rounded-full shadow-lg font-bold animate-in slide-in-from-top duration-300">
+          {regenerationMessage}
+        </div>
+      )}
+
       {/* Header */}
       <div>
         <h1 className="omni-heading-3 text-[var(--omni-text)] mb-2">
@@ -162,41 +430,54 @@ export default function QuizPage() {
         <h3 className="text-xl lg:text-2xl font-medium text-[var(--omni-text)] mb-6">
           {currentQuestion.question}
         </h3>
-
         {/* Options */}
-        <div className="space-y-3">
-          {currentQuestion.type === 'single_choice' && currentQuestion.options?.map((option, index) => {
-            const isSelected = selectedAnswer === index;
-            const isCorrectAnswer = currentQuestion.correctAnswer === index;
+        <div className="space-y-4">
+          {currentQuestion.type === 'single_choice' && currentQuestion.options?.map((_, shuffledIndex) => {
+            const orderMap = orderMaps[currentQuestion.id];
+            const originalIndex = orderMap ? orderMap[shuffledIndex] : shuffledIndex;
+            const option = currentQuestion.options![originalIndex];
+
+            const isSelected = selectedAnswer === shuffledIndex;
+            const isCorrectAnswer = currentQuestion.correctAnswer === originalIndex;
             const showCorrect = showFeedback && isCorrectAnswer;
             const showWrong = showFeedback && isSelected && !isCorrectAnswer;
 
             return (
               <button
-                key={index}
-                onClick={() => handleAnswer(index)}
+                key={shuffledIndex}
+                onClick={() => handleAnswer(shuffledIndex)}
                 disabled={showFeedback}
-                className={`w-full p-4 rounded-xl text-left font-medium transition-all ${
+                className={`w-full p-5 md:p-6 rounded-2xl text-left font-semibold transition-all shadow-sm active:scale-[0.98] border-2 ${
                   showCorrect
-                    ? 'bg-green-100 text-green-700 border-2 border-green-300'
+                    ? 'bg-green-50 text-green-700 border-green-500 shadow-green-100'
                     : showWrong
-                    ? 'bg-red-100 text-red-700 border-2 border-red-300'
+                    ? 'bg-red-50 text-red-700 border-red-500 shadow-red-100'
                     : isSelected
-                    ? 'bg-[var(--omni-lavender)] text-[var(--omni-text)] border-2 border-[var(--omni-accent)]'
-                    : 'bg-gray-50 text-[var(--omni-text)] border-2 border-transparent hover:bg-gray-100'
+                    ? 'bg-[var(--omni-lavender)] text-[var(--omni-text)] border-[var(--omni-accent)] shadow-[var(--omni-accent)]/10'
+                    : 'bg-white text-[var(--omni-text)] border-gray-100 hover:border-gray-200 hover:bg-gray-50'
                 }`}
               >
-                <div className="flex items-center justify-between">
-                  <span>{option}</span>
-                  {showCorrect && <Check className="w-5 h-5 text-green-600" />}
-                  {showWrong && <X className="w-5 h-5 text-red-500" />}
+                <div className="flex items-center justify-between gap-4">
+                  <div className="flex items-center gap-4 flex-1">
+                    <div className={`w-8 h-8 rounded-full flex items-center justify-center border-2 flex-shrink-0 transition-colors ${
+                      showCorrect ? 'bg-green-500 border-green-500' :
+                      showWrong ? 'bg-red-500 border-red-500' :
+                      isSelected ? 'bg-[var(--omni-accent)] border-[var(--omni-accent)]' :
+                      'bg-transparent border-gray-200'
+                    }`}>
+                      {showCorrect ? <Check className="w-5 h-5 text-white" /> :
+                       showWrong ? <X className="w-5 h-5 text-white" /> :
+                       <span className={`text-sm ${isSelected ? 'text-white' : 'text-gray-400'}`}>{String.fromCharCode(65 + shuffledIndex)}</span>}
+                    </div>
+                    <span className="text-base md:text-lg leading-snug">{option}</span>
+                  </div>
                 </div>
               </button>
             );
           })}
 
           {currentQuestion.type === 'true_false' && (
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               {['Prawda', 'Fałsz'].map((option, index) => {
                 const isSelected = selectedAnswer === (index === 0 ? 0 : 1);
                 const isCorrectAnswer = currentQuestion.correctAnswer === (index === 0 ? 0 : 1);
@@ -208,17 +489,29 @@ export default function QuizPage() {
                     key={index}
                     onClick={() => handleAnswer(index === 0 ? 0 : 1)}
                     disabled={showFeedback}
-                    className={`p-4 rounded-xl text-center font-medium transition-all ${
+                    className={`p-6 md:p-8 rounded-2xl text-center font-bold text-lg transition-all shadow-sm active:scale-[0.98] border-2 ${
                       showCorrect
-                        ? 'bg-green-100 text-green-700 border-2 border-green-300'
+                        ? 'bg-green-50 text-green-700 border-green-500 shadow-green-100'
                         : showWrong
-                        ? 'bg-red-100 text-red-700 border-2 border-red-300'
+                        ? 'bg-red-50 text-red-700 border-red-500 shadow-red-100'
                         : isSelected
-                        ? 'bg-[var(--omni-lavender)] text-[var(--omni-text)] border-2 border-[var(--omni-accent)]'
-                        : 'bg-gray-50 text-[var(--omni-text)] border-2 border-transparent hover:bg-gray-100'
+                        ? 'bg-[var(--omni-lavender)] text-[var(--omni-text)] border-[var(--omni-accent)] shadow-[var(--omni-accent)]/10'
+                        : 'bg-white text-[var(--omni-text)] border-gray-100 hover:border-gray-200 hover:bg-gray-50'
                     }`}
                   >
-                    {option}
+                    <div className="flex flex-col items-center gap-3">
+                      <div className={`w-10 h-10 rounded-full flex items-center justify-center border-2 transition-colors ${
+                        showCorrect ? 'bg-green-500 border-green-500' :
+                        showWrong ? 'bg-red-500 border-red-500' :
+                        isSelected ? 'bg-[var(--omni-accent)] border-[var(--omni-accent)]' :
+                        'bg-transparent border-gray-200'
+                      }`}>
+                        {showCorrect ? <Check className="w-6 h-6 text-white" /> :
+                         showWrong ? <X className="w-6 h-6 text-white" /> :
+                         <div className={`w-3 h-3 rounded-full transition-colors ${isSelected ? 'bg-white' : 'bg-transparent'}`} />}
+                      </div>
+                      <span>{option}</span>
+                    </div>
                   </button>
                 );
               })}
@@ -252,22 +545,23 @@ export default function QuizPage() {
         {showFeedback && (
           <button
             onClick={handleNext}
-            className="w-full mt-6 omni-btn-primary"
+            className="w-full mt-10 py-5 lg:py-6 omni-btn-primary flex items-center justify-center gap-3 text-lg font-bold shadow-xl active:scale-[0.98] transition-all"
           >
             {currentIndex < questions.length - 1 ? (
               <>
                 Następne pytanie
-                <ArrowRight className="w-5 h-5" />
+                <ArrowRight className="w-6 h-6" />
               </>
             ) : (
               <>
-                Zakończ quiz
-                <Trophy className="w-5 h-5" />
+                Zakończ quiz i zobacz wynik
+                <Trophy className="w-6 h-6" />
               </>
             )}
           </button>
         )}
       </div>
+
 
       {/* Difficulty */}
       <div className="text-center">

@@ -8,6 +8,14 @@ export interface User {
   plan: 'free' | 'premium' | 'family';
 }
 
+export interface Folder {
+  id: string;
+  userId: string;
+  parentId: string | null;
+  name: string;
+  createdAt: Date;
+}
+
 export interface AuthState {
   user: User | null;
   isAuthenticated: boolean;
@@ -83,8 +91,9 @@ export interface DbStudySession {
   key_concepts: any[];
   flashcards: any[];
   quiz_questions: any[];
-  lesson_title?: string;       // Sprint 1: lesson grouping
-  deleted_at?: string | null;  // Sprint 1: soft delete
+  lesson_title?: string;
+  deleted_at?: string | null;
+  folder_id?: string | null;      // Sprint 4: explorer positioning
   created_at: string;
 }
 
@@ -107,6 +116,7 @@ export interface StudySession {
   startedAt: Date;
   completedAt?: Date;
   totalTimeMinutes: number;
+  folderId?: string | null;      // Sprint 4: explorer positioning
 }
 
 

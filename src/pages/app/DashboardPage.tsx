@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../lib/auth-context';
 import { supabase } from '../../lib/supabase';
 import { mockDashboardSummary, mockStudySessions } from '../../mock/data';
@@ -15,9 +15,13 @@ import {
   ArrowRight,
   Calendar,
   Trash2,
+  ChevronRight,
 } from 'lucide-react';
+import { LessonTitleEditor } from '../../components/lessons/lesson-title-editor';
+import { DashboardSkeleton } from '../../components/ui/page-skeletons';
 
 export default function DashboardPage() {
+  const navigate = useNavigate();
   const { user, isDemoMode } = useAuth();
   
   const [sessions, setSessions] = useState<any[]>([]);
@@ -29,8 +33,8 @@ export default function DashboardPage() {
   const [computedStats, setComputedStats] = useState({
     totalSessions: 0,
     totalTimeMinutes: 0,
-    averageScore: 85, // Defaulted placeholder
-    currentStreak: 2, // Defaulted placeholder
+    averageScore: null as number | null,
+    currentStreak: 0,
     subjectProgress: [] as any[]
   });
 
@@ -61,7 +65,32 @@ export default function DashboardPage() {
         if (dbError) throw dbError;
 
         const allSessions = data || [];
-        setSessions(allSessions.slice(0, 3));
+        setSessions(allSessions.slice(0, 8)); 
+
+        // Streak Calculation Logic (Local Day)
+        const calculateStreak = (sessionsList: any[]) => {
+          const completedDates = sessionsList
+            .filter(s => s.quiz_result?.completed_at)
+            .map(s => new Date(s.quiz_result.completed_at).toLocaleDateString('en-CA'));
+          
+          const uniqueDates = [...new Set(completedDates)].sort((a, b) => b.localeCompare(a));
+          if (uniqueDates.length === 0) return 0;
+
+          const today = new Date().toLocaleDateString('en-CA');
+          const yesterday = new Date(Date.now() - 86400000).toLocaleDateString('en-CA');
+
+          if (uniqueDates[0] !== today && uniqueDates[0] !== yesterday) return 0;
+
+          let streak = 0;
+          let checkDate = new Date(uniqueDates[0]);
+          
+          const dateSet = new Set(uniqueDates);
+          while (dateSet.has(checkDate.toLocaleDateString('en-CA'))) {
+            streak++;
+            checkDate.setDate(checkDate.getDate() - 1);
+          }
+          return streak;
+        };
 
         // Aggregate actual data logically
         const groupedSubjects = allSessions.reduce((acc, sess) => {
@@ -71,18 +100,29 @@ export default function DashboardPage() {
           return acc;
         }, {} as Record<string, { count: number }>);
 
-        const progressMap = Object.entries(groupedSubjects).map(([subject, stats]: [string, any]) => ({
-          subject,
-          averageScore: 80, // Static until Results integration
-          totalSessions: stats.count,
-          totalTimeMinutes: stats.count * 15 // Assuming ~15m generic per sprint 2C scope
-        }));
+        const progressMap = Object.entries(groupedSubjects).map(([subject, info]: [string, any]) => {
+          const subjectSessions = allSessions.filter(s => (s.subject || 'W trakcie analizy') === subject);
+          const quizScores = subjectSessions
+            .filter(s => s.quiz_result?.percentage !== undefined)
+            .map(s => s.quiz_result.percentage);
+          
+          return {
+            subject,
+            averageScore: quizScores.length > 0 ? Math.round(quizScores.reduce((a, b) => a + b, 0) / quizScores.length) : null,
+            totalSessions: info.count,
+            totalTimeMinutes: info.count * 15
+          };
+        });
+
+        const allQuizScores = allSessions
+          .filter(s => s.quiz_result?.percentage !== undefined)
+          .map(s => s.quiz_result.percentage);
 
         setComputedStats({
           totalSessions: allSessions.length,
           totalTimeMinutes: allSessions.length * 15,
-          averageScore: 80,
-          currentStreak: allSessions.length > 0 ? 1 : 0,
+          averageScore: allQuizScores.length > 0 ? Math.round(allQuizScores.reduce((a, b) => a + b, 0) / allQuizScores.length) : null,
+          currentStreak: calculateStreak(allSessions),
           subjectProgress: progressMap
         });
 
@@ -135,16 +175,17 @@ export default function DashboardPage() {
   const statCards = [
     { label: 'Sesje nauki', value: computedStats.totalSessions, icon: Calendar, color: 'text-[var(--omni-accent)]' },
     { label: 'Godziny nauki', value: Math.round(computedStats.totalTimeMinutes / 60), icon: Clock, color: 'text-blue-500' },
-    { label: 'Średni wynik', value: `${computedStats.averageScore}%`, icon: TrendingUp, color: 'text-green-500' },
+    { 
+      label: 'Średni wynik quizów', 
+      value: computedStats.averageScore !== null ? `${computedStats.averageScore}%` : '—', 
+      icon: TrendingUp, 
+      color: 'text-green-500' 
+    },
     { label: 'Streak', value: computedStats.currentStreak, icon: Flame, color: 'text-orange-500' }
   ];
 
   if (isLoading) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-[60vh]">
-        <div className="w-12 h-12 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
-      </div>
-    );
+    return <DashboardSkeleton />;
   }
 
   if (error) {
@@ -187,14 +228,18 @@ export default function DashboardPage() {
 
       {/* Quick Actions */}
       <div>
-        <h2 className="font-semibold text-lg text-[var(--omni-text)] mb-4">Szybkie akcje</h2>
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <h2 className="font-semibold text-lg text-[var(--omni-text)] mb-3">Szybkie akcje</h2>
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
           {quickActions.map((action, index) => (
-            <Link key={index} to={action.href} className="omni-card p-4 lg:p-6 hover:shadow-lg transition-shadow group">
-              <div className={`w-12 h-12 ${action.color} rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform`}>
+            <Link
+              key={index}
+              to={action.href}
+              className="omni-card p-4 lg:p-6 flex flex-col items-start gap-3 hover:shadow-lg active:scale-[0.97] transition-all group"
+            >
+              <div className={`w-12 h-12 ${action.color} rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform flex-shrink-0`}>
                 <action.icon className="w-6 h-6 text-[var(--omni-text)]" />
               </div>
-              <span className="font-medium text-[var(--omni-text)]">{action.label}</span>
+              <span className="font-semibold text-[var(--omni-text)] text-sm leading-tight">{action.label}</span>
             </Link>
           ))}
         </div>
@@ -210,39 +255,77 @@ export default function DashboardPage() {
         </div>
 
         {sessions.length > 0 ? (
-          <div className="space-y-3">
-            {sessions.map((session) => (
-              <div key={session.id} className="omni-card p-4 flex items-center justify-between group cursor-pointer" onClick={() => {
-                sessionStorage.setItem('currentSessionId', session.id);
-                window.location.href = '/app/analysis';
-              }}>
-                <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 bg-[var(--omni-lavender)] rounded-xl flex items-center justify-center">
-                    <Award className="w-6 h-6 text-[var(--omni-text)] group-hover:scale-110 transition-transform" />
-                  </div>
-                  <div>
-                    <p className="font-medium text-[var(--omni-text)]">
-                       {session.subject || (session.analysis && session.analysis.subject) || 'Trwa Generowanie...'}
-                    </p>
-                    <p className="text-sm text-[var(--omni-text-muted)]">
-                       {session.topic || (session.analysis && session.analysis.topic) || 'Przetwarzanie OCR'}
-                    </p>
-                  </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {Object.entries(
+              sessions.reduce((acc, sess) => {
+                const sub = sess.subject || (sess.analysis && sess.analysis.subject) || 'Inne';
+                if (!acc[sub]) acc[sub] = [];
+                acc[sub].push(sess);
+                return acc;
+              }, {} as Record<string, any[]>)
+            ).map(([subject, subjectSessions]) => (
+              <div key={subject} className="space-y-4">
+                <div className="flex items-center gap-2 px-1">
+                   <div className="w-1.5 h-1.5 rounded-full bg-indigo-500" />
+                   <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider">{subject}</h3>
                 </div>
-                <div className="flex items-center gap-2">
-                  <p className="text-sm text-green-500 font-medium">Ukończono</p>
-                  {!isDemoMode && (
-                    <button
-                      onClick={e => handleDeleteSession(e, session.id)}
-                      disabled={deletingId === session.id}
-                      className="p-1.5 rounded-lg text-red-400 hover:text-red-600 hover:bg-red-50 transition-colors disabled:opacity-50 opacity-0 group-hover:opacity-100"
-                      title="Usuń sesję"
+                <div className="space-y-3">
+                  {subjectSessions.map((session) => (
+                    <div 
+                      key={session.id} 
+                      className="omni-card p-4 md:p-5 flex items-center justify-between group cursor-pointer hover:border-indigo-200 active:scale-[0.99] transition-all" 
+                      onClick={() => {
+                        sessionStorage.setItem('currentSessionId', session.id);
+                        navigate('/app/analysis/' + session.id);
+                      }}
                     >
-                      {deletingId === session.id
-                        ? <div className="w-4 h-4 border-2 border-red-400/30 border-t-red-400 rounded-full animate-spin" />
-                        : <Trash2 className="w-4 h-4" />}
-                    </button>
-                  )}
+                      <div className="flex items-center gap-3 md:gap-4 flex-1 min-w-0">
+                        <div className="w-11 h-11 md:w-10 md:h-10 bg-[var(--omni-lavender)] rounded-xl md:rounded-lg flex items-center justify-center flex-shrink-0">
+                          <Award className="w-5 h-5 text-[var(--omni-text)] group-hover:scale-110 transition-transform" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <LessonTitleEditor
+                            sessionId={session.id}
+                            initialTitle={session.lesson_title || ''}
+                            onSaved={(newTitle) => {
+                              setSessions(prev => prev.map(s => s.id === session.id ? { ...s, lesson_title: newTitle } : s));
+                            }}
+                            isDemoMode={isDemoMode}
+                            className="mb-0.5"
+                          />
+                          <p className="text-xs text-[var(--omni-text-muted)] truncate">
+                             {session.topic || (session.analysis && session.analysis.topic) || 'Przetwarzanie...'}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2 ml-3">
+                        {session.quiz_result && (
+                          <div className={`px-2 py-0.5 rounded-lg text-xs font-bold border ${
+                            session.quiz_result.percentage >= 80 
+                              ? 'bg-green-50 text-green-700 border-green-100' 
+                              : session.quiz_result.percentage >= 50 
+                                ? 'bg-amber-50 text-amber-700 border-amber-100' 
+                                : 'bg-red-50 text-red-700 border-red-100'
+                          }`}>
+                            {session.quiz_result.percentage}%
+                          </div>
+                        )}
+                        {!isDemoMode && (
+                          <button
+                            onClick={e => handleDeleteSession(e, session.id)}
+                            disabled={deletingId === session.id}
+                            className="p-2.5 rounded-xl text-red-400 hover:text-red-600 hover:bg-red-50 active:scale-95 transition-all disabled:opacity-50 opacity-0 group-hover:opacity-100"
+                            title="Usuń sesję"
+                          >
+                            {deletingId === session.id
+                              ? <div className="w-4 h-4 border-2 border-red-400/30 border-t-red-400 rounded-full animate-spin" />
+                              : <Trash2 className="w-4 h-4" />}
+                          </button>
+                        )}
+                        <ChevronRight className="w-5 h-5 text-gray-300 group-hover:text-indigo-400 transition-colors flex-shrink-0" />
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </div>
             ))}
@@ -266,12 +349,15 @@ export default function DashboardPage() {
               <div key={index} className="omni-card p-4">
                 <div className="flex items-center justify-between mb-3">
                   <span className="font-medium text-[var(--omni-text)] truncate pr-2">{subject.subject}</span>
-                  <span className={`text-sm font-medium text-green-500`}>
-                    {subject.averageScore}%
+                  <span className={`text-sm font-medium ${subject.averageScore !== null ? 'text-green-500' : 'text-gray-400'}`}>
+                    {subject.averageScore !== null ? `${subject.averageScore}%` : '—'}
                   </span>
                 </div>
                 <div className="w-full h-2 bg-gray-100 rounded-full overflow-hidden">
-                  <div className="h-full rounded-full bg-green-500" style={{ width: `${subject.averageScore}%` }} />
+                  <div 
+                    className="h-full rounded-full bg-green-500 transition-all duration-1000" 
+                    style={{ width: `${subject.averageScore || 0}%` }} 
+                  />
                 </div>
                 <p className="text-xs text-[var(--omni-text-muted)] mt-2">
                   {subject.totalSessions} sesji • ok. {Math.round(subject.totalTimeMinutes / 60)}h
