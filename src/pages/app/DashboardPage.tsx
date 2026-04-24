@@ -263,14 +263,14 @@ export default function DashboardPage() {
                 acc[sub].push(sess);
                 return acc;
               }, {} as Record<string, any[]>)
-            ).map(([subject, subjectSessions]) => (
+            ).map(([subject, subjectSessions]: any) => (
               <div key={subject} className="space-y-4">
                 <div className="flex items-center gap-2 px-1">
                    <div className="w-1.5 h-1.5 rounded-full bg-indigo-500" />
                    <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider">{subject}</h3>
                 </div>
                 <div className="space-y-3">
-                  {subjectSessions.map((session) => (
+                  {subjectSessions.map((session: any) => (
                     <div 
                       key={session.id} 
                       className="omni-card p-4 md:p-5 flex items-center justify-between group cursor-pointer hover:border-indigo-200 active:scale-[0.99] transition-all" 

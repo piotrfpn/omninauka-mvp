@@ -5,8 +5,8 @@ import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../lib/auth-context';
 import { 
   Calendar, Clock, Award, BookOpen, TrendingUp, ArrowRight, Trash2, 
-  Pencil, Check, X, Search, Filter, SortAsc, Folder, 
-  Home, ChevronRight, FolderPlus, MoreVertical, Plus, FolderTree, ArrowRightLeft, 
+  Check, X, Search, Filter, Folder, 
+  Home, ChevronRight, FolderPlus, ArrowRightLeft, 
   ChevronDown
 } from 'lucide-react';
 import { LessonTitleEditor } from '../../components/lessons/lesson-title-editor';
@@ -279,7 +279,7 @@ export default function HistoryPage() {
   const [isCreatingFolder, setIsCreatingFolder] = useState(false);
   const [isMutatingFolder, setIsMutatingFolder] = useState(false);
   const [isMoving, setIsMoving] = useState(false);
-  const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [_deleteError, setDeleteError] = useState<string | null>(null);
 
   // Sprint 4: Explorer state
   const [currentFolderId, setCurrentFolderId] = useState<string | null>(null);

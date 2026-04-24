@@ -15,8 +15,6 @@ import {
   Calendar,
   User,
   Hash,
-  CheckCircle,
-  Image as ImageIcon,
 } from 'lucide-react';
 import { LessonTitleEditor } from '../../components/lessons/lesson-title-editor';
 import { AnalysisSkeleton } from '../../components/ui/page-skeletons';

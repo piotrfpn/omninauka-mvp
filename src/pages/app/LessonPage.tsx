@@ -239,7 +239,6 @@ function RealLessonChat() {
   const navigate = useNavigate();
   const { id: routeId } = useParams();
   const [topic, setTopic] = useState('');
-  const [sessionContext, setSessionContext] = useState<any>(null);
   const [isInitializing, setIsInitializing] = useState(true);
   const [contextError, setContextError] = useState<string | null>(null);
   const [isEmptyState, setIsEmptyState] = useState(false);
@@ -252,7 +251,6 @@ function RealLessonChat() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [threadId, setThreadId] = useState<string | null>(null);
   const [contextSnapshot, setContextSnapshot] = useState<any>(null);
-  const [isFreshingSnapshot, setIsFreshingSnapshot] = useState(false);
 
   useEffect(() => {
     const initSession = async () => {
@@ -396,7 +394,6 @@ function RealLessonChat() {
 
           if (sessionUpdatedAt > snapshotUpdatedAt) {
             console.log('[Tutor] Snapshot stale, refreshing...');
-            setIsFreshingSnapshot(true);
             const { error: updateError } = await supabase
               .from('tutor_threads')
               .update({
@@ -406,7 +403,6 @@ function RealLessonChat() {
               .eq('id', thread.id);
 
             if (updateError) console.error('Failed to refresh snapshot:', updateError);
-            setIsFreshingSnapshot(false);
           }
 
           setThreadId(thread.id);
@@ -518,7 +514,7 @@ function RealLessonChat() {
   useEffect(() => {
     if (isVoiceMode) {
       setBaseInput(input); // Snapshot what they typed before pressing mic
-      const SpeechRecognition = window.SpeechRecognition || (window as any).webkitSpeechRecognition;
+      const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
       if (!SpeechRecognition) {
         alert("Twoja przeglądarka nie obsługuje technologii rozpoznawania mowy.");
         setIsVoiceMode(false);

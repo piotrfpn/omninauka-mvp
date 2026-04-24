@@ -94,7 +94,7 @@ export default function QuizPage() {
           const newOrderMaps: Record<string, number[]> = {};
           mappedQuestions.forEach((q: QuizQuestion) => {
             if (q.type === 'single_choice' && q.options) {
-              const indices = q.options.map((_, i) => i);
+              const indices = q.options.map((_: unknown, i: number) => i);
               for (let i = indices.length - 1; i > 0; i--) {
                 const j = Math.floor(Math.random() * (i + 1));
                 [indices[i], indices[j]] = [indices[j], indices[i]];
@@ -174,7 +174,7 @@ export default function QuizPage() {
       const newOrderMaps: Record<string, number[]> = {};
       mappedQuestions.forEach((q: any) => {
         if (q.type === 'single_choice' && q.options) {
-          const indices = q.options.map((_, i) => i);
+          const indices = q.options.map((_: unknown, i: number) => i);
           for (let i = indices.length - 1; i > 0; i--) {
             const j = Math.floor(Math.random() * (i + 1));
             [indices[i], indices[j]] = [indices[j], indices[i]];
@@ -333,7 +333,7 @@ export default function QuizPage() {
                   const newOrderMaps: Record<string, number[]> = {};
                   questions.forEach((q) => {
                     if (q.type === 'single_choice' && q.options) {
-                      const indices = q.options.map((_, i) => i);
+                      const indices = q.options.map((_: unknown, i: number) => i);
                       for (let i = indices.length - 1; i > 0; i--) {
                         const j = Math.floor(Math.random() * (i + 1));
                         [indices[i], indices[j]] = [indices[j], indices[i]];

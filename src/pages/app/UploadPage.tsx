@@ -6,7 +6,6 @@ import imageCompression from 'browser-image-compression';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../lib/auth-context';
 import {
-  Upload,
   X,
   Image as ImageIcon,
   Check,
