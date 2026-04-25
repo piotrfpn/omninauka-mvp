@@ -53,33 +53,42 @@
   }
 
   .dark {
-    --background: 240 10% 3.9%;
-    --foreground: 0 0% 98%;
-    --card: 240 10% 3.9%;
-    --card-foreground: 0 0% 98%;
-    --popover: 240 10% 3.9%;
-    --popover-foreground: 0 0% 98%;
-    --primary: 0 0% 98%;
-    --primary-foreground: 240 5.9% 10%;
-    --secondary: 240 3.7% 15.9%;
-    --secondary-foreground: 0 0% 98%;
-    --muted: 240 3.7% 15.9%;
-    --muted-foreground: 240 5% 64.9%;
-    --accent: 240 3.7% 15.9%;
-    --accent-foreground: 0 0% 98%;
+    --background: 222 47% 8%;
+    --foreground: 210 40% 98%;
+    --card: 222 47% 12%;
+    --card-foreground: 210 40% 98%;
+    --popover: 222 47% 8%;
+    --popover-foreground: 210 40% 98%;
+    --primary: 210 40% 98%;
+    --primary-foreground: 222.2 47.4% 11.2%;
+    --secondary: 217.2 32.6% 17.5%;
+    --secondary-foreground: 210 40% 98%;
+    --muted: 217.2 32.6% 17.5%;
+    --muted-foreground: 215 20.2% 65.1%;
+    --accent: 217.2 32.6% 17.5%;
+    --accent-foreground: 210 40% 98%;
     --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 0 0% 98%;
-    --border: 240 3.7% 15.9%;
-    --input: 240 3.7% 15.9%;
-    --ring: 240 4.9% 83.9%;
-    --sidebar-background: 240 5.9% 10%;
-    --sidebar-foreground: 240 4.8% 95.9%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 217.2 32.6% 17.5%;
+    --input: 217.2 32.6% 17.5%;
+    --ring: 212.7 26.8% 83.9%;
+    --sidebar-background: 222 47% 10%;
+    --sidebar-foreground: 210 40% 98%;
     --sidebar-primary: 224.3 76.3% 48%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 240 3.7% 15.9%;
-    --sidebar-accent-foreground: 240 4.8% 95.9%;
-    --sidebar-border: 240 3.7% 15.9%;
-    --sidebar-ring: 217.2 91.2% 59.8%;
+    --sidebar-accent: 217.2 32.6% 17.5%;
+    --sidebar-accent-foreground: 210 40% 98%;
+    --sidebar-border: 217.2 32.6% 17.5%;
+    --sidebar-ring: 212.7 26.8% 83.9%;
+
+    /* OmniNauka Dark Overrides */
+    --omni-bg: #0B1220;
+    --omni-bg-dark: #070B14;
+    --omni-accent: #2EE6A6;
+    --omni-lavender: #121A2B;
+    --omni-text: #F8FAFC;
+    --omni-text-muted: #94A3B8;
+    --omni-text-muted-light: #64748B;
   }
 }
 
@@ -119,15 +128,15 @@
   }
   
   .omni-card {
-    @apply bg-white rounded-2xl border border-gray-100 shadow-sm;
+    @apply bg-card text-card-foreground rounded-2xl border border-border shadow-sm;
   }
   
   .omni-btn-primary {
-    @apply inline-flex items-center justify-center gap-2 px-6 py-3 bg-[var(--omni-accent)] text-white font-medium rounded-xl hover:opacity-90 transition-opacity;
+    @apply inline-flex items-center justify-center gap-2 px-6 py-3 bg-[var(--omni-accent)] text-[#0B1220] font-bold rounded-xl hover:opacity-90 transition-opacity;
   }
   
   .omni-btn-secondary {
-    @apply inline-flex items-center justify-center gap-2 px-6 py-3 bg-gray-100 text-[var(--omni-text)] font-medium rounded-xl hover:bg-gray-200 transition-colors;
+    @apply inline-flex items-center justify-center gap-2 px-6 py-3 bg-muted text-muted-foreground font-medium rounded-xl hover:bg-secondary transition-colors;
   }
   
   .omni-chip {
@@ -135,7 +144,7 @@
   }
   
   .omni-input {
-    @apply w-full px-4 py-3 bg-white border border-gray-200 rounded-xl text-[var(--omni-text)] placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-[var(--omni-accent)] transition-all;
+    @apply w-full px-4 py-3 bg-background border border-input rounded-xl text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all;
   }
 }
 

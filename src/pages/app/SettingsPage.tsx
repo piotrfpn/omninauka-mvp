@@ -7,8 +7,21 @@ export default function SettingsPage() {
   const { logout } = useAuth();
   const navigate = useNavigate();
   const [notifications, setNotifications] = useState(true);
-  const [darkMode, setDarkMode] = useState(false);
+  const [darkMode, setDarkMode] = useState(() => {
+    return document.documentElement.classList.contains('dark');
+  });
   const [language, setLanguage] = useState('pl');
+
+  const toggleDarkMode = (enabled: boolean) => {
+    setDarkMode(enabled);
+    if (enabled) {
+      document.documentElement.classList.add('dark');
+      localStorage.setItem('omninauka-theme', 'dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+      localStorage.setItem('omninauka-theme', 'light');
+    }
+  };
 
   const handleLogout = () => {
     logout();
@@ -38,7 +51,7 @@ export default function SettingsPage() {
           description: 'Zmień motyw aplikacji',
           type: 'toggle' as const,
           value: darkMode,
-          onChange: setDarkMode,
+          onChange: toggleDarkMode,
         },
       ],
     },
