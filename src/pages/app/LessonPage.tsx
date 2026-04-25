@@ -483,28 +483,26 @@ function RealLessonChat() {
     if (!window.visualViewport) return;
 
     const handleVisualViewportChange = () => {
-      const viewport = window.visualViewport;
-      if (!viewport) return;
-      
-      // If viewport height decreased significantly (likely keyboard open)
-      // or if it changed at all, ensure we are showing the latest message
+      // If viewport height changed (likely keyboard open)
+      // only scroll to bottom if the user is already near the bottom
       if (messagesEndRef.current) {
         const container = messagesEndRef.current.parentElement;
         if (container) {
-           // We use a small timeout to allow the browser to finish its internal layout shift
-           setTimeout(() => {
-             messagesEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
-           }, 100);
+           const isNearBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 150;
+           if (isNearBottom) {
+             // We use a small timeout to allow the browser to finish its internal layout shift
+             setTimeout(() => {
+               messagesEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
+             }, 100);
+           }
         }
       }
     };
 
     window.visualViewport.addEventListener('resize', handleVisualViewportChange);
-    window.visualViewport.addEventListener('scroll', handleVisualViewportChange);
     
     return () => {
       window.visualViewport?.removeEventListener('resize', handleVisualViewportChange);
-      window.visualViewport?.removeEventListener('scroll', handleVisualViewportChange);
     };
   }, []);
 
