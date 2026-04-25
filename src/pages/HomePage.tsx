@@ -100,7 +100,7 @@ export default function HomePage() {
           </Link>
           <Link 
             to="/login" 
-            className="inline-flex items-center justify-center px-5 py-2.5 bg-[#2EE6A6] text-[#0B1220] font-bold rounded-xl text-sm hover:shadow-lg hover:shadow-[#2EE6A6]/10 transition-all active:scale-[0.98]"
+            className="hidden sm:inline-flex items-center justify-center px-5 py-2.5 bg-[#2EE6A6] text-[#0B1220] font-bold rounded-xl text-sm hover:shadow-lg hover:shadow-[#2EE6A6]/10 transition-all active:scale-[0.98]"
           >
             Wypróbuj za darmo
           </Link>
@@ -108,24 +108,27 @@ export default function HomePage() {
       </nav>
 
       {/* Hero Section */}
-      <section className="px-6 py-16 lg:py-24">
+      <section className="px-6 pt-10 pb-16 lg:py-24">
         <div className="max-w-6xl mx-auto text-center">
           <h1 className="omni-heading-1 text-[var(--omni-text)] mb-6">
             Nauka, która ożywa
           </h1>
-          <p className="omni-body text-[var(--omni-text-muted)] max-w-2xl mx-auto mb-10 text-lg">
+          <p className="omni-body text-[var(--omni-text-muted)] max-w-2xl mx-auto mb-8 text-lg">
             Zeskanuj notatki. OmniNauka stworzy fiszki, quizy i głosowe powtórki
             dopasowane do Twoich materiałów.
           </p>
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-4 w-full sm:w-auto">
             <Link 
               to="/login" 
-              className="inline-flex items-center justify-center gap-2 px-8 py-4 bg-[#2EE6A6] text-[#0B1220] font-bold rounded-xl hover:shadow-xl hover:shadow-[#2EE6A6]/20 transition-all active:scale-[0.98]"
+              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-8 py-4 bg-[#2EE6A6] text-[#0B1220] font-bold rounded-xl hover:shadow-xl hover:shadow-[#2EE6A6]/20 transition-all active:scale-[0.98]"
             >
               Wypróbuj za darmo
               <ArrowRight className="w-5 h-5" />
             </Link>
-            <Link to="#jak-to-dziala" className="omni-btn-secondary">
+            <Link 
+              to="#jak-to-dziala" 
+              className="w-full sm:w-auto inline-flex items-center justify-center px-8 py-4 text-[var(--omni-text-muted)] font-medium hover:text-[var(--omni-text)] transition-colors"
+            >
               Zobacz jak działa
             </Link>
           </div>
