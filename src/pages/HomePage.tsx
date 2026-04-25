@@ -153,12 +153,12 @@ export default function HomePage() {
         <div className="flex items-center gap-4">
           <Link
             to="/login"
-            className="hidden sm:inline-flex px-4 py-2 text-[var(--omni-text)] font-medium hover:text-[var(--omni-accent)] transition-colors"
+            className="px-4 py-2 text-[var(--omni-text)] font-medium hover:text-[var(--omni-accent)] transition-colors"
           >
             Zaloguj się
           </Link>
           <Link 
-            to="/login" 
+            to="/register" 
             className="hidden sm:inline-flex items-center justify-center px-5 py-2.5 bg-[#2EE6A6] text-[#0B1220] font-bold rounded-xl text-sm hover:shadow-lg hover:shadow-[#2EE6A6]/10 transition-all active:scale-[0.98]"
           >
             Wypróbuj za darmo
@@ -178,7 +178,7 @@ export default function HomePage() {
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4 w-full sm:w-auto">
             <Link 
-              to="/login" 
+              to="/register" 
               className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-8 py-4 bg-[#2EE6A6] text-[#0B1220] font-bold rounded-xl hover:shadow-xl hover:shadow-[#2EE6A6]/20 transition-all active:scale-[0.98]"
             >
               Wypróbuj za darmo
@@ -263,7 +263,7 @@ export default function HomePage() {
                 </ul>
                 <div className="mt-auto flex justify-center">
                   <Link
-                    to="/login"
+                    to="/register"
                     className={`w-full inline-flex items-center justify-center whitespace-nowrap px-4 py-3 rounded-xl transition-all ${
                       plan.primary
                         ? 'bg-[#2EE6A6] text-[#0B1220] font-bold hover:shadow-lg'
@@ -334,7 +334,7 @@ export default function HomePage() {
             Dołącz do tysięcy uczniów, którzy uczą się mądrzej, nie ciężej.
           </p>
           <Link 
-            to="/login" 
+            to="/register" 
             className="inline-flex items-center justify-center gap-2 px-8 py-4 bg-[#2EE6A6] text-[#0B1220] font-bold rounded-xl hover:shadow-xl hover:shadow-[#2EE6A6]/20 transition-all active:scale-[0.98]"
           >
             Wypróbuj za darmo
