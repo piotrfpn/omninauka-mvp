@@ -46,20 +46,27 @@ export default function HomePage() {
     {
       name: 'Darmowy',
       price: '0 zł',
-      period: '/miesiąc',
-      features: ['3 skany dziennie', 'Podstawowe fiszki', 'Quizy z wyjaśnieniami'],
+      period: '/ miesiąc',
+      features: [
+        '2 analizy dziennie',
+        'AI Tutor tekstowy',
+        'Quizy z wyjaśnieniami',
+        'Historia nauki',
+        'Kolejne analizy: 1,99 zł'
+      ],
       cta: 'Zacznij za darmo',
       primary: false,
     },
     {
       name: 'Premium',
       price: '29 zł',
-      period: '/miesiąc',
+      period: '/ miesiąc',
       features: [
-        'Nielimitowane skany',
-        'Rozmowa głosowa z AI',
+        'Więcej analiz każdego dnia',
+        'Zaawansowany AI Tutor',
+        'Powtórki błędów',
         'Tryb sprawdzianu',
-        'Arkusze CKE',
+        'Priorytetowe AI'
       ],
       cta: 'Wypróbuj 7 dni',
       primary: true,
@@ -67,12 +74,13 @@ export default function HomePage() {
     {
       name: 'Rodzinny',
       price: '59 zł',
-      period: '/miesiąc',
+      period: '/ miesiąc',
       features: [
         'Do 4 kont uczniowskich',
-        'Panel rodzica',
         'Wszystko z Premium',
-        'Priorytetowe AI',
+        'Raporty postępów',
+        'Wspólna historia nauki',
+        'Panel rodzica — wkrótce'
       ],
       cta: 'Wybierz plan',
       primary: false,
@@ -217,6 +225,9 @@ export default function HomePage() {
               </div>
             ))}
           </div>
+          <p className="text-center text-sm text-[var(--omni-text-muted)] mt-8">
+            1 analiza = do 5 zdjęć albo 1 dokument PDF/DOCX.
+          </p>
         </div>
       </section>
 
