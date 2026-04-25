@@ -169,18 +169,20 @@ export default function HomePage() {
             {pricingPlans.map((plan, index) => (
               <div
                 key={index}
-                className={`omni-card p-6 ${
+                className={`omni-card p-6 flex flex-col h-full ${
                   plan.primary ? 'ring-2 ring-[var(--omni-accent)]' : ''
                 }`}
               >
-                {plan.primary && (
-                  <span className="omni-chip bg-[var(--omni-accent)] text-white text-xs mb-4">
-                    Najpopularniejszy
-                  </span>
-                )}
-                <h3 className="font-semibold text-xl text-[var(--omni-text)] mb-2">
-                  {plan.name}
-                </h3>
+                <div className="flex items-center justify-between gap-2 mb-2 min-h-[32px]">
+                  <h3 className="font-semibold text-xl text-[var(--omni-text)]">
+                    {plan.name}
+                  </h3>
+                  {plan.primary && (
+                    <span className="omni-chip bg-[var(--omni-accent)] text-white text-xs whitespace-nowrap px-3 py-1">
+                      Najpopularniejszy
+                    </span>
+                  )}
+                </div>
                 <div className="flex items-baseline mb-4">
                   <span className="text-4xl font-bold text-[var(--omni-text)]">
                     {plan.price}
@@ -189,7 +191,7 @@ export default function HomePage() {
                     {plan.period}
                   </span>
                 </div>
-                <ul className="space-y-3 mb-6">
+                <ul className="space-y-3 mb-8">
                   {plan.features.map((feature, fIndex) => (
                     <li key={fIndex} className="flex items-center gap-2">
                       <Check className="w-5 h-5 text-green-500 flex-shrink-0" />
@@ -197,16 +199,18 @@ export default function HomePage() {
                     </li>
                   ))}
                 </ul>
-                <Link
-                  to="/login"
-                  className={`w-full text-center py-3 rounded-full font-semibold transition-all ${
-                    plan.primary
-                      ? 'bg-[#2EE6A6] text-[#0B1220] font-bold hover:shadow-lg'
-                      : 'bg-gray-100 text-[var(--omni-text)] hover:bg-gray-200'
-                  }`}
-                >
-                  {plan.cta}
-                </Link>
+                <div className="mt-auto flex justify-center">
+                  <Link
+                    to="/login"
+                    className={`inline-flex items-center justify-center whitespace-nowrap px-8 py-3 rounded-full transition-all ${
+                      plan.primary
+                        ? 'bg-[#2EE6A6] text-[#0B1220] font-bold hover:shadow-lg'
+                        : 'bg-gray-100 text-[var(--omni-text)] font-semibold hover:bg-gray-200'
+                    }`}
+                  >
+                    {plan.cta}
+                  </Link>
+                </div>
               </div>
             ))}
           </div>
