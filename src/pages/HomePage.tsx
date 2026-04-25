@@ -76,7 +76,7 @@ export default function HomePage() {
       price: '59 zł',
       period: '/ miesiąc',
       features: [
-        'Do 4 kont uczniowskich',
+        'Do 3 kont uczniowskich',
         'Wszystko z Premium',
         'Raporty postępów',
         'Wspólna historia nauki',
