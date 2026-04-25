@@ -76,7 +76,7 @@ export function AppShell({ children }: AppShellProps) {
   return (
     <div className="min-h-screen bg-[var(--omni-bg)] flex">
       {/* Desktop Sidebar */}
-      <aside className="hidden lg:flex flex-col w-64 bg-white h-screen sticky top-0 border-r border-gray-100">
+      <aside className="hidden lg:flex flex-col w-64 bg-card h-screen sticky top-0 border-r border-border">
         {/* Logo */}
         <div className="p-6">
           <Link to="/app/dashboard" className="flex items-center gap-2">
@@ -98,8 +98,8 @@ export function AppShell({ children }: AppShellProps) {
                 to={item.href}
                 className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${
                   isActive(item.href)
-                    ? 'bg-[var(--omni-accent)] text-white'
-                    : 'text-[var(--omni-text-muted)] hover:bg-gray-100 hover:text-[var(--omni-text)]'
+                    ? 'bg-primary text-primary-foreground shadow-sm'
+                    : 'text-muted-foreground hover:bg-muted hover:text-foreground'
                 }`}
               >
                 <item.icon className="w-5 h-5" />
@@ -110,7 +110,7 @@ export function AppShell({ children }: AppShellProps) {
         </nav>
 
         {/* Bottom Navigation */}
-        <div className="p-4 border-t border-gray-100">
+        <div className="p-4 border-t border-border">
           <div className="space-y-1 mb-4">
             {bottomNavItems.map((item) => (
               <Link
@@ -136,7 +136,7 @@ export function AppShell({ children }: AppShellProps) {
               </span>
             </div>
             <div className="flex-1 min-w-0">
-              <p className="font-medium text-[var(--omni-text)] truncate">
+              <p className="font-medium text-foreground truncate">
                 {user?.name || 'Użytkownik'}
               </p>
               <p className="text-xs text-[var(--omni-text-muted)] truncate">
@@ -155,7 +155,7 @@ export function AppShell({ children }: AppShellProps) {
       </aside>
 
       {/* Mobile Header */}
-      <div className="lg:hidden fixed top-0 left-0 right-0 z-50 bg-white border-b border-gray-100">
+      <div className="lg:hidden fixed top-0 left-0 right-0 z-50 bg-card border-b border-border shadow-sm">
         <div className="flex items-center justify-between px-4 py-3">
           <Link to="/app/dashboard" className="flex items-center gap-2">
             <div className="w-8 h-8 rounded-lg bg-[var(--omni-bg-dark)] flex items-center justify-center">
@@ -167,7 +167,7 @@ export function AppShell({ children }: AppShellProps) {
           </Link>
           <button
             onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-            className="p-2 text-[var(--omni-text)]"
+            className="p-2 text-foreground hover:bg-muted rounded-lg transition-colors"
           >
             {isMobileMenuOpen ? (
               <X className="w-6 h-6" />
@@ -179,7 +179,7 @@ export function AppShell({ children }: AppShellProps) {
 
         {/* Mobile Menu */}
         {isMobileMenuOpen && (
-          <div className="absolute top-full left-0 right-0 bg-white border-b border-gray-100 shadow-lg">
+          <div className="absolute top-full left-0 right-0 bg-card border-b border-border shadow-xl animate-in slide-in-from-top-2">
             <nav className="p-4">
               <div className="space-y-1">
                 {dynamicNavItems.map((item) => (
@@ -189,8 +189,8 @@ export function AppShell({ children }: AppShellProps) {
                     onClick={() => setIsMobileMenuOpen(false)}
                     className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${
                       isActive(item.href)
-                        ? 'bg-[var(--omni-accent)] text-white'
-                        : 'text-[var(--omni-text-muted)] hover:bg-gray-100'
+                        ? 'bg-primary text-primary-foreground'
+                        : 'text-muted-foreground hover:bg-muted'
                     }`}
                   >
                     <item.icon className="w-5 h-5" />
@@ -207,8 +207,8 @@ export function AppShell({ children }: AppShellProps) {
                     onClick={() => setIsMobileMenuOpen(false)}
                     className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${
                       isActive(item.href)
-                        ? 'bg-[var(--omni-lavender)] text-[var(--omni-text)]'
-                        : 'text-[var(--omni-text-muted)] hover:bg-gray-100'
+                        ? 'bg-secondary text-secondary-foreground'
+                        : 'text-muted-foreground hover:bg-muted'
                     }`}
                   >
                     <item.icon className="w-5 h-5" />

@@ -131,7 +131,7 @@ export default function SettingsPage() {
                   <select
                     value={item.value}
                     onChange={(e) => item.onChange(e.target.value)}
-                    className="px-4 py-2 border border-gray-200 rounded-lg text-[var(--omni-text)]"
+                    className="px-4 py-2 bg-background border border-input rounded-lg text-[var(--omni-text)] focus:ring-2 focus:ring-primary/20 transition-all"
                   >
                     {item.options?.map((opt) => (
                       <option key={opt.value} value={opt.value}>
