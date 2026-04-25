@@ -84,7 +84,7 @@ export default function HomePage() {
         'Zadania w stylu egzaminacyjnym',
         'Arkusze próbne i raport błędów'
       ],
-      cta: 'Wybierz Premium+',
+      cta: 'Wypróbuj 7 dni',
       primary: false,
     },
     {
@@ -98,7 +98,7 @@ export default function HomePage() {
         'Wspólna historia nauki',
         'Panel rodzica — wkrótce'
       ],
-      cta: 'Wybierz plan',
+      cta: 'Wypróbuj 7 dni',
       primary: false,
     },
   ];
