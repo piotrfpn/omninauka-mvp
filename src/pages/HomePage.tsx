@@ -61,15 +61,31 @@ export default function HomePage() {
       name: 'Premium',
       price: '29 zł',
       period: '/ miesiąc',
+      badge: 'Najpopularniejszy',
       features: [
         'Więcej lekcji AI każdego dnia',
         'Zaawansowany AI Tutor',
         'Powtórki błędów',
-        'Tryb sprawdzianu',
+        'Sprawdziany z raportem błędów',
         'Priorytetowe AI'
       ],
       cta: 'Wypróbuj 7 dni',
       primary: true,
+    },
+    {
+      name: 'Premium+',
+      price: '49 zł',
+      period: '/ miesiąc',
+      badge: 'Egzaminy',
+      features: [
+        'Wszystko z Premium',
+        'Przygotowanie do egzaminu ósmoklasisty',
+        'Przygotowanie do matury',
+        'Zadania w stylu egzaminacyjnym',
+        'Arkusze próbne i raport błędów'
+      ],
+      cta: 'Wybierz Premium+',
+      primary: false,
     },
     {
       name: 'Rodzinny',
@@ -85,6 +101,41 @@ export default function HomePage() {
       cta: 'Wybierz plan',
       primary: false,
     },
+  ];
+
+  const faqItems = [
+    {
+      question: "Czym jest lekcja AI?",
+      answer: "Lekcja AI to jedna analiza materiału dodanego przez ucznia. Może to być do 5 zdjęć notatek albo 1 dokument PDF/DOCX. Po dodaniu materiału OmniNauka pomaga zrozumieć temat, prowadzi rozmowę z AI Tutorem i może przygotować quiz."
+    },
+    {
+      question: "Czym różni się quiz od sprawdzianu?",
+      answer: "Quiz z wyjaśnieniami to krótki trening po lekcji. Pomaga sprawdzić podstawowe zrozumienie tematu i pokazuje, dlaczego odpowiedź jest dobra lub błędna. Sprawdzian z raportem błędów to większy test gotowości do kartkówki lub sprawdzianu. Na końcu uczeń otrzymuje wynik oraz informację, które zagadnienia warto powtórzyć."
+    },
+    {
+      question: "Czym jest Premium+?",
+      answer: "Premium+ to plan dla uczniów przygotowujących się do ważniejszych egzaminów, takich jak egzamin ósmoklasisty lub matura. Obejmuje zadania w stylu egzaminacyjnym, arkusze próbne i raport błędów."
+    },
+    {
+      question: "Czy OmniNauka przygotuje do egzaminu ósmoklasisty i matury?",
+      answer: "Tak, planujemy tryb egzaminacyjny dla egzaminu ósmoklasisty i matury. Będzie to osobny moduł rozwijany po podstawowej wersji aplikacji."
+    },
+    {
+      question: "Czy OmniNauka jest oficjalnym narzędziem CKE?",
+      answer: "Nie. OmniNauka nie jest oficjalnym narzędziem CKE. Tryb egzaminacyjny będzie tworzony jako wsparcie nauki, z zadaniami w stylu egzaminacyjnym i materiałami inspirowanymi wymaganiami egzaminacyjnymi."
+    },
+    {
+      question: "Czy mogę dodać PDF albo dokument Word?",
+      answer: "Tak. OmniNauka obsługuje zdjęcia JPG, PNG, WEBP, tekstowe pliki PDF oraz dokumenty DOCX. Skanowane PDF-y mogą wymagać dodania stron jako zdjęcia."
+    },
+    {
+      question: "Czy OmniNauka rozwiązuje zadania za ucznia?",
+      answer: "Celem OmniNauka nie jest podawanie gotowych odpowiedzi bez nauki. AI Tutor pomaga zrozumieć materiał, tłumaczy błędy, zadaje pytania i prowadzi ucznia krok po kroku."
+    },
+    {
+      question: "Czy płatności są już aktywne?",
+      answer: "Na etapie wersji beta płatności i limity mogą być uruchamiane etapowo. Obecne pakiety pokazują planowany model korzystania z OmniNauka."
+    }
   ];
 
   return (
@@ -176,7 +227,7 @@ export default function HomePage() {
           <h2 className="omni-heading-2 text-[var(--omni-text)] text-center mb-12">
             Wybierz plan
           </h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             {pricingPlans.map((plan, index) => (
               <div
                 key={index}
@@ -188,9 +239,9 @@ export default function HomePage() {
                   <h3 className="font-semibold text-xl text-[var(--omni-text)]">
                     {plan.name}
                   </h3>
-                  {plan.primary && (
-                    <span className="omni-chip bg-[var(--omni-accent)] text-white text-xs whitespace-nowrap px-3 py-1">
-                      Najpopularniejszy
+                  {plan.badge && (
+                    <span className={`omni-chip ${plan.primary ? 'bg-[var(--omni-accent)] text-white' : 'bg-blue-100 text-blue-700'} text-xs whitespace-nowrap px-3 py-1`}>
+                      {plan.badge}
                     </span>
                   )}
                 </div>
@@ -206,14 +257,14 @@ export default function HomePage() {
                   {plan.features.map((feature, fIndex) => (
                     <li key={fIndex} className="flex items-center gap-2">
                       <Check className="w-5 h-5 text-green-500 flex-shrink-0" />
-                      <span className="text-[var(--omni-text)]">{feature}</span>
+                      <span className="text-[var(--omni-text)] text-sm">{feature}</span>
                     </li>
                   ))}
                 </ul>
                 <div className="mt-auto flex justify-center">
                   <Link
                     to="/login"
-                    className={`inline-flex items-center justify-center whitespace-nowrap px-8 py-3 rounded-full transition-all ${
+                    className={`w-full inline-flex items-center justify-center whitespace-nowrap px-4 py-3 rounded-xl transition-all ${
                       plan.primary
                         ? 'bg-[#2EE6A6] text-[#0B1220] font-bold hover:shadow-lg'
                         : 'bg-gray-100 text-[var(--omni-text)] font-semibold hover:bg-gray-200'
@@ -248,6 +299,27 @@ export default function HomePage() {
             <p className="text-xs text-[var(--omni-text-muted-light)] border-t border-gray-100 pt-4">
               Pakiety dodatkowych lekcji będą dostępne po uruchomieniu płatności.
             </p>
+          </div>
+        </div>
+      </section>
+
+      {/* FAQ Section */}
+      <section id="faq" className="px-6 py-16 lg:py-24 bg-white/30">
+        <div className="max-w-4xl mx-auto">
+          <h2 className="omni-heading-2 text-[var(--omni-text)] text-center mb-12">
+            Najczęściej zadawane pytania
+          </h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {faqItems.map((item, index) => (
+              <div key={index} className="omni-card p-6 bg-white/80 border border-gray-100 hover:border-[var(--omni-accent)]/20 transition-all flex flex-col">
+                <h3 className="font-bold text-[var(--omni-text)] mb-2">
+                  {item.question}
+                </h3>
+                <p className="text-sm text-[var(--omni-text-muted)] leading-relaxed">
+                  {item.answer}
+                </p>
+              </div>
+            ))}
           </div>
         </div>
       </section>
