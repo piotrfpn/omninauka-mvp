@@ -98,7 +98,10 @@ export default function HomePage() {
           >
             Zaloguj się
           </Link>
-          <Link to="/login" className="omni-btn-primary text-sm">
+          <Link 
+            to="/login" 
+            className="inline-flex items-center justify-center px-5 py-2.5 bg-[#2EE6A6] text-[#0B1220] font-bold rounded-xl text-sm hover:shadow-lg hover:shadow-[#2EE6A6]/10 transition-all active:scale-[0.98]"
+          >
             Wypróbuj za darmo
           </Link>
         </div>
@@ -115,7 +118,10 @@ export default function HomePage() {
             dopasowane do Twoich materiałów.
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-            <Link to="/login" className="omni-btn-primary">
+            <Link 
+              to="/login" 
+              className="inline-flex items-center justify-center gap-2 px-8 py-4 bg-[#2EE6A6] text-[#0B1220] font-bold rounded-xl hover:shadow-xl hover:shadow-[#2EE6A6]/20 transition-all active:scale-[0.98]"
+            >
               Wypróbuj za darmo
               <ArrowRight className="w-5 h-5" />
             </Link>
@@ -195,7 +201,7 @@ export default function HomePage() {
                   to="/login"
                   className={`w-full text-center py-3 rounded-full font-semibold transition-all ${
                     plan.primary
-                      ? 'bg-[var(--omni-accent)] text-white hover:shadow-lg'
+                      ? 'bg-[#2EE6A6] text-[#0B1220] font-bold hover:shadow-lg'
                       : 'bg-gray-100 text-[var(--omni-text)] hover:bg-gray-200'
                   }`}
                 >
@@ -216,7 +222,10 @@ export default function HomePage() {
           <p className="text-[var(--omni-text-muted-light)] mb-8 text-lg">
             Dołącz do tysięcy uczniów, którzy uczą się mądrzej, nie ciężej.
           </p>
-          <Link to="/login" className="omni-btn-primary inline-flex">
+          <Link 
+            to="/login" 
+            className="inline-flex items-center justify-center gap-2 px-8 py-4 bg-[#2EE6A6] text-[#0B1220] font-bold rounded-xl hover:shadow-xl hover:shadow-[#2EE6A6]/20 transition-all active:scale-[0.98]"
+          >
             Wypróbuj za darmo
             <ArrowRight className="w-5 h-5" />
           </Link>
