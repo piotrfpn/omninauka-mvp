@@ -48,11 +48,11 @@ export default function HomePage() {
       price: '0 zł',
       period: '/ miesiąc',
       features: [
-        '2 analizy dziennie',
+        '2 lekcje AI dziennie',
         'AI Tutor tekstowy',
         'Quizy z wyjaśnieniami',
         'Historia nauki',
-        'Kolejne analizy: 1,99 zł'
+        'Kolejna lekcja AI: 1,99 zł'
       ],
       cta: 'Zacznij za darmo',
       primary: false,
@@ -62,7 +62,7 @@ export default function HomePage() {
       price: '29 zł',
       period: '/ miesiąc',
       features: [
-        'Więcej analiz każdego dnia',
+        'Więcej lekcji AI każdego dnia',
         'Zaawansowany AI Tutor',
         'Powtórki błędów',
         'Tryb sprawdzianu',
@@ -226,8 +226,29 @@ export default function HomePage() {
             ))}
           </div>
           <p className="text-center text-sm text-[var(--omni-text-muted)] mt-8">
-            1 analiza = do 5 zdjęć albo 1 dokument PDF/DOCX.
+            1 lekcja AI = do 5 zdjęć albo 1 dokument PDF/DOCX.
           </p>
+          
+          <div className="mt-12 max-w-sm mx-auto bg-white/50 border border-gray-100 rounded-2xl p-6 text-center">
+            <h3 className="font-semibold text-[var(--omni-text)] mb-4">Dodatkowe lekcje AI</h3>
+            <div className="space-y-2 text-[var(--omni-text-muted)] text-sm mb-4">
+              <div className="flex justify-between items-center px-4">
+                <span>5 lekcji AI</span>
+                <span className="font-medium text-[var(--omni-text)]">7,99 zł</span>
+              </div>
+              <div className="flex justify-between items-center px-4">
+                <span>10 lekcji AI</span>
+                <span className="font-medium text-[var(--omni-text)]">14,99 zł</span>
+              </div>
+              <div className="flex justify-between items-center px-4">
+                <span>25 lekcji AI</span>
+                <span className="font-medium text-[var(--omni-text)]">29,99 zł</span>
+              </div>
+            </div>
+            <p className="text-xs text-[var(--omni-text-muted-light)] border-t border-gray-100 pt-4">
+              Pakiety dodatkowych lekcji będą dostępne po uruchomieniu płatności.
+            </p>
+          </div>
         </div>
       </section>
 
