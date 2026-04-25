@@ -16,7 +16,14 @@ import {
   Plus,
   Images,
   Trash2,
+  FileText,
+  Loader2
 } from 'lucide-react';
+
+import * as pdfjsLib from 'pdfjs-dist';
+// Standard Vite approach for pdfjs worker
+pdfjsLib.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjsLib.version}/build/pdf.worker.min.mjs`;
+import mammoth from 'mammoth';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -186,6 +193,8 @@ export default function UploadPage() {
   const { user, isDemoMode } = useAuth();
 
   const [images, setImages] = useState<QueuedImage[]>([]);
+  const [documentFile, setDocumentFile] = useState<{ file: File, text: string } | null>(null);
+  const [isExtractingText, setIsExtractingText] = useState(false);
   const [activeIdx, setActiveIdx] = useState(0);
   const [isCompressing, setIsCompressing] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
@@ -194,46 +203,126 @@ export default function UploadPage() {
 
   // ── helpers ────────────────────────────────────────────────────────────────
 
+  const handleDocumentUpload = async (file: File) => {
+    setIsExtractingText(true);
+    setError(null);
+    try {
+      let extractedText = '';
+      const arrayBuffer = await file.arrayBuffer();
+
+      if (file.type === 'application/pdf' || file.name.endsWith('.pdf')) {
+        const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+        let fullText = '';
+        for (let i = 1; i <= pdf.numPages; i++) {
+          const page = await pdf.getPage(i);
+          const textContent = await page.getTextContent();
+          const pageText = textContent.items.map((item: any) => item.str).join(' ');
+          fullText += pageText + '\n';
+        }
+        extractedText = fullText.trim();
+
+        if (extractedText.length < 50) {
+          setError('Ten PDF wygląda jak skan. Na razie obsługujemy PDF-y z tekstem. Spróbuj dodać zdjęcie strony albo plik DOCX.');
+          setIsExtractingText(false);
+          return;
+        }
+      } else if (file.name.endsWith('.docx') || file.type.includes('wordprocessingml')) {
+        const result = await mammoth.extractRawText({ arrayBuffer });
+        extractedText = result.value.trim();
+      }
+
+      // Truncate to ~25k chars safely for API limit
+      if (extractedText.length > 25000) {
+        extractedText = extractedText.substring(0, 25000) + '\n[...tekst obcięty ze względu na limit]';
+      }
+
+      setDocumentFile({ file, text: extractedText });
+    } catch (err) {
+      console.error('Doc extraction error:', err);
+      setError('Błąd podczas odczytu dokumentu. Sprawdź plik i spróbuj ponownie.');
+    } finally {
+      setIsExtractingText(false);
+    }
+  };
+
   const addFiles = useCallback((rawFiles: File[]) => {
     setError(null);
-    const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
-    const available = MAX_IMAGES - images.length;
+    const validImageTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+    const validDocTypes = ['application/pdf', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
 
-    const toAdd: QueuedImage[] = [];
-    for (const f of rawFiles.slice(0, available)) {
-      if (!validTypes.includes(f.type)) {
-        setError('Nieprawidłowy format. Akceptowane: JPG, PNG, WEBP');
-        continue;
-      }
-      if (f.size > 10 * 1024 * 1024) {
-        setError('Jeden z plików jest za duży (max 10MB)');
-        continue;
-      }
-      toAdd.push({
-        id: `img-${Date.now()}-${Math.random().toString(36).slice(2)}`,
-        previewUrl: URL.createObjectURL(f),
-        compressedBase64: null,
-        name: f.name,
-        isCropping: true,
-        crop: { x: 0, y: 0 },
-        zoom: 1,
-        croppedArea: null,
-      });
+    const hasImages = images.length > 0;
+    const hasDoc = documentFile !== null;
+
+    const droppedDocs = rawFiles.filter(f => validDocTypes.includes(f.type) || f.name.endsWith('.docx') || f.name.endsWith('.pdf'));
+    const droppedImages = rawFiles.filter(f => validImageTypes.includes(f.type));
+
+    if (droppedDocs.length > 0 && droppedImages.length > 0) {
+      setError('Nie możesz dodawać dokumentów i zdjęć w tej samej sesji.');
+      return;
     }
 
-    if (toAdd.length === 0) return;
-    const newImages = [...images, ...toAdd];
-    setImages(newImages);
-    // Jump to first newly added image for cropping
-    setActiveIdx(newImages.length - toAdd.length);
-  }, [images]);
+    if (droppedDocs.length > 0) {
+      if (hasImages) {
+        setError('Masz już dodane zdjęcia. Nie możesz dodać dokumentu.');
+        return;
+      }
+      if (droppedDocs.length > 1 || hasDoc) {
+        setError('Możesz dodać tylko 1 dokument naraz.');
+        return;
+      }
+      const doc = droppedDocs[0];
+      if (doc.size > 10 * 1024 * 1024) {
+        setError('Dokument jest za duży (max 10MB)');
+        return;
+      }
+      handleDocumentUpload(doc);
+      return;
+    }
+
+    if (droppedImages.length > 0) {
+      if (hasDoc) {
+        setError('Masz już dodany dokument. Nie możesz dodać zdjęć.');
+        return;
+      }
+      
+      const available = MAX_IMAGES - images.length;
+      const toAdd: QueuedImage[] = [];
+      for (const f of droppedImages.slice(0, available)) {
+        if (f.size > 10 * 1024 * 1024) {
+          setError('Jeden ze zdjęć jest za duże (max 10MB)');
+          continue;
+        }
+        toAdd.push({
+          id: `img-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+          previewUrl: URL.createObjectURL(f),
+          compressedBase64: null,
+          name: f.name,
+          isCropping: true,
+          crop: { x: 0, y: 0 },
+          zoom: 1,
+          croppedArea: null,
+        });
+      }
+
+      if (toAdd.length === 0) return;
+      const newImages = [...images, ...toAdd];
+      setImages(newImages);
+      setActiveIdx(newImages.length - toAdd.length);
+    }
+  }, [images, documentFile]);
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop: addFiles,
-    accept: { 'image/jpeg': ['.jpg', '.jpeg'], 'image/png': ['.png'], 'image/webp': ['.webp'] },
+    accept: { 
+      'image/jpeg': ['.jpg', '.jpeg'], 
+      'image/png': ['.png'], 
+      'image/webp': ['.webp'],
+      'application/pdf': ['.pdf'],
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document': ['.docx']
+    },
     maxFiles: MAX_IMAGES,
     multiple: true,
-    disabled: images.length >= MAX_IMAGES,
+    disabled: images.length >= MAX_IMAGES || documentFile !== null,
   });
 
   const removeImage = (idx: number) => {
@@ -319,13 +408,62 @@ export default function UploadPage() {
   // ── analyze (upload + DB insert) ──────────────────────────────────────────
 
   const handleAnalyze = async () => {
-    const ready = images.filter(im => !!im.compressedBase64);
-    if (ready.length === 0) return;
+    if (images.length === 0 && !documentFile) return;
 
     setIsAnalyzing(true);
     setError(null);
 
-    // DEMO MODE bypass — send only first image through demo flow
+    // ── DOCUMENT FLOW ──
+    if (documentFile) {
+      if (!user || isDemoMode) {
+        sessionStorage.setItem('demoImageBase64', 'document_placeholder');
+        sessionStorage.setItem('currentSessionId', 'demo-session');
+        await new Promise(r => setTimeout(r, 2000));
+        navigate('/app/analysis');
+        return;
+      }
+
+      try {
+        const fileExt = documentFile.file.name.split('.').pop() || 'pdf';
+        const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
+        const filePath = `uploads/${fileName}`;
+
+        const { data: uploadData, error: uploadError } = await supabase.storage
+          .from('study-materials')
+          .upload(filePath, documentFile.file, { cacheControl: '3600', upsert: false });
+
+        if (uploadError || !uploadData) throw new Error(`Upload failed: ${uploadError.message}`);
+
+        const { data: sessionData, error: dbError } = await supabase
+          .from('study_sessions')
+          .insert({
+            user_id: user.id,
+            image_url: uploadData.path,
+            raw_ocr_text: documentFile.text,
+            folder_id: null,
+          })
+          .select()
+          .single();
+
+        if (dbError || !sessionData) {
+          await supabase.storage.from('study-materials').remove([uploadData.path]);
+          throw new Error(`DB Insert failed: ${dbError?.message}`);
+        }
+
+        sessionStorage.setItem('currentSessionId', sessionData.id);
+        navigate('/app/analysis');
+      } catch (err: any) {
+        console.error('Document upload error:', err);
+        setError('Wystąpił błąd podczas zapisywania dokumentu. Spróbuj ponownie.');
+        setIsAnalyzing(false);
+      }
+      return;
+    }
+
+    // ── IMAGE FLOW ──
+    const ready = images.filter(im => !!im.compressedBase64);
+    if (ready.length === 0) return;
+
     if (!user || isDemoMode) {
       sessionStorage.setItem('demoImageBase64', ready[0].compressedBase64!);
       sessionStorage.setItem('currentSessionId', 'demo-session');
@@ -335,7 +473,6 @@ export default function UploadPage() {
     }
 
     try {
-      // Upload all images to Storage & collect paths
       const uploadedPaths: string[] = [];
       for (const img of ready) {
         const res = await fetch(img.compressedBase64!);
@@ -349,7 +486,6 @@ export default function UploadPage() {
           .upload(filePath, blob, { cacheControl: '3600', upsert: false });
 
         if (uploadError || !uploadData) {
-          // Clean up already-uploaded files
           if (uploadedPaths.length > 0) {
             await supabase.storage.from('study-materials').remove(uploadedPaths);
           }
@@ -358,7 +494,6 @@ export default function UploadPage() {
         uploadedPaths.push(uploadData.path);
       }
 
-      // Create study_sessions row — primary image = first uploaded
       const { data: sessionData, error: dbError } = await supabase
         .from('study_sessions')
         .insert({
@@ -374,7 +509,6 @@ export default function UploadPage() {
         throw new Error(`DB Insert failed: ${dbError?.message}`);
       }
 
-      // Insert session_images rows for ALL uploaded images (including primary)
       if (uploadedPaths.length > 0) {
         const imageRows = uploadedPaths.map((path, position) => ({
           session_id: sessionData.id,
@@ -386,17 +520,12 @@ export default function UploadPage() {
           .insert(imageRows);
 
         if (imgInsertError) {
-          // Fatal — without session_images rows, multi-image OCR in analyze-notes won't work
           console.error('[upload] session_images insert failed:', imgInsertError.message, imgInsertError.code);
-          // Cleanup: remove the session row and storage files to avoid orphans
           await supabase.from('study_sessions').delete().eq('id', sessionData.id);
           await supabase.storage.from('study-materials').remove(uploadedPaths);
           throw new Error(`session_images insert failed: ${imgInsertError.message}`);
         }
-
-        console.log(`[upload] session_images inserted: ${imageRows.length} rows for session ${sessionData.id}`);
       }
-
 
       sessionStorage.setItem('currentSessionId', sessionData.id);
       navigate('/app/analysis');
@@ -422,14 +551,14 @@ export default function UploadPage() {
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <h1 className="omni-heading-3 text-[var(--omni-text)] mb-2">Upload notatek</h1>
+        <h1 className="omni-heading-3 text-[var(--omni-text)] mb-2">Upload materiałów</h1>
         <p className="text-[var(--omni-text-muted)]">
-          Dodaj do {MAX_IMAGES} zdjęć notatek — AI przygotuje materiał ze wszystkich stron naraz.
+          Dodaj do {MAX_IMAGES} zdjęć notatek lub 1 dokument tekstowy (PDF/DOCX). AI przygotuje lekcję w parę sekund.
         </p>
         {isDemoMode && (
           <div className="mt-4 p-3 bg-blue-50 text-blue-700 rounded-lg flex items-center gap-3 text-sm border border-blue-100">
             <AlertCircle className="w-5 h-5 flex-shrink-0" />
-            <p className="font-medium">Tryb demo — pierwsze zdjęcie zostanie przetworzone tylko lokalnie.</p>
+            <p className="font-medium">Tryb demo — wgrany plik zostanie przetworzony tylko lokalnie.</p>
           </div>
         )}
       </div>
@@ -442,8 +571,64 @@ export default function UploadPage() {
         </div>
       )}
 
+      {/* Loading state for document extraction */}
+      {isExtractingText && (
+        <div className="omni-card p-12 flex flex-col items-center justify-center text-center">
+           <Loader2 className="w-10 h-10 text-[var(--omni-accent)] animate-spin mb-4" />
+           <h3 className="font-medium text-lg text-[var(--omni-text)] mb-2">Wyciągam tekst z dokumentu...</h3>
+           <p className="text-sm text-[var(--omni-text-muted)]">To zajmie tylko chwilę.</p>
+        </div>
+      )}
+
+      {/* ── Document state ── */}
+      {documentFile && !isExtractingText && (
+        <div className="omni-card p-6">
+          <div className="flex items-center justify-between mb-6">
+            <h3 className="font-semibold text-[var(--omni-text)] flex items-center gap-2">
+              <FileText className="w-5 h-5" />
+              Wybrany dokument
+            </h3>
+            <button
+              onClick={() => setDocumentFile(null)}
+              disabled={isAnalyzing}
+              className="p-2 text-[var(--omni-text-muted)] hover:text-red-500 transition-colors disabled:opacity-50"
+            >
+              <Trash2 className="w-5 h-5" />
+            </button>
+          </div>
+          
+          <div className="p-4 bg-gray-50 rounded-xl border border-gray-200 mb-6 flex items-center gap-4">
+            <div className="w-12 h-12 bg-white rounded-lg shadow-sm border border-gray-100 flex items-center justify-center flex-shrink-0">
+              <FileText className="w-6 h-6 text-indigo-500" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="font-medium text-[var(--omni-text)] truncate">{documentFile.file.name}</p>
+              <p className="text-sm text-[var(--omni-text-muted)]">Odczytano {(documentFile.text.length / 1024).toFixed(1)} KB tekstu</p>
+            </div>
+          </div>
+
+          <button
+            onClick={handleAnalyze}
+            disabled={isAnalyzing}
+            className="w-full omni-btn-primary disabled:opacity-50"
+          >
+            {isAnalyzing ? (
+              <div className="flex items-center justify-center gap-2">
+                <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin flex-shrink-0" />
+                <span>Przesyłanie i analizowanie...</span>
+              </div>
+            ) : (
+              <div className="flex items-center justify-center gap-2">
+                <span>Analizuj dokument</span>
+                <ArrowRight className="w-5 h-5" />
+              </div>
+            )}
+          </button>
+        </div>
+      )}
+
       {/* ── Empty state: drop zone ── */}
-      {images.length === 0 && (
+      {images.length === 0 && !documentFile && !isExtractingText && (
         <div className="space-y-4 flex flex-col-reverse md:flex-col gap-4 md:gap-0 md:space-y-4">
           {/* Camera — PRIMARY on mobile (rendered last in DOM but shown first via col-reverse) */}
           <div>
@@ -485,10 +670,13 @@ export default function UploadPage() {
               <Images className="w-7 h-7 text-[var(--omni-text)]" />
             </div>
             <p className="font-medium text-[var(--omni-text)] mb-1">
-              {isDragActive ? 'Upuść zdjęcia tutaj...' : 'Wybierz pliki z urządzenia'}
+              {isDragActive ? 'Upuść pliki tutaj...' : 'Wybierz pliki z urządzenia'}
             </p>
             <p className="text-sm text-[var(--omni-text-muted)]">
-              JPG, PNG, WEBP · max {MAX_IMAGES} zdjęć · max 10MB każde
+              JPG, PNG, WEBP, PDF tekstowy lub DOCX
+            </p>
+            <p className="text-xs text-[var(--omni-text-muted)] mt-1">
+              max 5 zdjęć albo 1 dokument · max 10MB
             </p>
           </div>
         </div>

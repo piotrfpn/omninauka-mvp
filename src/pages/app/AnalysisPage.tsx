@@ -15,6 +15,7 @@ import {
   Calendar,
   User,
   Hash,
+  FileText,
 } from 'lucide-react';
 import { LessonTitleEditor } from '../../components/lessons/lesson-title-editor';
 import { AnalysisSkeleton } from '../../components/ui/page-skeletons';
@@ -295,14 +296,25 @@ export default function AnalysisPage() {
         {uploadedImage && (
           <div className="flex flex-col gap-3 flex-shrink-0">
              {/* Main Preview */}
-            <div className="w-24 h-24 lg:w-48 lg:h-48 rounded-xl overflow-hidden shadow-sm bg-gray-100 flex items-center justify-center border border-gray-100">
-              <img
-                src={uploadedImage}
-                alt="Analyzed"
-                className="w-full h-full object-cover cursor-zoom-in"
-                onClick={() => window.open(uploadedImage, '_blank')}
-                title="Kliknij, aby otworzyć w pełnym rozmiarze"
-              />
+            <div className="w-24 h-24 lg:w-48 lg:h-48 rounded-xl overflow-hidden shadow-sm bg-gray-100 flex items-center justify-center border border-gray-100 relative group">
+              {uploadedImage.includes('.pdf') || uploadedImage.includes('.docx') ? (
+                <div 
+                  className="flex flex-col items-center justify-center text-center p-2 cursor-pointer w-full h-full"
+                  onClick={() => window.open(uploadedImage, '_blank')}
+                  title="Kliknij, aby pobrać lub otworzyć dokument"
+                >
+                  <FileText className="w-8 h-8 lg:w-12 lg:h-12 text-indigo-500 mb-1 lg:mb-2" />
+                  <span className="text-[10px] lg:text-xs font-medium text-gray-600 leading-tight">Dokument<br/>dodany</span>
+                </div>
+              ) : (
+                <img
+                  src={uploadedImage}
+                  alt="Analyzed"
+                  className="w-full h-full object-cover cursor-zoom-in"
+                  onClick={() => window.open(uploadedImage, '_blank')}
+                  title="Kliknij, aby otworzyć w pełnym rozmiarze"
+                />
+              )}
             </div>
             
             {/* Thumbnail Gallery (only show if > 1 images) */}

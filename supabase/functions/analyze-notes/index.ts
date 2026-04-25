@@ -92,7 +92,7 @@ serve(async (req) => {
 
     const { data: sessionData, error: dbError } = await adminClient
       .from('study_sessions')
-      .select('image_url, subject, user_id')
+      .select('image_url, subject, user_id, raw_ocr_text')
       .eq('id', sessionId)
       .single();
 
@@ -120,139 +120,146 @@ serve(async (req) => {
       });
     }
 
-    // 3. Collect all image paths for this session
-    // Primary image from study_sessions.image_url (always present for backward compat)
-    // Additional images from session_images child table (Sprint 2)
-    const imagePaths: string[] = [];
+    let ocrText = "";
 
-    if (sessionData.image_url) {
-      imagePaths.push(sessionData.image_url);
-    }
+    if (sessionData.raw_ocr_text && sessionData.raw_ocr_text.trim().length > 0) {
+      console.log(`[analyze-notes] Found pre-extracted text for session: ${sessionId}, skipping Vision OCR`);
+      ocrText = sessionData.raw_ocr_text;
+    } else {
+      // 3. Collect all image paths for this session
+      // Primary image from study_sessions.image_url (always present for backward compat)
+      // Additional images from session_images child table (Sprint 2)
+      const imagePaths: string[] = [];
 
-    const { data: childImages } = await adminClient
-      .from('session_images')
-      .select('image_url, position')
-      .eq('session_id', sessionId)
-      .order('position', { ascending: true });
+      if (sessionData.image_url) {
+        imagePaths.push(sessionData.image_url);
+      }
 
-    if (childImages && childImages.length > 0) {
-      for (const ci of childImages) {
-        if (ci.image_url && !imagePaths.includes(ci.image_url)) {
-          imagePaths.push(ci.image_url);
+      const { data: childImages } = await adminClient
+        .from('session_images')
+        .select('image_url, position')
+        .eq('session_id', sessionId)
+        .order('position', { ascending: true });
+
+      if (childImages && childImages.length > 0) {
+        for (const ci of childImages) {
+          if (ci.image_url && !imagePaths.includes(ci.image_url)) {
+            imagePaths.push(ci.image_url);
+          }
         }
       }
-    }
 
-    console.log(`[analyze-notes] Processing ${imagePaths.length} image(s) for session:`, sessionId);
+      console.log(`[analyze-notes] Processing ${imagePaths.length} image(s) for session:`, sessionId);
 
-    // 4. Google Cloud Vision OCR — sequential per image, concatenate results
-    const GOOGLE_VISION_KEY = Deno.env.get('GOOGLE_VISION_API_KEY');
-    if (!GOOGLE_VISION_KEY) throw new Error("Google Vision API Key missing");
+      // 4. Google Cloud Vision OCR — sequential per image, concatenate results
+      const GOOGLE_VISION_KEY = Deno.env.get('GOOGLE_VISION_API_KEY');
+      if (!GOOGLE_VISION_KEY) throw new Error("Google Vision API Key missing");
 
-    const ocrParts: string[] = [];
+      const ocrParts: string[] = [];
 
-    for (let imgIdx = 0; imgIdx < imagePaths.length; imgIdx++) {
-      const imgPath = imagePaths[imgIdx];
-      console.log(`[analyze-notes] OCR image ${imgIdx + 1}/${imagePaths.length}: ${imgPath}`);
+      for (let imgIdx = 0; imgIdx < imagePaths.length; imgIdx++) {
+        const imgPath = imagePaths[imgIdx];
+        console.log(`[analyze-notes] OCR image ${imgIdx + 1}/${imagePaths.length}: ${imgPath}`);
 
-      // Download image from private Storage
-      const { data: fileData, error: downloadError } = await adminClient.storage
-        .from('study-materials')
-        .download(imgPath);
+        // Download image from private Storage
+        const { data: fileData, error: downloadError } = await adminClient.storage
+          .from('study-materials')
+          .download(imgPath);
 
-      if (downloadError || !fileData) {
-        console.error(`[analyze-notes] Storage download failed for image ${imgIdx + 1} ->`, downloadError?.message);
-        // Non-fatal for multi-image: log and skip this image
-        if (imagePaths.length === 1) {
-          return new Response(JSON.stringify({ error: `Storage download failed: ${downloadError?.message || 'no payload'}` }), {
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-            status: 500
-          });
+        if (downloadError || !fileData) {
+          console.error(`[analyze-notes] Storage download failed for image ${imgIdx + 1} ->`, downloadError?.message);
+          // Non-fatal for multi-image: log and skip this image
+          if (imagePaths.length === 1) {
+            return new Response(JSON.stringify({ error: `Storage download failed: ${downloadError?.message || 'no payload'}` }), {
+              headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+              status: 500
+            });
+          }
+          ocrParts.push(`[Strona ${imgIdx + 1}: błąd pobierania obrazu]`);
+          continue;
         }
-        ocrParts.push(`[Strona ${imgIdx + 1}: błąd pobierania obrazu]`);
-        continue;
-      }
 
-      const arrayBuffer = await fileData.arrayBuffer();
-      const bytes = new Uint8Array(arrayBuffer);
+        const arrayBuffer = await fileData.arrayBuffer();
+        const bytes = new Uint8Array(arrayBuffer);
 
-      if (bytes.length === 0) {
-        console.error(`[analyze-notes] Empty image payload for image ${imgIdx + 1}`);
-        ocrParts.push(`[Strona ${imgIdx + 1}: pusty plik]`);
-        continue;
-      }
-
-      // Convert to base64
-      let binary = '';
-      const chunkSize = 32768;
-      for (let i = 0; i < bytes.length; i += chunkSize) {
-        binary += String.fromCharCode(...bytes.subarray(i, i + chunkSize));
-      }
-      const base64Image = btoa(binary);
-
-      // Call Google Vision OCR
-      const visionResponse = await fetch(`https://vision.googleapis.com/v1/images:annotate?key=${GOOGLE_VISION_KEY}`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          requests: [{
-            image: { content: base64Image },
-            features: [{ type: "DOCUMENT_TEXT_DETECTION" }]
-          }]
-        })
-      });
-
-      const rawVisionText = await visionResponse.text();
-      let visionData: any = {};
-      try {
-        visionData = JSON.parse(rawVisionText);
-      } catch(e) {
-        console.error(`[analyze-notes] Vision response not valid JSON for image ${imgIdx + 1}`);
-      }
-
-      const topLevelError = visionData.error;
-      const responsesExist = Array.isArray(visionData.responses) && visionData.responses.length > 0;
-      const responseItem = responsesExist ? visionData.responses[0] : null;
-      const hasVisionError = !!responseItem?.error;
-
-      if (!visionResponse.ok || topLevelError || hasVisionError) {
-        const exactMessage = topLevelError?.message || responseItem?.error?.message || "Unknown Error";
-        console.error(`[analyze-notes] Vision error for image ${imgIdx + 1} ->`, exactMessage);
-        // Fatal only for single-image sessions
-        if (imagePaths.length === 1) {
-          return new Response(JSON.stringify({ error: `Google Vision error: ${exactMessage}` }), {
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-            status: 502
-          });
+        if (bytes.length === 0) {
+          console.error(`[analyze-notes] Empty image payload for image ${imgIdx + 1}`);
+          ocrParts.push(`[Strona ${imgIdx + 1}: pusty plik]`);
+          continue;
         }
-        ocrParts.push(`[Strona ${imgIdx + 1}: błąd OCR - ${exactMessage}]`);
-        continue;
+
+        // Convert to base64
+        let binary = '';
+        const chunkSize = 32768;
+        for (let i = 0; i < bytes.length; i += chunkSize) {
+          binary += String.fromCharCode(...bytes.subarray(i, i + chunkSize));
+        }
+        const base64Image = btoa(binary);
+
+        // Call Google Vision OCR
+        const visionResponse = await fetch(`https://vision.googleapis.com/v1/images:annotate?key=${GOOGLE_VISION_KEY}`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            requests: [{
+              image: { content: base64Image },
+              features: [{ type: "DOCUMENT_TEXT_DETECTION" }]
+            }]
+          })
+        });
+
+        const rawVisionText = await visionResponse.text();
+        let visionData: any = {};
+        try {
+          visionData = JSON.parse(rawVisionText);
+        } catch(e) {
+          console.error(`[analyze-notes] Vision response not valid JSON for image ${imgIdx + 1}`);
+        }
+
+        const topLevelError = visionData.error;
+        const responsesExist = Array.isArray(visionData.responses) && visionData.responses.length > 0;
+        const responseItem = responsesExist ? visionData.responses[0] : null;
+        const hasVisionError = !!responseItem?.error;
+
+        if (!visionResponse.ok || topLevelError || hasVisionError) {
+          const exactMessage = topLevelError?.message || responseItem?.error?.message || "Unknown Error";
+          console.error(`[analyze-notes] Vision error for image ${imgIdx + 1} ->`, exactMessage);
+          // Fatal only for single-image sessions
+          if (imagePaths.length === 1) {
+            return new Response(JSON.stringify({ error: `Google Vision error: ${exactMessage}` }), {
+              headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+              status: 502
+            });
+          }
+          ocrParts.push(`[Strona ${imgIdx + 1}: błąd OCR - ${exactMessage}]`);
+          continue;
+        }
+
+        const pageText = responseItem?.fullTextAnnotation?.text || "";
+        console.log(`[analyze-notes] Image ${imgIdx + 1} OCR chars:`, pageText.length);
+
+        if (pageText.trim().length > 0) {
+          ocrParts.push(imgIdx === 0 ? pageText : `--- Strona ${imgIdx + 1} ---\n${pageText}`);
+        }
       }
 
-      const pageText = responseItem?.fullTextAnnotation?.text || "";
-      console.log(`[analyze-notes] Image ${imgIdx + 1} OCR chars:`, pageText.length);
+      // Combine all OCR text
+      ocrText = ocrParts.join('\n\n');
+      console.log("[analyze-notes] Total OCR chars before cap:", ocrText.length);
 
-      if (pageText.trim().length > 0) {
-        ocrParts.push(imgIdx === 0 ? pageText : `--- Strona ${imgIdx + 1} ---\n${pageText}`);
+      // Cost protection: cap combined OCR at 8000 chars to avoid OpenAI context overflow
+      const OCR_CHAR_CAP = 8000;
+      if (ocrText.length > OCR_CHAR_CAP) {
+        console.warn(`[analyze-notes] OCR text truncated from ${ocrText.length} to ${OCR_CHAR_CAP} chars`);
+        ocrText = ocrText.substring(0, OCR_CHAR_CAP) + '\n[...tekst obcięty - za długi materiał]';
       }
-    }
 
-    // Combine all OCR text
-    let ocrText = ocrParts.join('\n\n');
-    console.log("[analyze-notes] Total OCR chars before cap:", ocrText.length);
-
-    // Cost protection: cap combined OCR at 8000 chars to avoid OpenAI context overflow
-    const OCR_CHAR_CAP = 8000;
-    if (ocrText.length > OCR_CHAR_CAP) {
-      console.warn(`[analyze-notes] OCR text truncated from ${ocrText.length} to ${OCR_CHAR_CAP} chars`);
-      ocrText = ocrText.substring(0, OCR_CHAR_CAP) + '\n[...tekst obcięty - za długi materiał]';
-    }
-
-    if (!ocrText || ocrText.trim().length === 0) {
-      return new Response(JSON.stringify({ error: "Nie wykryto żadnego tekstu na zdjęciach." }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 422
-      });
+      if (!ocrText || ocrText.trim().length === 0) {
+        return new Response(JSON.stringify({ error: "Nie wykryto żadnego tekstu na zdjęciach." }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 422
+        });
+      }
     }
 
 
