@@ -3,19 +3,42 @@ import { useAuth } from '../../lib/auth-context';
 import { User, Mail, Calendar, Award, Edit2, Check, X } from 'lucide-react';
 
 export default function ProfilePage() {
-  const { user } = useAuth();
+  const { user, updateProfile } = useAuth();
   const [isEditing, setIsEditing] = useState(false);
   const [name, setName] = useState(user?.name || '');
-  const [email, setEmail] = useState(user?.email || '');
+  const [isSaving, setIsSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState(false);
 
-  const handleSave = () => {
-    // In a real app, this would call an API
-    setIsEditing(false);
+  const handleSave = async () => {
+    if (!name.trim()) {
+      setError('Imię nie może być puste');
+      return;
+    }
+
+    setIsSaving(true);
+    setError(null);
+    setSuccess(false);
+
+    try {
+      const result = await updateProfile({ name });
+      if (result.success) {
+        setIsEditing(false);
+        setSuccess(true);
+        setTimeout(() => setSuccess(false), 3000);
+      } else {
+        setError(result.error || 'Wystąpił błąd podczas zapisywania');
+      }
+    } catch (err) {
+      setError('Wystąpił błąd połączenia');
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const handleCancel = () => {
     setName(user?.name || '');
-    setEmail(user?.email || '');
+    setError(null);
     setIsEditing(false);
   };
 
@@ -28,13 +51,21 @@ export default function ProfilePage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div>
-        <h1 className="omni-heading-3 text-[var(--omni-text)] mb-2">
-          Twój profil
-        </h1>
-        <p className="text-[var(--omni-text-muted)]">
-          Zarządzaj swoimi danymi
-        </p>
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <h1 className="omni-heading-3 text-[var(--omni-text)] mb-2">
+            Twój profil
+          </h1>
+          <p className="text-[var(--omni-text-muted)]">
+            Zarządzaj swoimi danymi
+          </p>
+        </div>
+        
+        {success && (
+          <div className="px-4 py-2 bg-green-50 text-green-600 rounded-xl text-sm font-medium animate-in fade-in slide-in-from-top-2">
+            Profil został zaktualizowany!
+          </div>
+        )}
       </div>
 
       {/* Profile Card */}
@@ -48,34 +79,52 @@ export default function ProfilePage() {
           </div>
 
           {/* Info */}
-          <div className="flex-1 text-center sm:text-left">
+          <div className="flex-1 text-center sm:text-left w-full max-w-md">
             {isEditing ? (
               <div className="space-y-3">
-                <input
-                  type="text"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  className="omni-input"
-                  placeholder="Imię"
-                />
-                <input
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="omni-input"
-                  placeholder="Email"
-                />
-                <div className="flex gap-2 justify-center sm:justify-start">
+                <div>
+                  <label className="block text-xs text-[var(--omni-text-muted)] mb-1 ml-1">Imię</label>
+                  <input
+                    type="text"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    className="omni-input"
+                    placeholder="Imię"
+                    disabled={isSaving}
+                  />
+                </div>
+                
+                <div>
+                  <label className="block text-xs text-[var(--omni-text-muted)] mb-1 ml-1">Email (nie można zmienić)</label>
+                  <input
+                    type="email"
+                    value={user?.email || ''}
+                    className="omni-input bg-gray-50 text-gray-400 cursor-not-allowed"
+                    disabled
+                  />
+                </div>
+
+                {error && (
+                  <p className="text-sm text-red-500 ml-1">{error}</p>
+                )}
+
+                <div className="flex gap-2 justify-center sm:justify-start pt-2">
                   <button
                     onClick={handleSave}
-                    className="px-4 py-2 bg-green-500 text-white rounded-lg flex items-center gap-2"
+                    disabled={isSaving}
+                    className="px-4 py-2 bg-green-500 text-white rounded-lg flex items-center gap-2 hover:bg-green-600 transition-colors disabled:opacity-50"
                   >
-                    <Check className="w-4 h-4" />
+                    {isSaving ? (
+                      <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                    ) : (
+                      <Check className="w-4 h-4" />
+                    )}
                     Zapisz
                   </button>
                   <button
                     onClick={handleCancel}
-                    className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg flex items-center gap-2"
+                    disabled={isSaving}
+                    className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg flex items-center gap-2 hover:bg-gray-300 transition-colors disabled:opacity-50"
                   >
                     <X className="w-4 h-4" />
                     Anuluj

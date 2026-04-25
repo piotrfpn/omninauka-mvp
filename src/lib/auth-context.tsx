@@ -8,6 +8,7 @@ interface AuthContextType extends AuthState {
   register: (email: string, password: string, name: string) => Promise<{ success: boolean; message?: string; requireEmailVerification?: boolean }>;
   logout: () => void;
   loginAsDemo: () => void;
+  updateProfile: (updates: { name?: string }) => Promise<{ success: boolean; error?: string }>;
   isDemoMode: boolean;
 }
 
@@ -151,6 +152,38 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     });
   };
 
+  const updateProfile = async (updates: { name?: string }): Promise<{ success: boolean; error?: string }> => {
+    if (isDemoMode) {
+      if (state.user) {
+        setState(prev => ({
+          ...prev,
+          user: prev.user ? { ...prev.user, ...updates } : null
+        }));
+      }
+      return { success: true };
+    }
+
+    try {
+      const { data, error } = await supabase.auth.updateUser({
+        data: updates
+      });
+
+      if (error) throw error;
+
+      if (data.user) {
+        setState(prev => ({
+          ...prev,
+          user: mapSupabaseUser(data.user)
+        }));
+      }
+      
+      return { success: true };
+    } catch (error: any) {
+      console.error("Update Profile Error:", error);
+      return { success: false, error: error.message };
+    }
+  };
+
   return (
     <AuthContext.Provider
       value={{
@@ -159,6 +192,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         register,
         logout,
         loginAsDemo,
+        updateProfile,
         isDemoMode,
       }}
     >
