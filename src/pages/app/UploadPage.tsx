@@ -17,7 +17,8 @@ import {
   Images,
   Trash2,
   FileText,
-  Loader2
+  Loader2,
+  ShieldCheck
 } from 'lucide-react';
 
 import * as pdfjsLib from 'pdfjs-dist';
@@ -806,6 +807,27 @@ export default function UploadPage() {
           </li>
         </ul>
       </div>
+      
+      {/* Safety/Privacy Notice */}
+      <div className="omni-card p-4 lg:p-6 bg-blue-50/50 border-blue-100/50">
+        <div className="flex gap-4">
+          <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0">
+            <ShieldCheck className="w-6 h-6 text-blue-600" />
+          </div>
+          <div className="flex-1">
+            <h4 className="font-semibold text-blue-900 mb-1">Zanim prześlesz materiał</h4>
+            <div className="text-sm text-blue-800/80 space-y-2 leading-relaxed">
+              <p>
+                Nie dodawaj dokumentów z PESEL-em, adresem, danymi zdrowotnymi, zdjęciami osób ani materiałów, do których nie masz prawa.
+              </p>
+              <p>
+                Wysyłaj tylko notatki i pliki potrzebne do nauki. Jeśli nie masz pewności, zapytaj rodzica lub nauczyciela.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+
     </div>
   );
 }
