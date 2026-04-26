@@ -319,6 +319,26 @@ export default function HomePage() {
           </div>
         </div>
       </section>
+ 
+      {/* O nas Section */}
+      <section id="o-nas" className="px-6 py-16 lg:py-24">
+        <div className="max-w-4xl mx-auto">
+          <div className="omni-card p-8 lg:p-12 bg-white/50 border border-gray-100">
+            <h2 className="omni-heading-3 text-[var(--omni-text)] mb-6">O nas</h2>
+            <div className="space-y-4 text-[var(--omni-text-muted)] leading-relaxed">
+              <p>
+                OmniNauka to nowoczesny korepetytor AI dla uczniów. Pomaga zrozumieć materiał z notatek, zdjęć, PDF-ów i dokumentów Word, prowadzi rozmowę z AI Tutorem, tworzy quizy i wspiera powtórki błędów.
+              </p>
+              <p>
+                Tworzymy aplikację, która nie wyręcza ucznia, ale pomaga mu naprawdę zrozumieć temat.
+              </p>
+              <p className="pt-4 border-t border-gray-100 text-sm italic">
+                OmniNauka jest rozwijana jako produkt mobile-first — prosty, szybki i wygodny dla uczniów korzystających głównie z telefonu lub tabletu.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
 
       {/* CTA Section */}
       <section className="px-6 py-16 lg:py-24">
@@ -338,6 +358,7 @@ export default function HomePage() {
           </Link>
         </div>
       </section>
+
 
       {/* Footer */}
       <footer className="px-6 pt-16 pb-8 bg-[#0B1220] text-white border-t border-white/5">
@@ -368,9 +389,9 @@ export default function HomePage() {
             <div>
               <h4 className="font-bold text-white mb-6 uppercase tracking-wider text-sm">Firma</h4>
               <ul className="space-y-4">
-                <li><a href="#" className="text-[#94A3B8] hover:text-[#2EE6A6] transition-colors text-sm">O nas</a></li>
+                <li><a href="#o-nas" className="text-[#94A3B8] hover:text-[#2EE6A6] transition-colors text-sm">O nas</a></li>
                 <li><a href="#" className="text-[#94A3B8] hover:text-[#2EE6A6] transition-colors text-sm">Blog</a></li>
-                <li><a href="#" className="text-[#94A3B8] hover:text-[#2EE6A6] transition-colors text-sm">Kontakt</a></li>
+                <li><Link to="/kontakt" className="text-[#94A3B8] hover:text-[#2EE6A6] transition-colors text-sm">Kontakt</Link></li>
               </ul>
             </div>
 
