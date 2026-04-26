@@ -91,8 +91,17 @@ export default function ContactPage() {
       </main>
 
       {/* Footer */}
-      <footer className="px-6 py-8 bg-[#0B1220] text-white/50 text-center text-sm">
-        <p>© 2026 OmniNauka. Wszelkie prawa zastrzeżone.</p>
+      <footer className="px-6 py-12 bg-[#0B1220] text-white/50 text-center text-sm border-t border-white/5">
+        <div className="max-w-4xl mx-auto">
+          <div className="flex flex-wrap justify-center gap-x-6 gap-y-3 mb-6 text-xs uppercase tracking-wider font-medium">
+            <Link to="/regulamin" className="hover:text-white transition-colors">Regulamin</Link>
+            <Link to="/polityka-prywatnosci" className="hover:text-white transition-colors">Prywatność</Link>
+            <Link to="/cookies" className="hover:text-white transition-colors">Cookies</Link>
+            <Link to="/ai-disclaimer" className="hover:text-white transition-colors">AI Disclaimer</Link>
+            <Link to="/polityka-zglaszania-naruszen" className="hover:text-white transition-colors">Zgłaszanie naruszeń</Link>
+          </div>
+          <p>© 2026 OmniNauka. Wszelkie prawa zastrzeżone.</p>
+        </div>
       </footer>
     </div>
   );

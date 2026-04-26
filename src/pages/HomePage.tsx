@@ -381,7 +381,10 @@ export default function HomePage() {
                 <li><a href="#jak-to-dziala" className="text-[#94A3B8] hover:text-[#2EE6A6] transition-colors text-sm">Funkcje</a></li>
                 <li><a href="#cennik" className="text-[#94A3B8] hover:text-[#2EE6A6] transition-colors text-sm">Cennik</a></li>
                 <li><a href="#faq" className="text-[#94A3B8] hover:text-[#2EE6A6] transition-colors text-sm">FAQ</a></li>
+                <li><Link to="/ai-disclaimer" className="text-[#94A3B8] hover:text-[#2EE6A6] transition-colors text-sm">AI Disclaimer</Link></li>
+                <li><Link to="/cookies" className="text-[#94A3B8] hover:text-[#2EE6A6] transition-colors text-sm">Cookies</Link></li>
                 <li><a href="#" className="text-[#94A3B8] hover:text-[#2EE6A6] transition-colors text-sm">Bezpieczeństwo</a></li>
+
               </ul>
             </div>
 
@@ -395,15 +398,16 @@ export default function HomePage() {
               </ul>
             </div>
 
-            {/* Legal Column */}
             <div>
               <h4 className="font-bold text-white mb-6 uppercase tracking-wider text-sm">Prawne</h4>
               <ul className="space-y-4">
-                <li><a href="#" className="text-[#94A3B8] hover:text-[#2EE6A6] transition-colors text-sm">Regulamin</a></li>
-                <li><a href="#" className="text-[#94A3B8] hover:text-[#2EE6A6] transition-colors text-sm">Polityka prywatności</a></li>
-                <li><a href="#" className="text-[#94A3B8] hover:text-[#2EE6A6] transition-colors text-sm">RODO</a></li>
+                <li><Link to="/regulamin" className="text-[#94A3B8] hover:text-[#2EE6A6] transition-colors text-sm">Regulamin</Link></li>
+                <li><Link to="/polityka-prywatnosci" className="text-[#94A3B8] hover:text-[#2EE6A6] transition-colors text-sm">Polityka prywatności</Link></li>
+                <li><Link to="/polityka-prywatnosci#rodo" className="text-[#94A3B8] hover:text-[#2EE6A6] transition-colors text-sm">RODO</Link></li>
+                <li><Link to="/polityka-zglaszania-naruszen" className="text-[#94A3B8] hover:text-[#2EE6A6] transition-colors text-sm">Zgłaszanie naruszeń i usuwanie treści</Link></li>
               </ul>
             </div>
+
           </div>
 
           <div className="pt-8 border-t border-white/5 flex flex-col md:flex-row items-center justify-between gap-4">

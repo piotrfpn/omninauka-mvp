@@ -7,6 +7,11 @@ import HomePage from './pages/HomePage';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import ContactPage from './pages/ContactPage';
+import TermsPage from './pages/legal/TermsPage';
+import PrivacyPage from './pages/legal/PrivacyPage';
+import CookiesPage from './pages/legal/CookiesPage';
+import AIDisclaimerPage from './pages/legal/AIDisclaimerPage';
+import ContentPolicyPage from './pages/legal/ContentPolicyPage';
 import { AppShell } from './components/layout/app-shell';
 import './App.css';
 
@@ -51,6 +56,11 @@ function AppRoutes() {
       {/* Public routes */}
       <Route path="/" element={<HomePage />} />
       <Route path="/kontakt" element={<ContactPage />} />
+      <Route path="/regulamin" element={<TermsPage />} />
+      <Route path="/polityka-prywatnosci" element={<PrivacyPage />} />
+      <Route path="/cookies" element={<CookiesPage />} />
+      <Route path="/ai-disclaimer" element={<AIDisclaimerPage />} />
+      <Route path="/polityka-zglaszania-naruszen" element={<ContentPolicyPage />} />
       <Route path="/login" element={<LoginPage />} />
       <Route path="/register" element={<RegisterPage />} />
 
