@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../lib/auth-context';
 import { Eye, EyeOff, Mail, Lock, User, ArrowRight } from 'lucide-react';
+import OmniNaukaLogo from '../components/brand/OmniNaukaLogo';
 
 export default function RegisterPage() {
   const { register, isAuthenticated } = useAuth();
@@ -56,10 +57,8 @@ export default function RegisterPage() {
       <div className="w-full max-w-md">
         {/* Logo */}
         <div className="text-center mb-8">
-          <Link to="/" className="inline-flex items-center gap-2 mb-4">
-            <div className="w-12 h-12 rounded-xl bg-[var(--omni-bg-dark)] flex items-center justify-center">
-              <span className="text-white font-bold text-xl">O</span>
-            </div>
+          <Link to="/" className="inline-flex items-center mb-4">
+            <OmniNaukaLogo size={48} />
           </Link>
           <h1 className="omni-heading-3 text-[var(--omni-text)] mb-2">
             Utwórz konto

@@ -16,6 +16,7 @@ import {
   LogOut,
   ChevronRight,
 } from 'lucide-react';
+import OmniNaukaLogo from '../brand/OmniNaukaLogo';
 
 interface AppShellProps {
   children: React.ReactNode;
@@ -79,13 +80,8 @@ export function AppShell({ children }: AppShellProps) {
       <aside className="hidden lg:flex flex-col w-64 bg-card h-screen sticky top-0 border-r border-border">
         {/* Logo */}
         <div className="p-6">
-          <Link to="/app/dashboard" className="flex items-center gap-2">
-            <div className="w-10 h-10 rounded-xl bg-[var(--omni-bg-dark)] flex items-center justify-center">
-              <span className="text-white font-bold text-lg">O</span>
-            </div>
-            <span className="font-semibold text-xl text-[var(--omni-text)]">
-              OmniNauka
-            </span>
+          <Link to="/app/dashboard" className="flex items-center">
+            <OmniNaukaLogo size={40} />
           </Link>
         </div>
 
@@ -157,13 +153,8 @@ export function AppShell({ children }: AppShellProps) {
       {/* Mobile Header */}
       <div className="lg:hidden fixed top-0 left-0 right-0 z-50 bg-card border-b border-border shadow-sm">
         <div className="flex items-center justify-between px-4 py-3">
-          <Link to="/app/dashboard" className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg bg-[var(--omni-bg-dark)] flex items-center justify-center">
-              <span className="text-white font-bold text-sm">O</span>
-            </div>
-            <span className="font-semibold text-[var(--omni-text)]">
-              OmniNauka
-            </span>
+          <Link to="/app/dashboard" className="flex items-center">
+            <OmniNaukaLogo size={32} />
           </Link>
           <button
             onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}

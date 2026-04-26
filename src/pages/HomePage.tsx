@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../lib/auth-context';
 import { Scan, Brain, BookOpen, MessageCircle, BarChart3, ArrowRight, Check } from 'lucide-react';
+import OmniNaukaLogo from '../components/brand/OmniNaukaLogo';
 
 export default function HomePage() {
   const { isAuthenticated } = useAuth();
@@ -142,13 +143,8 @@ export default function HomePage() {
     <div className="min-h-screen bg-[var(--omni-bg)]">
       {/* Navigation */}
       <nav className="w-full px-6 py-4 flex items-center justify-between">
-        <Link to="/" className="flex items-center gap-2">
-          <div className="w-10 h-10 rounded-xl bg-[var(--omni-bg-dark)] flex items-center justify-center">
-            <span className="text-white font-bold text-lg">O</span>
-          </div>
-          <span className="font-semibold text-xl text-[var(--omni-text)]">
-            OmniNauka
-          </span>
+        <Link to="/" className="flex items-center">
+          <OmniNaukaLogo size={40} />
         </Link>
         <div className="flex items-center gap-4">
           <Link
@@ -347,13 +343,8 @@ export default function HomePage() {
       <footer className="px-6 py-12 border-t border-[var(--omni-text)]/10">
         <div className="max-w-6xl mx-auto">
           <div className="flex flex-col md:flex-row items-center justify-between gap-6">
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-lg bg-[var(--omni-bg-dark)] flex items-center justify-center">
-                <span className="text-white font-bold text-sm">O</span>
-              </div>
-              <span className="font-semibold text-[var(--omni-text)]">
-                OmniNauka
-              </span>
+            <div className="flex items-center">
+              <OmniNaukaLogo size={32} />
             </div>
             <p className="text-[var(--omni-text-muted)] text-sm">
               © 2025 OmniNauka. Wszelkie prawa zastrzeżone.
