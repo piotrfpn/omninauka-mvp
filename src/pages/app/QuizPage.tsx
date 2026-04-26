@@ -387,9 +387,9 @@ export default function QuizPage() {
     <div className="relative space-y-6">
       {/* Regeneration Overlay */}
       {isRegenerating && (
-        <div className="absolute inset-0 z-50 bg-white/80 backdrop-blur-sm flex flex-col items-center justify-center rounded-3xl transition-opacity animate-in fade-in duration-300">
-          <div className="w-12 h-12 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin mb-4" />
-          <p className="text-lg font-bold text-[var(--omni-text)] animate-pulse">
+        <div className="absolute inset-0 z-50 bg-background/80 backdrop-blur-sm flex flex-col items-center justify-center rounded-3xl transition-opacity animate-in fade-in duration-300">
+          <div className="w-12 h-12 border-4 border-[var(--omni-accent)] border-t-transparent rounded-full animate-spin mb-4" />
+          <p className="text-lg font-bold text-foreground animate-pulse">
             {regenerationMessage}
           </p>
         </div>
@@ -414,7 +414,7 @@ export default function QuizPage() {
 
       {/* Progress */}
       <div className="flex items-center gap-4">
-        <div className="flex-1 h-2 bg-gray-100 rounded-full overflow-hidden">
+        <div className="flex-1 h-2 bg-muted rounded-full overflow-hidden">
           <div
             className="h-full bg-[var(--omni-accent)] rounded-full transition-all"
             style={{ width: `${progress}%` }}
@@ -449,12 +449,12 @@ export default function QuizPage() {
                 disabled={showFeedback}
                 className={`w-full p-5 md:p-6 rounded-2xl text-left font-semibold transition-all shadow-sm active:scale-[0.98] border-2 ${
                   showCorrect
-                    ? 'bg-green-50 text-green-700 border-green-500 shadow-green-100'
+                    ? 'bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400 border-green-500 dark:border-green-600 shadow-green-100 dark:shadow-none'
                     : showWrong
-                    ? 'bg-red-50 text-red-700 border-red-500 shadow-red-100'
+                    ? 'bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-400 border-red-500 dark:border-red-600 shadow-red-100 dark:shadow-none'
                     : isSelected
-                    ? 'bg-[var(--omni-lavender)] text-[var(--omni-text)] border-[var(--omni-accent)] shadow-[var(--omni-accent)]/10'
-                    : 'bg-white text-[var(--omni-text)] border-gray-100 hover:border-gray-200 hover:bg-gray-50'
+                    ? 'bg-[var(--omni-lavender)] dark:bg-[var(--omni-accent)]/10 text-foreground border-[var(--omni-accent)]'
+                    : 'bg-card dark:bg-slate-800/60 text-foreground border-border dark:border-slate-700 hover:border-[var(--omni-accent)]/50 hover:bg-muted dark:hover:bg-slate-800'
                 }`}
               >
                 <div className="flex items-center justify-between gap-4">
@@ -463,11 +463,11 @@ export default function QuizPage() {
                       showCorrect ? 'bg-green-500 border-green-500' :
                       showWrong ? 'bg-red-500 border-red-500' :
                       isSelected ? 'bg-[var(--omni-accent)] border-[var(--omni-accent)]' :
-                      'bg-transparent border-gray-200'
+                      'bg-muted dark:bg-slate-700 border-border dark:border-slate-600'
                     }`}>
                       {showCorrect ? <Check className="w-5 h-5 text-white" /> :
                        showWrong ? <X className="w-5 h-5 text-white" /> :
-                       <span className={`text-sm ${isSelected ? 'text-white' : 'text-gray-400'}`}>{String.fromCharCode(65 + shuffledIndex)}</span>}
+                       <span className={`text-sm font-bold ${isSelected ? 'text-white' : 'text-muted-foreground'}`}>{String.fromCharCode(65 + shuffledIndex)}</span>}
                     </div>
                     <span className="text-base md:text-lg leading-snug">{option}</span>
                   </div>
@@ -491,12 +491,12 @@ export default function QuizPage() {
                     disabled={showFeedback}
                     className={`p-6 md:p-8 rounded-2xl text-center font-bold text-lg transition-all shadow-sm active:scale-[0.98] border-2 ${
                       showCorrect
-                        ? 'bg-green-50 text-green-700 border-green-500 shadow-green-100'
+                        ? 'bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400 border-green-500 dark:border-green-600 shadow-green-100 dark:shadow-none'
                         : showWrong
-                        ? 'bg-red-50 text-red-700 border-red-500 shadow-red-100'
+                        ? 'bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-400 border-red-500 dark:border-red-600 shadow-red-100 dark:shadow-none'
                         : isSelected
-                        ? 'bg-[var(--omni-lavender)] text-[var(--omni-text)] border-[var(--omni-accent)] shadow-[var(--omni-accent)]/10'
-                        : 'bg-white text-[var(--omni-text)] border-gray-100 hover:border-gray-200 hover:bg-gray-50'
+                        ? 'bg-[var(--omni-lavender)] dark:bg-[var(--omni-accent)]/10 text-foreground border-[var(--omni-accent)]'
+                        : 'bg-card dark:bg-slate-800/60 text-foreground border-border dark:border-slate-700 hover:border-[var(--omni-accent)]/50 hover:bg-muted'
                     }`}
                   >
                     <div className="flex flex-col items-center gap-3">
@@ -504,7 +504,7 @@ export default function QuizPage() {
                         showCorrect ? 'bg-green-500 border-green-500' :
                         showWrong ? 'bg-red-500 border-red-500' :
                         isSelected ? 'bg-[var(--omni-accent)] border-[var(--omni-accent)]' :
-                        'bg-transparent border-gray-200'
+                        'bg-muted dark:bg-slate-700 border-border dark:border-slate-600'
                       }`}>
                         {showCorrect ? <Check className="w-6 h-6 text-white" /> :
                          showWrong ? <X className="w-6 h-6 text-white" /> :
@@ -521,21 +521,25 @@ export default function QuizPage() {
 
         {/* Feedback */}
         {showFeedback && (
-          <div className={`mt-6 p-4 rounded-xl ${isCorrect ? 'bg-green-50' : 'bg-red-50'}`}>
+          <div className={`mt-6 p-4 rounded-xl border ${
+            isCorrect
+              ? 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800'
+              : 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800'
+          }`}>
             <div className="flex items-center gap-2 mb-2">
               {isCorrect ? (
                 <>
-                  <Check className="w-5 h-5 text-green-600" />
-                  <span className="font-medium text-green-700">Poprawna odpowiedź!</span>
+                  <Check className="w-5 h-5 text-green-600 dark:text-green-400" />
+                  <span className="font-medium text-green-700 dark:text-green-400">Poprawna odpowiedź!</span>
                 </>
               ) : (
                 <>
-                  <X className="w-5 h-5 text-red-500" />
-                  <span className="font-medium text-red-700">Niepoprawna odpowiedź</span>
+                  <X className="w-5 h-5 text-red-500 dark:text-red-400" />
+                  <span className="font-medium text-red-700 dark:text-red-400">Niepoprawna odpowiedź</span>
                 </>
               )}
             </div>
-            <p className="text-sm text-[var(--omni-text-muted)]">
+            <p className="text-sm text-muted-foreground">
               {currentQuestion.explanation}
             </p>
           </div>

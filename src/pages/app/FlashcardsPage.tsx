@@ -431,7 +431,7 @@ export default function FlashcardsPage() {
             >
               {/* Header Zone */}
               <div className="flex-none text-center mb-4">
-                <span className="text-[10px] md:text-xs lg:text-sm text-[var(--omni-text-muted)] uppercase tracking-widest font-bold opacity-60">
+                <span className="text-[10px] md:text-xs lg:text-sm text-muted-foreground uppercase tracking-widest font-bold">
                   Pojęcie
                 </span>
               </div>
@@ -444,9 +444,9 @@ export default function FlashcardsPage() {
               </div>
 
               {/* Footer/Helper Zone */}
-              <div className="flex-none flex items-center justify-center gap-2 pt-4 border-t border-gray-50/50 mt-auto">
-                <RotateCw className="w-3.5 h-3.5 text-[var(--omni-text-muted)] opacity-50" />
-                <span className="text-[10px] md:text-xs font-medium text-[var(--omni-text-muted)] opacity-50">
+              <div className="flex-none flex items-center justify-center gap-2 pt-4 border-t border-border mt-auto">
+                <RotateCw className="w-3.5 h-3.5 text-muted-foreground" />
+                <span className="text-[10px] md:text-xs font-medium text-muted-foreground">
                   Kliknij, by odwrócić
                 </span>
               </div>
@@ -463,7 +463,7 @@ export default function FlashcardsPage() {
             >
               {/* Header Zone */}
               <div className="flex-none text-center mb-4">
-                <span className="text-[10px] md:text-xs lg:text-sm text-[var(--omni-text-muted)] uppercase tracking-widest font-bold opacity-60">
+                <span className="text-[10px] md:text-xs lg:text-sm text-muted-foreground uppercase tracking-widest font-bold">
                   Definicja
                 </span>
               </div>
@@ -476,9 +476,9 @@ export default function FlashcardsPage() {
               </div>
 
               {/* Footer/Helper Zone */}
-              <div className="flex-none flex items-center justify-center gap-2 pt-4 border-t border-gray-100/30 mt-auto">
-                <RotateCw className="w-3.5 h-3.5 text-[var(--omni-text-muted)] opacity-50" />
-                <span className="text-[10px] md:text-xs font-medium text-[var(--omni-text-muted)] opacity-50">
+              <div className="flex-none flex items-center justify-center gap-2 pt-4 border-t border-border mt-auto">
+                <RotateCw className="w-3.5 h-3.5 text-muted-foreground" />
+                <span className="text-[10px] md:text-xs font-medium text-muted-foreground">
                   Kliknij, by odwrócić
                 </span>
               </div>
@@ -493,7 +493,7 @@ export default function FlashcardsPage() {
           <button
             onClick={(e) => { e.stopPropagation(); handlePrevious(); }}
             disabled={currentIndex === 0}
-            className="p-5 rounded-full bg-white shadow-md border border-gray-100 disabled:opacity-30 disabled:cursor-not-allowed hover:shadow-lg active:scale-95 transition-all"
+            className="p-5 rounded-full bg-card shadow-md border border-border disabled:opacity-30 disabled:cursor-not-allowed hover:shadow-lg active:scale-95 transition-all"
             aria-label="Poprzednia karta"
           >
             <ChevronLeft className="w-7 h-7 text-[var(--omni-text)]" />
@@ -502,13 +502,13 @@ export default function FlashcardsPage() {
           <div className="flex-1 flex gap-4">
             <button
               onClick={(e) => { e.stopPropagation(); handleUnknown(); }}
-              className="flex-1 py-5 bg-red-50 text-red-600 rounded-2xl font-bold shadow-sm hover:bg-red-100 active:scale-[0.97] transition-all border border-red-200/50"
+              className="flex-1 py-5 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 rounded-2xl font-bold shadow-sm hover:bg-red-100 dark:hover:bg-red-900/30 active:scale-[0.97] transition-all border border-red-200/50 dark:border-red-800/50"
             >
               Nie wiem
             </button>
             <button
               onClick={(e) => { e.stopPropagation(); handleKnown(); }}
-              className="flex-1 py-5 bg-green-50 text-green-700 rounded-2xl font-bold shadow-sm hover:bg-green-100 active:scale-[0.97] transition-all border border-green-200/50"
+              className="flex-1 py-5 bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400 rounded-2xl font-bold shadow-sm hover:bg-green-100 dark:hover:bg-green-900/30 active:scale-[0.97] transition-all border border-green-200/50 dark:border-green-800/50"
             >
               Znam
             </button>
@@ -517,7 +517,7 @@ export default function FlashcardsPage() {
           <button
             onClick={(e) => { e.stopPropagation(); handleNext(); }}
             disabled={currentIndex === flashcards.length - 1}
-            className="p-5 rounded-full bg-white shadow-md border border-gray-100 disabled:opacity-30 disabled:cursor-not-allowed hover:shadow-lg active:scale-95 transition-all"
+            className="p-5 rounded-full bg-card shadow-md border border-border disabled:opacity-30 disabled:cursor-not-allowed hover:shadow-lg active:scale-95 transition-all"
             aria-label="Następna karta"
           >
             <ChevronRight className="w-7 h-7 text-[var(--omni-text)]" />

@@ -468,25 +468,25 @@ export default function AnalysisPage() {
       </div>
 
       {/* Stats - Final footer context */}
-      <div className="omni-card p-4 bg-gray-50 border-dashed border-2">
+      <div className="omni-card p-4 dark:bg-slate-800/50 border-dashed border-2 dark:border-slate-700">
         <div className="grid grid-cols-3 gap-2">
           <div className="text-center p-2">
-            <p className="text-xl font-bold text-[var(--omni-text)]">
+            <p className="text-xl font-bold text-foreground">
               {analysis.keyConcepts.length}
             </p>
-            <p className="text-[9px] text-[var(--omni-text-muted)] uppercase">Pojęć</p>
+            <p className="text-[9px] text-muted-foreground uppercase tracking-wider">Pojęć</p>
           </div>
-          <div className="text-center p-2 border-x border-gray-200">
-            <p className="text-xl font-bold text-[var(--omni-text)]">
+          <div className="text-center p-2 border-x border-border">
+            <p className="text-xl font-bold text-foreground">
               {analysis.flashcards.length}
             </p>
-            <p className="text-[9px] text-[var(--omni-text-muted)] uppercase">Fiszek</p>
+            <p className="text-[9px] text-muted-foreground uppercase tracking-wider">Fiszek</p>
           </div>
           <div className="text-center p-2">
-            <p className="text-xl font-bold text-[var(--omni-text)]">
+            <p className="text-xl font-bold text-foreground">
               {analysis.quizQuestions.length}
             </p>
-            <p className="text-[9px] text-[var(--omni-text-muted)] uppercase">Pytań</p>
+            <p className="text-[9px] text-muted-foreground uppercase tracking-wider">Pytań</p>
           </div>
         </div>
       </div>

@@ -801,12 +801,12 @@ function RealLessonChat() {
   return (
     <div className="flex-1 flex flex-col h-full bg-[var(--omni-bg)] overflow-hidden">
       {/* Header - Mobile First */}
-      <div className="px-4 py-3 bg-white border-b border-gray-100 flex items-center justify-between">
+      <div className="px-4 py-3 bg-card border-b border-border flex items-center justify-between">
         <div className="min-w-0">
-          <h1 className="text-base font-bold text-[var(--omni-text)] truncate">
-            Lekcja z AI <span className="text-[10px] font-medium text-emerald-600 bg-emerald-100 px-2 py-0.5 rounded-full ml-1 align-middle">Live</span>
+          <h1 className="text-base font-bold text-foreground truncate">
+            Lekcja z AI <span className="text-[10px] font-medium text-emerald-600 dark:text-emerald-400 bg-emerald-100 dark:bg-emerald-900/40 px-2 py-0.5 rounded-full ml-1 align-middle">Live</span>
           </h1>
-          <p className="text-xs text-[var(--omni-text-muted)] truncate">
+          <p className="text-xs text-muted-foreground truncate">
             {topic}
           </p>
         </div>
@@ -814,7 +814,7 @@ function RealLessonChat() {
           <button
             onClick={toggleVoiceMode}
             className={`p-2.5 rounded-full transition-all ${
-              isVoiceMode ? 'bg-red-500 animate-pulse text-white shadow-md' : 'bg-gray-100 text-[var(--omni-text-muted)] hover:bg-gray-200'
+              isVoiceMode ? 'bg-red-500 animate-pulse text-white shadow-md' : 'bg-muted text-muted-foreground hover:bg-muted/80'
             }`}
           >
             {isVoiceMode ? <Mic className="w-4 h-4" /> : <MicOff className="w-4 h-4" />}
@@ -827,20 +827,24 @@ function RealLessonChat() {
         <div className="max-w-4xl mx-auto w-full space-y-6">
           {messages.map((message) => (
             <div key={message.id} className={`flex items-start gap-2.5 ${message.role === 'user' ? 'flex-row-reverse' : ''}`}>
-               <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 shadow-sm ${message.role === 'user' ? 'bg-[var(--omni-accent)]' : 'bg-white border border-gray-100'}`}>
+               <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 shadow-sm ${
+                 message.role === 'user'
+                   ? 'bg-[var(--omni-accent)]'
+                   : 'bg-card border border-border'
+               }`}>
                 {message.role === 'user' ? <User className="w-4 h-4 text-white" /> : <Bot className="w-4 h-4 text-[var(--omni-accent)]" />}
                </div>
                <div className={`max-w-[85%] md:max-w-[75%] p-3.5 rounded-2xl text-sm leading-relaxed ${
-                 message.role === 'user' 
-                   ? 'bg-[var(--omni-accent)] text-white rounded-tr-sm' 
-                   : 'bg-white text-[var(--omni-text)] rounded-tl-sm shadow-sm border border-gray-100'
+                 message.role === 'user'
+                   ? 'bg-[var(--omni-accent)] text-white rounded-tr-sm'
+                   : 'bg-card dark:bg-slate-800 text-foreground rounded-tl-sm shadow-sm border border-border dark:border-slate-700'
                } break-words min-w-0`}>
                   {message.role === 'user' ? (
                     <p className="whitespace-pre-wrap text-white">
                       {message.content}
                     </p>
                   ) : (
-                    <div className="text-[var(--omni-text)] prose prose-sm max-w-none prose-p:leading-[1.6] prose-p:mb-3 last:prose-p:mb-0 prose-ul:list-disc prose-ul:pl-5 prose-ul:mb-3 prose-ul:space-y-1 prose-li:leading-[1.6] prose-strong:font-semibold prose-strong:text-gray-900 prose-headings:font-bold prose-headings:mb-2 prose-headings:mt-4 first:prose-headings:mt-0">
+                    <div className="text-foreground prose prose-sm dark:prose-invert max-w-none prose-p:leading-[1.6] prose-p:mb-3 last:prose-p:mb-0 prose-ul:list-disc prose-ul:pl-5 prose-ul:mb-3 prose-ul:space-y-1 prose-li:leading-[1.6] prose-strong:font-semibold prose-headings:font-bold prose-headings:mb-2 prose-headings:mt-4 first:prose-headings:mt-0">
                       <ReactMarkdown remarkPlugins={[remarkGfm]}>
                         {isLoading && message.id.startsWith('msg-assistant-')
                           ? message.content.replace(/([*_~`#\[\]()]+)$/, '') + (message.content ? ' ▍' : '')
@@ -848,9 +852,9 @@ function RealLessonChat() {
                       </ReactMarkdown>
                       {isLoading && message.id.startsWith('msg-assistant-') && message.content === '' && (
                         <span className="inline-flex gap-1 ml-1 mt-1">
-                          <span className="inline-block w-1.5 h-1.5 bg-gray-300 rounded-full animate-bounce" />
-                          <span className="inline-block w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce delay-75" />
-                          <span className="inline-block w-1.5 h-1.5 bg-gray-500 rounded-full animate-bounce delay-150" />
+                          <span className="inline-block w-1.5 h-1.5 bg-muted-foreground/40 rounded-full animate-bounce" />
+                          <span className="inline-block w-1.5 h-1.5 bg-muted-foreground/60 rounded-full animate-bounce delay-75" />
+                          <span className="inline-block w-1.5 h-1.5 bg-muted-foreground/80 rounded-full animate-bounce delay-150" />
                         </span>
                       )}
                     </div>
@@ -877,7 +881,7 @@ function RealLessonChat() {
 
       {/* Quick Actions Row */}
       {!isLoading && messages.length > 0 && (
-        <div className="bg-white border-t border-gray-50">
+        <div className="bg-card border-t border-border">
           <div className="max-w-4xl mx-auto w-full px-4 py-2.5">
             <div className="flex items-center gap-2 overflow-x-auto no-scrollbar">
 
@@ -885,7 +889,7 @@ function RealLessonChat() {
               {routeId && (
                 <button
                   onClick={() => navigate(`/app/quiz/${routeId}`)}
-                  className="whitespace-nowrap flex-shrink-0 px-3.5 py-1.5 bg-emerald-50 border border-emerald-200 rounded-full text-[10px] font-bold text-emerald-700 hover:bg-emerald-100 hover:border-emerald-400 active:scale-95 transition-all"
+                  className="whitespace-nowrap flex-shrink-0 px-3.5 py-1.5 bg-emerald-50 dark:bg-emerald-900/30 border border-emerald-200 dark:border-emerald-700 rounded-full text-[10px] font-bold text-emerald-700 dark:text-emerald-400 hover:bg-emerald-100 dark:hover:bg-emerald-900/50 hover:border-emerald-400 active:scale-95 transition-all"
                 >
                   🎯 Przejdź do quizu
                 </button>
@@ -913,7 +917,7 @@ function RealLessonChat() {
                       setInput(chipText.replace(/^[^ ]+ /, ''));
                       setTimeout(() => document.getElementById('chat-send-btn')?.click(), 50);
                     }}
-                    className="whitespace-nowrap px-3.5 py-1.5 bg-gray-50 border border-gray-100 rounded-full text-[10px] font-bold text-[var(--omni-text)] hover:border-[var(--omni-accent)] transition-all active:scale-95 flex-shrink-0"
+                    className="whitespace-nowrap px-3.5 py-1.5 bg-muted dark:bg-slate-800 border border-border dark:border-slate-700 rounded-full text-[10px] font-bold text-foreground dark:text-slate-100 hover:border-[var(--omni-accent)] transition-all active:scale-95 flex-shrink-0"
                   >
                     {chipText}
                   </button>
@@ -925,11 +929,11 @@ function RealLessonChat() {
       )}
 
       {/* Input Area */}
-      <div className="bg-white border-t border-gray-100 pb-safe shadow-[0_-4px_12px_rgba(0,0,0,0.03)]">
+      <div className="bg-card border-t border-border pb-safe shadow-[0_-4px_12px_rgba(0,0,0,0.06)]">
         <div className="max-w-4xl mx-auto w-full p-3 md:p-4 flex items-center gap-2">
           <button
             onClick={toggleVoiceMode}
-            className={`w-11 h-11 flex items-center justify-center rounded-xl transition-all ${isVoiceMode ? 'bg-red-500 text-white animate-pulse' : 'bg-gray-50 text-gray-400 hover:bg-gray-100'}`}
+            className={`w-11 h-11 flex items-center justify-center rounded-xl transition-all ${isVoiceMode ? 'bg-red-500 text-white animate-pulse' : 'bg-muted dark:bg-slate-700 text-muted-foreground hover:bg-muted/80'}`}
           >
             {isVoiceMode ? <MicOff className="w-5 h-5" /> : <Mic className="w-5 h-5" />}
           </button>
@@ -940,7 +944,7 @@ function RealLessonChat() {
             onKeyDown={handleKeyDown}
             placeholder="Zadaj pytanie..."
             disabled={isLoading}
-            className="flex-1 bg-gray-50 border-none outline-none text-sm text-[var(--omni-text)] placeholder:text-gray-400 px-4 py-3 rounded-xl focus:ring-1 focus:ring-[var(--omni-accent)]/20 transition-all resize-none max-h-32"
+            className="flex-1 bg-muted dark:bg-slate-800 border-none outline-none text-sm text-foreground placeholder:text-muted-foreground px-4 py-3 rounded-xl focus:ring-1 focus:ring-[var(--omni-accent)]/30 transition-all resize-none max-h-32"
           />
           <button
             id="chat-send-btn"

@@ -96,7 +96,7 @@ export default function SettingsPage() {
             {group.items.map((item, itemIndex) => (
               <div
                 key={itemIndex}
-                className="flex items-center justify-between py-3 border-b border-gray-100 last:border-0"
+                className="flex items-center justify-between py-3 border-b border-border last:border-0"
               >
                 <div className="flex items-center gap-4">
                   <div className="w-10 h-10 bg-[var(--omni-lavender)] rounded-lg flex items-center justify-center">
@@ -152,13 +152,13 @@ export default function SettingsPage() {
           Konto
         </h3>
         <div className="space-y-3">
-          <button className="w-full flex items-center gap-4 p-4 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors">
-            <div className="w-10 h-10 bg-red-100 rounded-lg flex items-center justify-center">
+          <button className="w-full flex items-center gap-4 p-4 bg-muted hover:bg-destructive/10 border border-transparent hover:border-destructive/30 rounded-xl transition-colors">
+            <div className="w-10 h-10 bg-red-100 dark:bg-red-900/30 rounded-lg flex items-center justify-center">
               <Trash2 className="w-5 h-5 text-red-500" />
             </div>
             <div className="flex-1 text-left">
               <p className="font-medium text-red-500">Usuń konto</p>
-              <p className="text-sm text-[var(--omni-text-muted)]">
+              <p className="text-sm text-muted-foreground">
                 Tej akcji nie można cofnąć
               </p>
             </div>
@@ -166,14 +166,14 @@ export default function SettingsPage() {
 
           <button
             onClick={handleLogout}
-            className="w-full flex items-center gap-4 p-4 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors"
+            className="w-full flex items-center gap-4 p-4 bg-muted hover:bg-muted/80 border border-transparent hover:border-border rounded-xl transition-colors"
           >
-            <div className="w-10 h-10 bg-gray-200 rounded-lg flex items-center justify-center">
-              <LogOut className="w-5 h-5 text-[var(--omni-text)]" />
+            <div className="w-10 h-10 bg-secondary dark:bg-slate-700 rounded-lg flex items-center justify-center">
+              <LogOut className="w-5 h-5 text-foreground" />
             </div>
             <div className="flex-1 text-left">
-              <p className="font-medium text-[var(--omni-text)]">Wyloguj się</p>
-              <p className="text-sm text-[var(--omni-text-muted)]">
+              <p className="font-medium text-foreground">Wyloguj się</p>
+              <p className="text-sm text-muted-foreground">
                 Zakończ sesję
               </p>
             </div>
