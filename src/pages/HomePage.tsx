@@ -340,15 +340,58 @@ export default function HomePage() {
       </section>
 
       {/* Footer */}
-      <footer className="px-6 py-12 border-t border-[var(--omni-text)]/10">
+      <footer className="px-6 pt-16 pb-8 bg-[#0B1220] text-white border-t border-white/5">
         <div className="max-w-6xl mx-auto">
-          <div className="flex flex-col md:flex-row items-center justify-between gap-6">
-            <div className="flex items-center">
-              <OmniNaukaLogo size={32} />
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-12 mb-16">
+            {/* Brand Column */}
+            <div className="flex flex-col gap-4">
+              <div className="flex items-center">
+                <OmniNaukaLogo size={32} className="!text-white" />
+              </div>
+              <p className="text-[#94A3B8] text-sm leading-relaxed max-w-[200px]">
+                Personalizowana nauka dla każdego ucznia
+              </p>
             </div>
-            <p className="text-[var(--omni-text-muted)] text-sm">
-              © 2025 OmniNauka. Wszelkie prawa zastrzeżone.
+
+            {/* Product Column */}
+            <div>
+              <h4 className="font-bold text-white mb-6 uppercase tracking-wider text-sm">Produkt</h4>
+              <ul className="space-y-4">
+                <li><a href="#jak-to-dziala" className="text-[#94A3B8] hover:text-[#2EE6A6] transition-colors text-sm">Funkcje</a></li>
+                <li><a href="#cennik" className="text-[#94A3B8] hover:text-[#2EE6A6] transition-colors text-sm">Cennik</a></li>
+                <li><a href="#faq" className="text-[#94A3B8] hover:text-[#2EE6A6] transition-colors text-sm">FAQ</a></li>
+                <li><a href="#" className="text-[#94A3B8] hover:text-[#2EE6A6] transition-colors text-sm">Bezpieczeństwo</a></li>
+              </ul>
+            </div>
+
+            {/* Company Column */}
+            <div>
+              <h4 className="font-bold text-white mb-6 uppercase tracking-wider text-sm">Firma</h4>
+              <ul className="space-y-4">
+                <li><a href="#" className="text-[#94A3B8] hover:text-[#2EE6A6] transition-colors text-sm">O nas</a></li>
+                <li><a href="#" className="text-[#94A3B8] hover:text-[#2EE6A6] transition-colors text-sm">Blog</a></li>
+                <li><a href="#" className="text-[#94A3B8] hover:text-[#2EE6A6] transition-colors text-sm">Kontakt</a></li>
+              </ul>
+            </div>
+
+            {/* Legal Column */}
+            <div>
+              <h4 className="font-bold text-white mb-6 uppercase tracking-wider text-sm">Prawne</h4>
+              <ul className="space-y-4">
+                <li><a href="#" className="text-[#94A3B8] hover:text-[#2EE6A6] transition-colors text-sm">Regulamin</a></li>
+                <li><a href="#" className="text-[#94A3B8] hover:text-[#2EE6A6] transition-colors text-sm">Polityka prywatności</a></li>
+                <li><a href="#" className="text-[#94A3B8] hover:text-[#2EE6A6] transition-colors text-sm">RODO</a></li>
+              </ul>
+            </div>
+          </div>
+
+          <div className="pt-8 border-t border-white/5 flex flex-col md:flex-row items-center justify-between gap-4">
+            <p className="text-[#94A3B8] text-xs">
+              © 2026 OmniNauka. Wszelkie prawa zastrzeżone.
             </p>
+            <div className="flex items-center gap-6">
+              {/* Optional: Add social icons here if needed in future */}
+            </div>
           </div>
         </div>
       </footer>

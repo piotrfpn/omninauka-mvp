@@ -29,7 +29,7 @@ export default function OmniNaukaLogo({
         style={{ width: size, height: size }}
       />
       {showWordmark && (
-        <span className="font-semibold text-xl text-foreground leading-none">
+        <span className="font-semibold text-xl leading-none">
           OmniNauka
         </span>
       )}
