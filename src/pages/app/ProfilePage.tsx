@@ -99,7 +99,7 @@ export default function ProfilePage() {
                   <input
                     type="email"
                     value={user?.email || ''}
-                    className="omni-input bg-gray-50 text-gray-400 cursor-not-allowed"
+                    className="omni-input opacity-50 cursor-not-allowed"
                     disabled
                   />
                 </div>
@@ -124,7 +124,7 @@ export default function ProfilePage() {
                   <button
                     onClick={handleCancel}
                     disabled={isSaving}
-                    className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg flex items-center gap-2 hover:bg-gray-300 transition-colors disabled:opacity-50"
+                    className="px-4 py-2 bg-muted text-muted-foreground rounded-lg flex items-center gap-2 hover:bg-muted/80 transition-colors disabled:opacity-50"
                   >
                     <X className="w-4 h-4" />
                     Anuluj
@@ -174,13 +174,15 @@ export default function ProfilePage() {
           Aktywność
         </h3>
         <div className="space-y-4">
-          <div className="flex items-center justify-between p-4 bg-gray-50 rounded-xl">
-            <span className="text-[var(--omni-text)]">Ostatnie logowanie</span>
-            <span className="text-[var(--omni-text-muted)]">Dzisiaj, {new Date().toLocaleTimeString('pl-PL', { hour: '2-digit', minute: '2-digit' })}</span>
+          <div className="flex items-center justify-between p-4 bg-muted dark:bg-slate-800/50 rounded-xl">
+            <span className="text-foreground font-medium">Ostatnie logowanie</span>
+            <span className="text-muted-foreground">
+              Dzisiaj, {new Date().toLocaleTimeString('pl-PL', { hour: '2-digit', minute: '2-digit' })}
+            </span>
           </div>
-          <div className="flex items-center justify-between p-4 bg-gray-50 rounded-xl">
-            <span className="text-[var(--omni-text)]">Status konta</span>
-            <span className="px-3 py-1 bg-green-100 text-green-700 rounded-full text-sm font-medium">
+          <div className="flex items-center justify-between p-4 bg-muted dark:bg-slate-800/50 rounded-xl">
+            <span className="text-foreground font-medium">Status konta</span>
+            <span className="px-3 py-1 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 rounded-full text-sm font-medium">
               Aktywne
             </span>
           </div>
