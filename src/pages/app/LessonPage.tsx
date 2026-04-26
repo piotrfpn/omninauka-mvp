@@ -875,11 +875,23 @@ function RealLessonChat() {
         </div>
       )}
 
-      {/* Quick Action Chips */}
+      {/* Quick Actions Row */}
       {!isLoading && messages.length > 0 && (
         <div className="bg-white border-t border-gray-50">
-          <div className="max-w-4xl mx-auto w-full px-4 py-3">
+          <div className="max-w-4xl mx-auto w-full px-4 py-2.5">
             <div className="flex items-center gap-2 overflow-x-auto no-scrollbar">
+
+              {/* --- Quiz Navigation Chip (always visible when session is loaded) --- */}
+              {routeId && (
+                <button
+                  onClick={() => navigate(`/app/quiz/${routeId}`)}
+                  className="whitespace-nowrap flex-shrink-0 px-3.5 py-1.5 bg-emerald-50 border border-emerald-200 rounded-full text-[10px] font-bold text-emerald-700 hover:bg-emerald-100 hover:border-emerald-400 active:scale-95 transition-all"
+                >
+                  🎯 Przejdź do quizu
+                </button>
+              )}
+
+              {/* --- Conversation Chips (context-aware, sent as chat messages) --- */}
               {(() => {
                 const chips = [];
                 const contextSummary = contextSnapshot?.mastery_summary || '';
