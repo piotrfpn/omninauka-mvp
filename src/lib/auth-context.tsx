@@ -5,7 +5,7 @@ import { supabase } from './supabase';
 
 interface AuthContextType extends AuthState {
   login: (email: string, password: string) => Promise<boolean>;
-  register: (email: string, password: string, name: string) => Promise<{ success: boolean; message?: string; requireEmailVerification?: boolean }>;
+  register: (email: string, password: string, name: string, ageBand: string) => Promise<{ success: boolean; message?: string; requireEmailVerification?: boolean }>;
   logout: () => void;
   loginAsDemo: () => void;
   updateProfile: (updates: { name?: string }) => Promise<{ success: boolean; error?: string }>;
@@ -19,7 +19,9 @@ const mapSupabaseUser = (sbUser: any): User => ({
   email: sbUser.email,
   name: sbUser.user_metadata?.name || 'User',
   plan: 'free',
-  createdAt: new Date(sbUser.created_at)
+  createdAt: new Date(sbUser.created_at),
+  ageBand: sbUser.user_metadata?.ageBand,
+  accountStatus: sbUser.user_metadata?.accountStatus || 'active'
 });
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -97,14 +99,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return true;
   };
 
-  const register = async (email: string, password: string, name: string) => {
+  const register = async (email: string, password: string, name: string, ageBand: string) => {
     setIsDemoMode(false);
+    
+    // Initial status based on age band logic (matching the DB trigger)
+    const initialStatus = ageBand === '13_15' ? 'pending_parent_consent' : 'active';
+
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: {
         data: {
           name,
+          ageBand,
+          accountStatus: initialStatus
         }
       }
     });

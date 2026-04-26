@@ -12,10 +12,15 @@ import PrivacyPage from './pages/legal/PrivacyPage';
 import CookiesPage from './pages/legal/CookiesPage';
 import AIDisclaimerPage from './pages/legal/AIDisclaimerPage';
 import ContentPolicyPage from './pages/legal/ContentPolicyPage';
+import ParentConsentPage from './pages/legal/ParentConsentPage';
+import PendingConsentPage from './pages/app/PendingConsentPage';
+import { ConsentGuard } from './components/auth/ConsentGuard';
 import { AppShell } from './components/layout/app-shell';
 import './App.css';
 
 // Lazy load protected app pages
+// ... (rest of lazy loads)
+// [CUT FOR CONCISE REPLACE]
 const DashboardPage = lazy(() => import('./pages/app/DashboardPage'));
 const UploadPage = lazy(() => import('./pages/app/UploadPage'));
 const AnalysisPage = lazy(() => import('./pages/app/AnalysisPage'));
@@ -51,6 +56,9 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
 
 // App routes with shell
 function AppRoutes() {
+  const { user } = useAuth();
+  const needsConsent = user?.ageBand === '13_15' && user?.accountStatus === 'pending_parent_consent';
+
   return (
     <Routes>
       {/* Public routes */}
@@ -61,35 +69,48 @@ function AppRoutes() {
       <Route path="/cookies" element={<CookiesPage />} />
       <Route path="/ai-disclaimer" element={<AIDisclaimerPage />} />
       <Route path="/polityka-zglaszania-naruszen" element={<ContentPolicyPage />} />
+      <Route path="/consent/:token" element={<ParentConsentPage />} />
       <Route path="/login" element={<LoginPage />} />
       <Route path="/register" element={<RegisterPage />} />
+
+      {/* Consent state route */}
+      <Route 
+        path="/pending-consent" 
+        element={
+          <ProtectedRoute>
+            {needsConsent ? <PendingConsentPage /> : <Navigate to="/app/dashboard" replace />}
+          </ProtectedRoute>
+        } 
+      />
 
       {/* Protected app routes */}
       <Route
         path="/app/*"
         element={
           <ProtectedRoute>
-            <AppShell>
-              <Suspense fallback={<SuspenseFallback />}>
-                <Routes>
-                  <Route path="dashboard" element={<DashboardPage />} />
-                  <Route path="upload" element={<UploadPage />} />
-                  <Route path="analysis" element={<AnalysisPage />} />
-                  <Route path="analysis/:id" element={<AnalysisPage />} />
-                  <Route path="flashcards" element={<FlashcardsPage />} />
-                  <Route path="flashcards/:id" element={<FlashcardsPage />} />
-                  <Route path="quiz" element={<QuizPage />} />
-                  <Route path="quiz/:id" element={<QuizPage />} />
-                  <Route path="lesson" element={<LessonPage />} />
-                  <Route path="lesson/:id" element={<LessonPage />} />
-                  <Route path="results" element={<ResultsPage />} />
-                  <Route path="history" element={<HistoryPage />} />
-                  <Route path="profile" element={<ProfilePage />} />
-                  <Route path="settings" element={<SettingsPage />} />
-                  <Route path="*" element={<Navigate to="dashboard" replace />} />
-                 </Routes>
-              </Suspense>
-            </AppShell>
+            <ConsentGuard>
+              <AppShell>
+                <Suspense fallback={<SuspenseFallback />}>
+                  <Routes>
+                    <Route path="dashboard" element={<DashboardPage />} />
+                    <Route path="upload" element={<UploadPage />} />
+                    <Route path="analysis" element={<AnalysisPage />} />
+                    <Route path="analysis/:id" element={<AnalysisPage />} />
+                    <Route path="flashcards" element={<FlashcardsPage />} />
+                    <Route path="flashcards/:id" element={<FlashcardsPage />} />
+                    <Route path="quiz" element={<QuizPage />} />
+                    <Route path="quiz/:id" element={<QuizPage />} />
+                    <Route path="lesson" element={<LessonPage />} />
+                    <Route path="lesson/:id" element={<LessonPage />} />
+                    <Route path="results" element={<ResultsPage />} />
+                    <Route path="history" element={<HistoryPage />} />
+                    <Route path="profile" element={<ProfilePage />} />
+                    <Route path="settings" element={<SettingsPage />} />
+                    <Route path="*" element={<Navigate to="dashboard" replace />} />
+                   </Routes>
+                </Suspense>
+              </AppShell>
+            </ConsentGuard>
           </ProtectedRoute>
         }
       />

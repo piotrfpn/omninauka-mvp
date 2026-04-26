@@ -14,6 +14,8 @@ export default function RegisterPage() {
   const [error, setError] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [ageBand, setAgeBand] = useState('');
+  const [showAgeBlock, setShowAgeBlock] = useState(false);
 
   // Redirect if already logged in
   useEffect(() => {
@@ -27,6 +29,18 @@ export default function RegisterPage() {
     setError('');
     setIsLoading(true);
 
+    if (ageBand === 'under_13') {
+      setShowAgeBlock(true);
+      setIsLoading(false);
+      return;
+    }
+
+    if (!ageBand) {
+      setError('Proszę wybrać grupę wiekową');
+      setIsLoading(false);
+      return;
+    }
+
     if (password.length < 6) {
       setError('Hasło musi mieć co najmniej 6 znaków');
       setIsLoading(false);
@@ -34,16 +48,18 @@ export default function RegisterPage() {
     }
 
     try {
-      const result = await register(email, password, name);
+      const result = await register(email, password, name, ageBand);
       
       if (!result.success) {
         setError(result.message || 'Nie udało się utworzyć konta.');
       } else if (result.requireEmailVerification) {
         setSuccessMessage('Konto zostało utworzone. Sprawdź email i potwierdź adres, aby się zalogować.');
-        // Clear sensitive inputs
+        setPassword('');
+      } else if (ageBand === '13_15') {
+        setSuccessMessage('Konto utworzone! Ponieważ masz 13-15 lat, potrzebujemy jeszcze zgody Twojego rodzica lub opiekuna. Możesz się teraz zalogować, aby wysłać link do zgody.');
         setPassword('');
       } else {
-        // Automatically logged in (handled by onAuthStateChange in AuthProvider routing to /app/dashboard)
+        // Automatically logged in
       }
     } catch (err: any) {
       setError(err?.message || 'Wystąpił błąd podczas rejestracji');
@@ -51,6 +67,34 @@ export default function RegisterPage() {
       setIsLoading(false);
     }
   };
+
+  if (showAgeBlock) {
+    return (
+      <div className="min-h-screen bg-[var(--omni-bg)] flex items-center justify-center px-6 py-12">
+        <div className="w-full max-w-md text-center">
+          <div className="omni-card p-8 flex flex-col items-center gap-6">
+            <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center text-blue-600">
+              <User className="w-8 h-8" />
+            </div>
+            <h2 className="omni-heading-3">Potrzebujemy pomocy rodzica</h2>
+            <p className="text-[var(--omni-text-muted)]">
+              Ze względu na przepisy bezpieczeństwa (RODO), osoby poniżej 13 roku życia nie mogą samodzielnie zakładać konta.
+            </p>
+            <div className="p-4 bg-blue-50 rounded-lg border border-blue-100 text-sm text-blue-800 text-left">
+              <p className="font-semibold mb-2">Co teraz?</p>
+              <p>Poproś rodzica lub opiekuna, aby założył konto i dodał Twój profil ucznia. Dzięki temu będziesz mógł bezpiecznie korzystać z OmniNauka.</p>
+            </div>
+            <button 
+              onClick={() => setShowAgeBlock(false)}
+              className="w-full omni-btn-secondary"
+            >
+              Wróć do formularza
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-[var(--omni-bg)] flex items-center justify-center px-6 py-12">
@@ -86,6 +130,25 @@ export default function RegisterPage() {
                   required
                 />
               </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-[var(--omni-text)] mb-2">
+                Wiek / Rola
+              </label>
+              <select
+                value={ageBand}
+                onChange={(e) => setAgeBand(e.target.value)}
+                className="omni-input"
+                required
+              >
+                <option value="" disabled>Wybierz grupę wiekową</option>
+                <option value="under_13">Mniej niż 13 lat</option>
+                <option value="13_15">13 – 15 lat</option>
+                <option value="16_17">16 – 17 lat</option>
+                <option value="18_plus">18+ lat</option>
+                <option value="parent">Rodzic / Opiekun</option>
+              </select>
             </div>
 
             <div>
@@ -144,7 +207,7 @@ export default function RegisterPage() {
 
             {successMessage && (
               <div className="p-4 bg-green-50 border border-green-200 text-green-700 rounded-lg text-sm flex flex-col gap-3 animate-in fade-in zoom-in duration-300">
-                <p className="font-semibold text-base">{successMessage}</p>
+                <p className="font-semibold text-base leading-snug">{successMessage}</p>
                 <Link to="/login" className="inline-flex items-center text-green-800 hover:text-green-900 font-medium">
                   Przejdź do logowania <ArrowRight className="ml-1 w-4 h-4" />
                 </Link>

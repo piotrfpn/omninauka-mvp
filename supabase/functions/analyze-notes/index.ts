@@ -72,6 +72,42 @@ serve(async (req) => {
       });
     }
 
+    // Admin client for profile + storage + DB access
+    const adminClient = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
+      { auth: { persistSession: false } }
+    );
+
+    // Verify user account status (Parental Consent Check)
+    const { data: profile, error: profileError } = await adminClient
+      .from('profiles')
+      .select('age_band, account_status')
+      .eq('id', userId)
+      .single();
+
+    if (profileError || !profile) {
+      console.error("[analyze-notes] 404: Profile not found");
+      return new Response(JSON.stringify({ error: 'User profile not found' }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 404,
+      });
+    }
+
+    if (
+      (profile.age_band === '13_15' && profile.account_status === 'pending_parent_consent') ||
+      profile.account_status === 'parent_withdrawn' ||
+      profile.account_status === 'suspended'
+    ) {
+      console.warn(`[analyze-notes] 403: Access blocked for status ${profile.account_status}, user ${userId}`);
+      return new Response(JSON.stringify({ 
+        error: `Dostęp zablokowany: status konta ${profile.account_status}` 
+      }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 403,
+      });
+    }
+
     const body = await req.json();
     const sessionId = body.sessionId;
 

@@ -6,6 +6,8 @@ export interface User {
   avatar?: string;
   createdAt: Date;
   plan: 'free' | 'premium' | 'family';
+  ageBand?: 'under_13' | '13_15' | '16_17' | '18_plus' | 'parent';
+  accountStatus?: 'active' | 'pending_parent_consent' | 'parent_approved' | 'suspended' | 'parent_withdrawn';
 }
 
 export interface Folder {
