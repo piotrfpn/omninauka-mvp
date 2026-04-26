@@ -324,7 +324,7 @@ export default function HomePage() {
       <section id="o-nas" className="px-6 py-16 lg:py-24">
         <div className="max-w-4xl mx-auto">
           <div className="omni-card p-8 lg:p-12 bg-white/50 border border-gray-100">
-            <h2 className="omni-heading-3 text-[var(--omni-text)] mb-6">O nas</h2>
+            <h2 className="omni-heading-3 text-[var(--omni-text)] mb-6 text-center">O nas</h2>
             <div className="space-y-4 text-[var(--omni-text-muted)] leading-relaxed">
               <p>
                 OmniNauka to nowoczesny korepetytor AI dla uczniów. Pomaga zrozumieć materiał z notatek, zdjęć, PDF-ów i dokumentów Word, prowadzi rozmowę z AI Tutorem, tworzy quizy i wspiera powtórki błędów.
