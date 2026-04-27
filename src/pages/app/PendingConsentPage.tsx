@@ -1,8 +1,7 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '../../lib/auth-context';
 import { supabase } from '../../lib/supabase';
-import { generateConsentToken, hashConsentToken } from '../../lib/consent';
-import { Mail, ShieldAlert, Send, CheckCircle2, ArrowLeft } from 'lucide-react';
+import { Mail, ShieldAlert, Send, CheckCircle2, ArrowLeft, RefreshCw } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 export default function PendingConsentPage() {
@@ -11,57 +10,51 @@ export default function PendingConsentPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [isSent, setIsSent] = useState(false);
   const [error, setError] = useState('');
+  const [cooldown, setCooldown] = useState(0);
 
-  const handleSendConsent = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!user) return;
+  useEffect(() => {
+    if (cooldown > 0) {
+      const timer = setTimeout(() => setCooldown(cooldown - 1), 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [cooldown]);
+
+  const handleSendConsent = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    if (!user || cooldown > 0) return;
     
     setError('');
     setIsLoading(true);
 
     try {
-      const token = generateConsentToken();
-      const tokenHash = await hashConsentToken(token);
-      
-      // Calculate expiration (7 days)
-      const expiresAt = new Date();
-      expiresAt.setDate(expiresAt.getDate() + 7);
+      // Call Edge Function
+      const { data, error: fnError } = await supabase.functions.invoke('send-consent-email', {
+        body: { parent_email: parentEmail }
+      });
 
-      // 1. Create consent record in Supabase
-      const { error: dbError } = await supabase
-        .from('parental_consents')
-        .insert({
-          child_user_id: user.id,
-          parent_email: parentEmail,
-          age_band: user.ageBand || '13_15',
-          token_hash: tokenHash,
-          token_expires_at: expiresAt.toISOString(),
-          consent_status: 'pending'
-        });
-
-      if (dbError) throw dbError;
-
-      // 2. In a real app, we would call an Edge Function to send the actual email.
-      // For this MVP, we will simulate the "email sent" and show the link for testing purposes
-      // ONLY in dev mode or as a fallback if the user wants to see it.
-      // But the requirement says "Nie logować tokenów... w konsoli".
-      // I'll just show a success message.
-      
-      const consentLink = `${window.location.origin}/consent/${token}`;
-      console.log('SIMULATED EMAIL SENT TO:', parentEmail);
-      // For local testing by the user/developer:
-      if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-        console.log('DEBUG CONSENT LINK:', consentLink);
+      if (fnError) {
+        // Handle specific cooldown error from backend
+        if (fnError.message?.includes('Poczekaj')) {
+          setError(fnError.message);
+          setCooldown(60);
+          return;
+        }
+        throw fnError;
       }
 
+      if (data?.error) throw new Error(data.error);
+
       setIsSent(true);
+      setCooldown(60); // 60s cooldown after successful send
     } catch (err: any) {
       console.error('Consent error:', err);
-      setError('Wystąpił błąd podczas generowania prośby. Spróbuj ponownie.');
+      setError(err.message || 'Wystąpił błąd podczas wysyłania prośby. Spróbuj ponownie.');
     } finally {
       setIsLoading(false);
     }
   };
+
+  const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
 
   return (
     <div className="min-h-screen bg-[var(--omni-bg)] flex items-center justify-center px-6 py-12">
@@ -110,11 +103,13 @@ export default function PendingConsentPage() {
 
                 <button
                   type="submit"
-                  disabled={isLoading}
-                  className="w-full omni-btn-primary"
+                  disabled={isLoading || cooldown > 0}
+                  className="w-full omni-btn-primary disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {isLoading ? (
                     <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  ) : cooldown > 0 ? (
+                    `Odczekaj ${cooldown}s...`
                   ) : (
                     <>
                       Wyślij prośbę o zgodę
@@ -137,13 +132,33 @@ export default function PendingConsentPage() {
                 </p>
               </div>
 
-              <button
-                onClick={() => setIsSent(false)}
-                className="text-[var(--omni-accent)] font-medium hover:underline flex items-center justify-center mx-auto"
-              >
-                <ArrowLeft className="w-4 h-4 mr-2" />
-                Użyj innego adresu email
-              </button>
+              <div className="flex flex-col gap-4">
+                <button
+                  onClick={() => setIsSent(false)}
+                  disabled={cooldown > 0}
+                  className="text-[var(--omni-accent)] font-medium hover:underline flex items-center justify-center mx-auto disabled:text-gray-400 disabled:no-underline"
+                >
+                  <ArrowLeft className="w-4 h-4 mr-2" />
+                  {cooldown > 0 ? `Użyj innego adresu za ${cooldown}s` : "Użyj innego adresu email"}
+                </button>
+                
+                {cooldown === 0 && (
+                  <button
+                    onClick={() => handleSendConsent()}
+                    className="text-sm text-[var(--omni-text-muted)] hover:text-[var(--omni-text)] flex items-center justify-center gap-2"
+                  >
+                    <RefreshCw className="w-4 h-4" />
+                    Wyślij ponownie na ten sam adres
+                  </button>
+                )}
+              </div>
+              
+              {isLocalhost && (
+                <div className="mt-6 p-4 bg-gray-100 rounded-lg text-xs text-left border border-gray-200">
+                  <p className="font-bold mb-1 text-gray-600 uppercase tracking-wider">Debug (Localhost only):</p>
+                  <p className="text-gray-500">Link został wysłany przez Resend API. Sprawdź dashboard Resend lub skrzynkę odbiorczą.</p>
+                </div>
+              )}
             </div>
           )}
 
