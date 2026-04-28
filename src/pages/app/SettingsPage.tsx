@@ -28,7 +28,9 @@ export default function SettingsPage() {
   const [userRole, setUserRole] = useState(user?.userRole || '');
   const [schoolType, setSchoolType] = useState(user?.schoolType || '');
   const [educationLevel, setEducationLevel] = useState(user?.educationLevel || '');
+  // Postal code: local display state only. Save happens on blur.
   const [postalCode, setPostalCode] = useState(user?.postalCode || '');
+  const [postalCodeError, setPostalCodeError] = useState('');
   const [isUpdating, setIsUpdating] = useState(false);
   
   // Deletion state
@@ -47,30 +49,37 @@ export default function SettingsPage() {
     }
   };
 
-  const handleUpdateEducational = async (field: string, value: string) => {
-    // Local state update
-    if (field === 'userRole') setUserRole(value);
-    if (field === 'schoolType') setSchoolType(value);
-    if (field === 'educationLevel') setEducationLevel(value);
-    if (field === 'postalCode') {
-      // Basic PL postal code formatting
-      let formatted = value.replace(/[^\d-]/g, '');
-      if (formatted.length === 2 && !formatted.includes('-')) formatted += '-';
-      if (formatted.length > 6) formatted = formatted.substring(0, 6);
-      setPostalCode(formatted);
-      value = formatted;
+  const handleSaveEducational = async () => {
+    let normalizedPostal = postalCode.replace(/\D/g, '');
+    
+    if (normalizedPostal.length > 0 && normalizedPostal.length < 5) {
+      setPostalCodeError('Kod pocztowy powinien mieć 5 cyfr.');
+      return;
     }
 
+    if (normalizedPostal.length === 5) {
+      normalizedPostal = `${normalizedPostal.slice(0, 2)}-${normalizedPostal.slice(2)}`;
+    }
+
+    setPostalCode(normalizedPostal);
+    setPostalCodeError('');
     setIsUpdating(true);
+
     try {
-      const result = await updateProfile({ [field]: value });
+      const result = await updateProfile({
+        userRole,
+        schoolType,
+        educationLevel,
+        postalCode: normalizedPostal
+      });
+
       if (result.success) {
-        toast.success("Zaktualizowano profil");
+        toast.success("Dane profilu zostały zapisane.");
       } else {
         throw new Error(result.error);
       }
     } catch (err: any) {
-      toast.error(err.message || "Nie udało się zaktualizować danych");
+      toast.error(err.message || "Nie udało się zapisać danych profilu.");
     } finally {
       setIsUpdating(false);
     }
@@ -163,7 +172,7 @@ export default function SettingsPage() {
             { value: 'other', label: 'Inne' },
             { value: 'prefer_not_to_say', label: 'Nie chcę podawać' },
           ],
-          onChange: (val: string) => handleUpdateEducational('userRole', val),
+          onChange: setUserRole,
         },
         {
           icon: School,
@@ -183,7 +192,7 @@ export default function SettingsPage() {
             { value: 'other', label: 'Inna' },
             { value: 'prefer_not_to_say', label: 'Nie chcę podawać' },
           ],
-          onChange: (val: string) => handleUpdateEducational('schoolType', val),
+          onChange: setSchoolType,
         },
         {
           icon: GraduationCap,
@@ -204,16 +213,9 @@ export default function SettingsPage() {
             { value: 'other', label: 'Inne' },
             { value: 'prefer_not_to_say', label: 'Nie chcę podawać' },
           ],
-          onChange: (val: string) => handleUpdateEducational('educationLevel', val),
+          onChange: setEducationLevel,
         },
-        {
-          icon: MapPin,
-          label: 'Kod pocztowy',
-          description: 'Format XX-XXX',
-          type: 'input' as const,
-          value: postalCode,
-          onChange: (val: string) => handleUpdateEducational('postalCode', val),
-        },
+        // Postal code is rendered separately below the group — see standalone section
       ],
     },
   ];
@@ -286,21 +288,60 @@ export default function SettingsPage() {
                   </select>
                 )}
 
-                {item.type === 'input' && (
-                  <input
-                    type="text"
-                    value={item.value}
-                    onChange={(e) => item.onChange(e.target.value)}
-                    disabled={isUpdating}
-                    placeholder="XX-XXX"
-                    className="w-24 px-4 py-2 bg-background border border-input rounded-lg text-[var(--omni-text)] text-center focus:ring-2 focus:ring-primary/20 transition-all disabled:opacity-50"
-                  />
-                )}
               </div>
             ))}
           </div>
         </div>
       ))}
+
+      {/* Postal code — standalone section to avoid onChange→API loop */}
+      <div className="omni-card p-6">
+        <h3 className="font-semibold text-[var(--omni-text)] mb-4">Kod pocztowy (opcjonalny)</h3>
+        <div className="flex items-center justify-between py-3">
+          <div className="flex items-center gap-4">
+            <div className="w-10 h-10 bg-[var(--omni-lavender)] rounded-lg flex items-center justify-center">
+              <MapPin className="w-5 h-5 text-[var(--omni-text)]" />
+            </div>
+            <div>
+              <p className="font-medium text-[var(--omni-text)]">Kod pocztowy</p>
+              <p className="text-sm text-[var(--omni-text-muted)]">
+                Wpisz i kliknij poza polem, aby zapisać
+              </p>
+              {postalCodeError && (
+                <p className="text-xs text-red-500 mt-1">{postalCodeError}</p>
+              )}
+            </div>
+          </div>
+          <div className="flex flex-col items-end gap-2">
+            <input
+              type="text"
+              value={postalCode}
+              onChange={(e) => {
+                const digitsOnly = e.target.value.replace(/\D/g, '').substring(0, 5);
+                setPostalCode(digitsOnly);
+                setPostalCodeError('');
+              }}
+              disabled={isUpdating}
+              placeholder="np. 60142"
+              maxLength={6}
+              className={`w-28 px-4 py-2 bg-background border rounded-lg text-[var(--omni-text)] text-center focus:ring-2 focus:ring-primary/20 transition-all disabled:opacity-50 ${
+                postalCodeError ? 'border-red-400' : 'border-input'
+              }`}
+            />
+          </div>
+        </div>
+        
+        <div className="flex justify-end pt-4 mt-2 border-t border-border">
+          <button
+            onClick={handleSaveEducational}
+            disabled={isUpdating}
+            className="omni-btn-primary py-2 px-6 flex items-center gap-2"
+          >
+            {isUpdating && <Loader2 className="w-4 h-4 animate-spin" />}
+            Zapisz zmiany
+          </button>
+        </div>
+      </div>
 
       {/* Account Actions */}
       <div className="omni-card p-6">

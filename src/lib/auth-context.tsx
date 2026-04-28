@@ -248,22 +248,42 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       // 2. Update Public Profile
       const dbUpdates: any = {};
-      if (updates.name) dbUpdates.name = updates.name;
-      if (updates.userRole) dbUpdates.user_role = updates.userRole;
-      if (updates.schoolType) dbUpdates.school_type = updates.schoolType;
-      if (updates.educationLevel) dbUpdates.education_level = updates.educationLevel;
-      if (updates.gradeLevel) dbUpdates.grade_level = updates.gradeLevel;
-      if (updates.postalCode) dbUpdates.postal_code = updates.postalCode;
-      if (updates.profileCompleted !== undefined) dbUpdates.profile_completed = updates.profileCompleted;
-      if (updates.profileCompletedAt) dbUpdates.profile_completed_at = updates.profileCompletedAt;
+      if ("name" in updates) dbUpdates.name = updates.name;
+      if ("userRole" in updates) dbUpdates.user_role = updates.userRole;
+      if ("schoolType" in updates) dbUpdates.school_type = updates.schoolType;
+      if ("educationLevel" in updates) dbUpdates.education_level = updates.educationLevel;
+      if ("gradeLevel" in updates) dbUpdates.grade_level = updates.gradeLevel;
+      if ("postalCode" in updates) dbUpdates.postal_code = updates.postalCode;
+      if ("profileCompleted" in updates) dbUpdates.profile_completed = updates.profileCompleted;
+      if ("profileCompletedAt" in updates) dbUpdates.profile_completed_at = updates.profileCompletedAt;
 
-      if (Object.keys(dbUpdates).length > 0) {
-        const { error: dbError } = await supabase
+      if (Object.keys(dbUpdates).length > 0 && state.user?.id) {
+        dbUpdates.id = state.user.id;
+        
+        // Strategy A: Update first
+        const { data: updateData, error: updateError } = await supabase
           .from('profiles')
           .update(dbUpdates)
-          .eq('id', state.user?.id);
+          .eq('id', state.user.id)
+          .select();
+          
+        if (updateError) throw updateError;
         
-        if (dbError) throw dbError;
+        // If profile doesn't exist yet, fallback to upsert with required NOT NULL columns
+        if (!updateData || updateData.length === 0) {
+          const fullPayload = {
+            ...dbUpdates,
+            email: state.user.email || '',
+            name: state.user.name || "User",
+            plan: state.user.plan || "free"
+          };
+          
+          const { error: upsertError } = await supabase
+            .from('profiles')
+            .upsert(fullPayload, { onConflict: 'id' });
+            
+          if (upsertError) throw upsertError;
+        }
       }
 
       // 3. Refresh local state

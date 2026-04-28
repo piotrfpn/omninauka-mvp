@@ -59,39 +59,31 @@ export default function CompleteProfilePage() {
 
   const [postalError, setPostalError] = useState('');
 
-  const validatePostalCode = (code: string) => {
-    if (!code) return true;
-    const regex = /^\d{2}-\d{3}$/;
-    return regex.test(code);
-  };
-
   const handlePostalChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    let value = e.target.value.replace(/[^\d-]/g, '');
-    if (value.length === 2 && !value.includes('-')) {
-      value += '-';
-    }
-    if (value.length > 6) value = value.substring(0, 6);
-    
-    setFormData(prev => ({ ...prev, postalCode: value }));
-    
-    if (value && !validatePostalCode(value)) {
-      setPostalError('Format: XX-XXX (np. 60-142)');
-    } else {
-      setPostalError('');
-    }
+    const digitsOnly = e.target.value.replace(/\D/g, '').substring(0, 5);
+    setFormData(prev => ({ ...prev, postalCode: digitsOnly }));
+    setPostalError('');
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (formData.postalCode && !validatePostalCode(formData.postalCode)) {
-      setPostalError('Format: XX-XXX (np. 60-142)');
-      return;
+
+    // Normalize and validate postal code on submit
+    let normalizedPostal = formData.postalCode;
+    if (normalizedPostal) {
+      const digits = normalizedPostal.replace(/\D/g, '');
+      if (digits.length < 5) {
+        setPostalError('Kod pocztowy powinien mieć 5 cyfr.');
+        return;
+      }
+      normalizedPostal = `${digits.slice(0, 2)}-${digits.slice(2)}`;
     }
 
     setIsLoading(true);
     try {
       const result = await updateProfile({
         ...formData,
+        postalCode: normalizedPostal, // use normalized form
         profileCompleted: true,
         profileCompletedAt: new Date(),
       });
@@ -187,13 +179,14 @@ export default function CompleteProfilePage() {
                   <MapPin className="w-4 h-4 text-[var(--omni-accent)]" />
                   Kod pocztowy (opcjonalnie)
                 </label>
-                <input
-                  type="text"
-                  placeholder="XX-XXX"
-                  className={`omni-input ${postalError ? 'border-red-400' : ''}`}
-                  value={formData.postalCode}
-                  onChange={handlePostalChange}
-                />
+                  <input
+                    type="text"
+                    placeholder="np. 60142"
+                    maxLength={6}
+                    className={`omni-input ${postalError ? 'border-red-400' : ''}`}
+                    value={formData.postalCode}
+                    onChange={handlePostalChange}
+                  />
                 {postalError && <p className="text-xs text-red-500">{postalError}</p>}
               </div>
             </div>
