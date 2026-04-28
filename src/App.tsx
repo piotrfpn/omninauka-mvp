@@ -14,6 +14,8 @@ import AIDisclaimerPage from './pages/legal/AIDisclaimerPage';
 import ContentPolicyPage from './pages/legal/ContentPolicyPage';
 import ParentConsentPage from './pages/legal/ParentConsentPage';
 import PendingConsentPage from './pages/app/PendingConsentPage';
+import ForgotPasswordPage from './pages/ForgotPasswordPage';
+import ResetPasswordPage from './pages/ResetPasswordPage';
 import { ConsentGuard } from './components/auth/ConsentGuard';
 import { AppShell } from './components/layout/app-shell';
 import './App.css';
@@ -31,6 +33,7 @@ const ResultsPage = lazy(() => import('./pages/app/ResultsPage'));
 const HistoryPage = lazy(() => import('./pages/app/HistoryPage'));
 const ProfilePage = lazy(() => import('./pages/app/ProfilePage'));
 const SettingsPage = lazy(() => import('./pages/app/SettingsPage'));
+const CompleteProfilePage = lazy(() => import('./pages/app/CompleteProfilePage'));
 
 // A fallback component for Suspense
 const SuspenseFallback = () => (
@@ -72,6 +75,8 @@ function AppRoutes() {
       <Route path="/consent/:token" element={<ParentConsentPage />} />
       <Route path="/login" element={<LoginPage />} />
       <Route path="/register" element={<RegisterPage />} />
+      <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+      <Route path="/reset-password" element={<ResetPasswordPage />} />
 
       {/* Consent state route */}
       <Route 
@@ -106,6 +111,7 @@ function AppRoutes() {
                     <Route path="history" element={<HistoryPage />} />
                     <Route path="profile" element={<ProfilePage />} />
                     <Route path="settings" element={<SettingsPage />} />
+                    <Route path="complete-profile" element={<CompleteProfilePage />} />
                     <Route path="*" element={<Navigate to="dashboard" replace />} />
                    </Routes>
                 </Suspense>

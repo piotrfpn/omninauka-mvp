@@ -104,6 +104,14 @@ export default function LoginPage() {
                   )}
                 </button>
               </div>
+              <div className="flex justify-end mt-2">
+                <Link
+                  to="/forgot-password"
+                  className="text-sm text-[var(--omni-accent)] hover:underline"
+                >
+                  Zapomniałem hasła?
+                </Link>
+              </div>
             </div>
 
             {error && (

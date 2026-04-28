@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useAuth } from '../../lib/auth-context';
 import { useNavigate } from 'react-router-dom';
-import { Bell, Moon, Globe, Shield, Trash2, LogOut, AlertTriangle, Loader2 } from 'lucide-react';
+import { Bell, Moon, Globe, Shield, Trash2, LogOut, AlertTriangle, Loader2, School, GraduationCap, MapPin, UserCircle } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import {
   Dialog,
@@ -16,13 +16,20 @@ import { Input } from "../../components/ui/input";
 import { toast } from "sonner";
 
 export default function SettingsPage() {
-  const { logout } = useAuth();
+  const { user, logout, updateProfile } = useAuth();
   const navigate = useNavigate();
   const [notifications, setNotifications] = useState(true);
   const [darkMode, setDarkMode] = useState(() => {
     return document.documentElement.classList.contains('dark');
   });
   const [language, setLanguage] = useState('pl');
+  
+  // Educational metadata state
+  const [userRole, setUserRole] = useState(user?.userRole || '');
+  const [schoolType, setSchoolType] = useState(user?.schoolType || '');
+  const [educationLevel, setEducationLevel] = useState(user?.educationLevel || '');
+  const [postalCode, setPostalCode] = useState(user?.postalCode || '');
+  const [isUpdating, setIsUpdating] = useState(false);
   
   // Deletion state
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
@@ -37,6 +44,35 @@ export default function SettingsPage() {
     } else {
       document.documentElement.classList.remove('dark');
       localStorage.setItem('omninauka-theme', 'light');
+    }
+  };
+
+  const handleUpdateEducational = async (field: string, value: string) => {
+    // Local state update
+    if (field === 'userRole') setUserRole(value);
+    if (field === 'schoolType') setSchoolType(value);
+    if (field === 'educationLevel') setEducationLevel(value);
+    if (field === 'postalCode') {
+      // Basic PL postal code formatting
+      let formatted = value.replace(/[^\d-]/g, '');
+      if (formatted.length === 2 && !formatted.includes('-')) formatted += '-';
+      if (formatted.length > 6) formatted = formatted.substring(0, 6);
+      setPostalCode(formatted);
+      value = formatted;
+    }
+
+    setIsUpdating(true);
+    try {
+      const result = await updateProfile({ [field]: value });
+      if (result.success) {
+        toast.success("Zaktualizowano profil");
+      } else {
+        throw new Error(result.error);
+      }
+    } catch (err: any) {
+      toast.error(err.message || "Nie udało się zaktualizować danych");
+    } finally {
+      setIsUpdating(false);
     }
   };
 
@@ -110,6 +146,76 @@ export default function SettingsPage() {
         },
       ],
     },
+    {
+      title: 'Dane edukacyjne (opcjonalne)',
+      items: [
+        {
+          icon: UserCircle,
+          label: 'Kim jesteś?',
+          description: 'Twoja rola w systemie',
+          type: 'select' as const,
+          value: userRole,
+          options: [
+            { value: '', label: 'Wybierz rolę...' },
+            { value: 'student', label: 'Uczeń' },
+            { value: 'parent', label: 'Rodzic/opiekun' },
+            { value: 'teacher', label: 'Nauczyciel' },
+            { value: 'other', label: 'Inne' },
+            { value: 'prefer_not_to_say', label: 'Nie chcę podawać' },
+          ],
+          onChange: (val: string) => handleUpdateEducational('userRole', val),
+        },
+        {
+          icon: School,
+          label: 'Typ szkoły',
+          description: 'Do jakiej szkoły uczęszczasz',
+          type: 'select' as const,
+          value: schoolType,
+          options: [
+            { value: '', label: 'Wybierz typ...' },
+            { value: 'primary_school', label: 'Szkoła podstawowa' },
+            { value: 'high_school', label: 'Liceum' },
+            { value: 'technical_school', label: 'Technikum' },
+            { value: 'vocational_school_1', label: 'Branżowa I st.' },
+            { value: 'vocational_school_2', label: 'Branżowa II st.' },
+            { value: 'post_secondary', label: 'Policealna' },
+            { value: 'homeschooling', label: 'Edukacja domowa' },
+            { value: 'other', label: 'Inna' },
+            { value: 'prefer_not_to_say', label: 'Nie chcę podawać' },
+          ],
+          onChange: (val: string) => handleUpdateEducational('schoolType', val),
+        },
+        {
+          icon: GraduationCap,
+          label: 'Poziom edukacji',
+          description: 'Twój aktualny etap nauki',
+          type: 'select' as const,
+          value: educationLevel,
+          options: [
+            { value: '', label: 'Wybierz poziom...' },
+            { value: 'primary_1_3', label: 'Klasy 1-3' },
+            { value: 'primary_4_6', label: 'Klasy 4-6' },
+            { value: 'primary_7_8', label: 'Klasy 7-8' },
+            { value: 'secondary_1', label: 'Liceum/Tech. kl. 1' },
+            { value: 'secondary_2', label: 'Liceum/Tech. kl. 2' },
+            { value: 'secondary_3', label: 'Liceum/Tech. kl. 3' },
+            { value: 'secondary_4', label: 'Liceum/Tech. kl. 4' },
+            { value: 'secondary_5', label: 'Technikum kl. 5' },
+            { value: 'other', label: 'Inne' },
+            { value: 'prefer_not_to_say', label: 'Nie chcę podawać' },
+          ],
+          onChange: (val: string) => handleUpdateEducational('educationLevel', val),
+        },
+        {
+          icon: MapPin,
+          label: 'Kod pocztowy',
+          description: 'Format XX-XXX',
+          type: 'input' as const,
+          value: postalCode,
+          onChange: (val: string) => handleUpdateEducational('postalCode', val),
+        },
+      ],
+    },
   ];
 
   return (
@@ -169,7 +275,8 @@ export default function SettingsPage() {
                   <select
                     value={item.value}
                     onChange={(e) => item.onChange(e.target.value)}
-                    className="px-4 py-2 bg-background border border-input rounded-lg text-[var(--omni-text)] focus:ring-2 focus:ring-primary/20 transition-all"
+                    disabled={isUpdating}
+                    className="px-4 py-2 bg-background border border-input rounded-lg text-[var(--omni-text)] focus:ring-2 focus:ring-primary/20 transition-all disabled:opacity-50"
                   >
                     {item.options?.map((opt) => (
                       <option key={opt.value} value={opt.value}>
@@ -177,6 +284,17 @@ export default function SettingsPage() {
                       </option>
                     ))}
                   </select>
+                )}
+
+                {item.type === 'input' && (
+                  <input
+                    type="text"
+                    value={item.value}
+                    onChange={(e) => item.onChange(e.target.value)}
+                    disabled={isUpdating}
+                    placeholder="XX-XXX"
+                    className="w-24 px-4 py-2 bg-background border border-input rounded-lg text-[var(--omni-text)] text-center focus:ring-2 focus:ring-primary/20 transition-all disabled:opacity-50"
+                  />
                 )}
               </div>
             ))}

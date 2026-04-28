@@ -1,0 +1,167 @@
+warning: in the working copy of 'src/lib/auth-context.tsx', LF will be replaced by CRLF the next time Git touches it
+[1mdiff --git a/src/lib/auth-context.tsx b/src/lib/auth-context.tsx[m
+[1mindex 07b0b95..12b9c69 100644[m
+[1m--- a/src/lib/auth-context.tsx[m
+[1m+++ b/src/lib/auth-context.tsx[m
+[36m@@ -8,20 +8,28 @@[m [minterface AuthContextType extends AuthState {[m
+   register: (email: string, password: string, name: string, ageBand: string) => Promise<{ success: boolean; message?: string; requireEmailVerification?: boolean }>;[m
+   logout: () => void;[m
+   loginAsDemo: () => void;[m
+[31m-  updateProfile: (updates: { name?: string }) => Promise<{ success: boolean; error?: string }>;[m
+[32m+[m[32m  updateProfile: (updates: any) => Promise<{ success: boolean; error?: string }>;[m
+[32m+[m[32m  refreshUser: () => Promise<void>;[m
+   isDemoMode: boolean;[m
+ }[m
+ [m
+ const AuthContext = createContext<AuthContextType | undefined>(undefined);[m
+ [m
+[31m-const mapSupabaseUser = (sbUser: any): User => ({[m
+[32m+[m[32mconst mapSupabaseUser = (sbUser: any, dbProfile?: any): User => ({[m
+   id: sbUser.id,[m
+   email: sbUser.email,[m
+[31m-  name: sbUser.user_metadata?.name || 'User',[m
+[31m-  plan: 'free',[m
+[32m+[m[32m  name: dbProfile?.name || sbUser.user_metadata?.name || 'User',[m
+[32m+[m[32m  plan: dbProfile?.plan || 'free',[m
+   createdAt: new Date(sbUser.created_at),[m
+[31m-  ageBand: sbUser.user_metadata?.ageBand,[m
+[31m-  accountStatus: sbUser.user_metadata?.accountStatus || 'active'[m
+[32m+[m[32m  ageBand: dbProfile?.age_band || sbUser.user_metadata?.ageBand,[m
+[32m+[m[32m  accountStatus: dbProfile?.account_status || sbUser.user_metadata?.accountStatus || 'active',[m
+[32m+[m[32m  userRole: dbProfile?.user_role,[m
+[32m+[m[32m  schoolType: dbProfile?.school_type,[m
+[32m+[m[32m  educationLevel: dbProfile?.education_level,[m
+[32m+[m[32m  gradeLevel: dbProfile?.grade_level,[m
+[32m+[m[32m  postalCode: dbProfile?.postal_code,[m
+[32m+[m[32m  profileCompleted: dbProfile?.profile_completed,[m
+[32m+[m[32m  profileCompletedAt: dbProfile?.profile_completed_at ? new Date(dbProfile.profile_completed_at) : undefined,[m
+ });[m
+ [m
+ export function AuthProvider({ children }: { children: ReactNode }) {[m
+[36m@@ -41,8 +49,15 @@[m [mexport function AuthProvider({ children }: { children: ReactNode }) {[m
+         const { data: { session } } = await supabase.auth.getSession();[m
+         [m
+         if (session && session.user && !isDemoMode) {[m
+[32m+[m[32m          // Fetch additional profile data[m
+[32m+[m[32m          const { data: dbProfile } = await supabase[m
+[32m+[m[32m            .from('profiles')[m
+[32m+[m[32m            .select('*')[m
+[32m+[m[32m            .eq('id', session.user.id)[m
+[32m+[m[32m            .single();[m
+[32m+[m
+           setState({[m
+[31m-            user: mapSupabaseUser(session.user),[m
+[32m+[m[32m            user: mapSupabaseUser(session.user, dbProfile),[m
+             isAuthenticated: true,[m
+             isLoading: false,[m
+           });[m
+[36m@@ -61,12 +76,19 @@[m [mexport function AuthProvider({ children }: { children: ReactNode }) {[m
+ [m
+     // Listen for auth changes[m
+     const { data: { subscription } } = supabase.auth.onAuthStateChange([m
+[31m-      (_event, session) => {[m
+[32m+[m[32m      async (_event, session) => {[m
+         if (isDemoMode) return; // Ignore Supabase events if in demo mode[m
+         [m
+         if (session && session.user) {[m
+[32m+[m[32m          // Fetch additional profile data[m
+[32m+[m[32m          const { data: dbProfile } = await supabase[m
+[32m+[m[32m            .from('profiles')[m
+[32m+[m[32m            .select('*')[m
+[32m+[m[32m            .eq('id', session.user.id)[m
+[32m+[m[32m            .single();[m
+[32m+[m
+           setState({[m
+[31m-            user: mapSupabaseUser(session.user),[m
+[32m+[m[32m            user: mapSupabaseUser(session.user, dbProfile),[m
+             isAuthenticated: true,[m
+             isLoading: false,[m
+           });[m
+[36m@@ -160,7 +182,29 @@[m [mexport function AuthProvider({ children }: { children: ReactNode }) {[m
+     });[m
+   };[m
+ [m
+[31m-  const updateProfile = async (updates: { name?: string }): Promise<{ success: boolean; error?: string }> => {[m
+[32m+[m[32m  const refreshUser = async () => {[m
+[32m+[m[32m    if (isDemoMode || !state.user) return;[m
+[32m+[m[41m    [m
+[32m+[m[32m    try {[m
+[32m+[m[32m      const { data: { user: sbUser } } = await supabase.auth.getUser();[m
+[32m+[m[32m      if (!sbUser) return;[m
+[32m+[m
+[32m+[m[32m      const { data: dbProfile } = await supabase[m
+[32m+[m[32m        .from('profiles')[m
+[32m+[m[32m        .select('*')[m
+[32m+[m[32m        .eq('id', sbUser.id)[m
+[32m+[m[32m        .single();[m
+[32m+[m
+[32m+[m[32m      setState(prev => ({[m
+[32m+[m[32m        ...prev,[m
+[32m+[m[32m        user: mapSupabaseUser(sbUser, dbProfile)[m
+[32m+[m[32m      }));[m
+[32m+[m[32m    } catch (error) {[m
+[32m+[m[32m      console.error("Refresh User Error:", error);[m
+[32m+[m[32m    }[m
+[32m+[m[32m  };[m
+[32m+[m
+[32m+[m[32m  const updateProfile = async (updates: any): Promise<{ success: boolean; error?: string }> => {[m
+     if (isDemoMode) {[m
+       if (state.user) {[m
+         setState(prev => ({[m
+[36m@@ -172,18 +216,39 @@[m [mexport function AuthProvider({ children }: { children: ReactNode }) {[m
+     }[m
+ [m
+     try {[m
+[31m-      const { data, error } = await supabase.auth.updateUser({[m
+[31m-        data: updates[m
+[31m-      });[m
+[32m+[m[32m      // 1. Update Auth user metadata (for fields like name)[m
+[32m+[m[32m      const authUpdates: any = {};[m
+[32m+[m[32m      if (updates.name) authUpdates.name = updates.name;[m
+[32m+[m[41m      [m
+[32m+[m[32m      if (Object.keys(authUpdates).length > 0) {[m
+[32m+[m[32m        const { error: authError } = await supabase.auth.updateUser({[m
+[32m+[m[32m          data: authUpdates[m
+[32m+[m[32m        });[m
+[32m+[m[32m        if (authError) throw authError;[m
+[32m+[m[32m      }[m
+ [m
+[31m-      if (error) throw error;[m
+[32m+[m[32m      // 2. Update Public Profile[m
+[32m+[m[32m      const dbUpdates: any = {};[m
+[32m+[m[32m      if (updates.name) dbUpdates.name = updates.name;[m
+[32m+[m[32m      if (updates.userRole) dbUpdates.user_role = updates.userRole;[m
+[32m+[m[32m      if (updates.schoolType) dbUpdates.school_type = updates.schoolType;[m
+[32m+[m[32m      if (updates.educationLevel) dbUpdates.education_level = updates.educationLevel;[m
+[32m+[m[32m      if (updates.gradeLevel) dbUpdates.grade_level = updates.gradeLevel;[m
+[32m+[m[32m      if (updates.postalCode) dbUpdates.postal_code = updates.postalCode;[m
+[32m+[m[32m      if (updates.profileCompleted !== undefined) dbUpdates.profile_completed = updates.profileCompleted;[m
+[32m+[m[32m      if (updates.profileCompletedAt) dbUpdates.profile_completed_at = updates.profileCompletedAt;[m
+ [m
+[31m-      if (data.user) {[m
+[31m-        setState(prev => ({[m
+[31m-          ...prev,[m
+[31m-          user: mapSupabaseUser(data.user)[m
+[31m-        }));[m
+[32m+[m[32m      if (Object.keys(dbUpdates).length > 0) {[m
+[32m+[m[32m        const { error: dbError } = await supabase[m
+[32m+[m[32m          .from('profiles')[m
+[32m+[m[32m          .update(dbUpdates)[m
+[32m+[m[32m          .eq('id', state.user?.id);[m
+[32m+[m[41m        [m
+[32m+[m[32m        if (dbError) throw dbError;[m
+       }[m
+[32m+[m
+[32m+[m[32m      // 3. Refresh local state[m
+[32m+[m[32m      await refreshUser();[m
+       [m
+       return { success: true };[m
+     } catch (error: any) {[m
+[36m@@ -201,6 +266,7 @@[m [mexport function AuthProvider({ children }: { children: ReactNode }) {[m
+         logout,[m
+         loginAsDemo,[m
+         updateProfile,[m
+[32m+[m[32m        refreshUser,[m
+         isDemoMode,[m
+       }}[m
+     >[m

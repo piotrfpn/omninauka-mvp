@@ -8,6 +8,13 @@ export interface User {
   plan: 'free' | 'premium' | 'family';
   ageBand?: 'under_13' | '13_15' | '16_17' | '18_plus' | 'parent';
   accountStatus?: 'active' | 'pending_parent_consent' | 'parent_approved' | 'suspended' | 'parent_withdrawn';
+  userRole?: string;
+  schoolType?: string;
+  educationLevel?: string;
+  gradeLevel?: string;
+  postalCode?: string;
+  profileCompleted?: boolean;
+  profileCompletedAt?: Date;
 }
 
 export interface Folder {
