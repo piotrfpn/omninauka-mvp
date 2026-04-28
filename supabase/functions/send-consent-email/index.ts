@@ -51,7 +51,7 @@ serve(async (req) => {
     if (profileError || !profile) throw new Error("Profile not found");
 
     if (profile.account_status !== 'pending_parent_consent') {
-      return new Response(JSON.stringify({ error: `Niepoprawny status konta: ${profile.account_status}` }), {
+      return new Response(JSON.stringify({ error: `Twoje konto nie oczekuje już na zgodę rodzica (status: ${profile.account_status})` }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 400,
       });
@@ -83,7 +83,6 @@ serve(async (req) => {
     }
 
     // 4. Generate & Hash token
-    // Using simple random generation (72 chars)
     const rawToken = Array.from(crypto.getRandomValues(new Uint8Array(36)))
       .map(b => b.toString(16).padStart(2, '0'))
       .join('');
@@ -92,7 +91,7 @@ serve(async (req) => {
     const expiresAt = new Date();
     expiresAt.setDate(expiresAt.getDate() + 7);
 
-    // 5. Upsert consent record (One Active Token logic)
+    // 5. Upsert consent record
     const { error: upsertError } = await adminClient
       .from('parental_consents')
       .upsert({
@@ -159,11 +158,24 @@ serve(async (req) => {
     const resendData = await resendRes.json();
     
     if (!resendRes.ok) {
+      console.error(`Resend API Error [${resendRes.status}]:`, resendData.message || resendData.name || "Unknown error");
+      
       await adminClient
         .from('parental_consents')
-        .update({ email_last_status: 'error', email_last_error: JSON.stringify(resendData) })
+        .update({ email_last_status: 'error', email_last_error: JSON.stringify({ status: resendRes.status, ...resendData }) })
         .eq('child_user_id', userId);
-      throw new Error(`Resend error: ${JSON.stringify(resendData)}`);
+      
+      let errorMsg = "Błąd usługi wysyłki e-mail.";
+      if (resendRes.status === 401 || resendRes.status === 403) {
+        errorMsg = "Błąd konfiguracji Resend (API Key / Sender).";
+      } else if (resendRes.status === 422) {
+        errorMsg = "Nieprawidłowy adres e-mail lub nadawca.";
+      }
+      
+      return new Response(JSON.stringify({ error: errorMsg }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: resendRes.status >= 500 ? 500 : 400,
+      });
     }
 
     await adminClient
@@ -177,8 +189,11 @@ serve(async (req) => {
     });
 
   } catch (err: any) {
-    console.error("send-consent-email error:", err);
-    return new Response(JSON.stringify({ error: err.message }), {
+    // Safety check: Don't log full error if it might contain secrets (though Deno env is usually safe)
+    const safeMsg = err.message?.replace(/re_[a-zA-Z0-9]{20,}/g, "[SECRET_REDACTED]");
+    console.error("send-consent-email error:", safeMsg);
+    
+    return new Response(JSON.stringify({ error: safeMsg }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: 500,
     });

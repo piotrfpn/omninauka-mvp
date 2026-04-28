@@ -33,22 +33,50 @@ export default function PendingConsentPage() {
       });
 
       if (fnError) {
-        // Handle specific cooldown error from backend
-        if (fnError.message?.includes('Poczekaj')) {
-          setError(fnError.message);
+        console.error('send-consent-email error details:', fnError);
+
+        let userFriendlyMsg = 'Wystąpił błąd podczas wysyłania prośby.';
+        const status = (fnError as any).status || (fnError as any).context?.status;
+        
+        // Try to get specific error from message or context
+        const errorMsg = fnError.message || '';
+
+        if (errorMsg.includes('Poczekaj') || status === 429) {
+          userFriendlyMsg = 'Odczekaj chwilę przed ponowną wysyłką.';
           setCooldown(60);
-          return;
+        } else if (errorMsg.includes('RESEND_API_KEY') || errorMsg.includes('RESEND_FROM_EMAIL')) {
+          userFriendlyMsg = 'Konfiguracja wysyłki e-mail nie jest jeszcze gotowa.';
+        } else if (errorMsg.includes('Niepoprawny status konta') || status === 400) {
+          // Check if it's actually "not pending"
+          if (errorMsg.includes('Niepoprawny status konta')) {
+            userFriendlyMsg = 'Twoje konto nie oczekuje już na zgodę rodzica.';
+          } else {
+            userFriendlyMsg = 'Nie udało się wysłać wiadomości. Sprawdź poprawność danych.';
+          }
+        } else if (errorMsg.includes('Failed to send a request') || fnError.name === 'FunctionsFetchError') {
+          userFriendlyMsg = 'Brak połączenia z funkcją wysyłki. Sprawdź połączenie z internetem.';
+        } else if (status === 401 || status === 403) {
+          userFriendlyMsg = 'Błąd autoryzacji. Spróbuj zalogować się ponownie.';
+        } else {
+          userFriendlyMsg = 'Nie udało się wysłać wiadomości. Spróbuj ponownie później.';
+          userFriendlyMsg += ` (Kod: ${status || fnError.name || 'unknown'})`;
         }
-        throw fnError;
+
+        setError(userFriendlyMsg);
+        return;
       }
 
-      if (data?.error) throw new Error(data.error);
+      if (data?.error) {
+        setError(data.error);
+        return;
+      }
 
       setIsSent(true);
+      setError('');
       setCooldown(60); // 60s cooldown after successful send
     } catch (err: any) {
       console.error('Consent error:', err);
-      setError(err.message || 'Wystąpił błąd podczas wysyłania prośby. Spróbuj ponownie.');
+      setError('Wystąpił błąd techniczny połączenia. Spróbuj ponownie za chwilę.');
     } finally {
       setIsLoading(false);
     }

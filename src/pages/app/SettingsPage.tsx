@@ -1,7 +1,19 @@
 import { useState } from 'react';
 import { useAuth } from '../../lib/auth-context';
 import { useNavigate } from 'react-router-dom';
-import { Bell, Moon, Globe, Shield, Trash2, LogOut } from 'lucide-react';
+import { Bell, Moon, Globe, Shield, Trash2, LogOut, AlertTriangle, Loader2 } from 'lucide-react';
+import { supabase } from '../../lib/supabase';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "../../components/ui/dialog";
+import { Button } from "../../components/ui/button";
+import { Input } from "../../components/ui/input";
+import { toast } from "sonner";
 
 export default function SettingsPage() {
   const { logout } = useAuth();
@@ -11,6 +23,11 @@ export default function SettingsPage() {
     return document.documentElement.classList.contains('dark');
   });
   const [language, setLanguage] = useState('pl');
+  
+  // Deletion state
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [deleteConfirmText, setDeleteConfirmText] = useState('');
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const toggleDarkMode = (enabled: boolean) => {
     setDarkMode(enabled);
@@ -26,6 +43,27 @@ export default function SettingsPage() {
   const handleLogout = () => {
     logout();
     navigate('/');
+  };
+
+  const handleDeleteAccount = async () => {
+    if (deleteConfirmText !== 'USUŃ') return;
+    
+    setIsDeleting(true);
+    try {
+      const { error } = await supabase.functions.invoke('delete-account');
+      
+      if (error) throw error;
+      
+      toast.success("Konto zostało usunięte.");
+      logout();
+      navigate('/');
+    } catch (err: any) {
+      console.error('Account deletion failed:', err);
+      toast.error(err.message || "Nie udało się usunąć konta. Spróbuj ponownie później.");
+    } finally {
+      setIsDeleting(false);
+      setIsDeleteDialogOpen(false);
+    }
   };
 
   const settingsGroups = [
@@ -152,7 +190,10 @@ export default function SettingsPage() {
           Konto
         </h3>
         <div className="space-y-3">
-          <button className="w-full flex items-center gap-4 p-4 bg-muted hover:bg-destructive/10 border border-transparent hover:border-destructive/30 rounded-xl transition-colors">
+          <button 
+            onClick={() => setIsDeleteDialogOpen(true)}
+            className="w-full flex items-center gap-4 p-4 bg-muted hover:bg-destructive/10 border border-transparent hover:border-destructive/30 rounded-xl transition-colors"
+          >
             <div className="w-10 h-10 bg-red-100 dark:bg-red-900/30 rounded-lg flex items-center justify-center">
               <Trash2 className="w-5 h-5 text-red-500" />
             </div>
@@ -201,6 +242,63 @@ export default function SettingsPage() {
       <div className="text-center text-sm text-[var(--omni-text-muted)]">
         OmniNauka v1.0.0
       </div>
+
+      {/* Delete Account Modal */}
+      <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-destructive">
+              <AlertTriangle className="w-5 h-5" />
+              Usuwanie konta
+            </DialogTitle>
+            <DialogDescription className="py-2">
+              Ta akcja jest <strong>trwała i nieodwracalna</strong>. Twoje konto, historia nauki, quizy, fiszki oraz wszystkie przesłane materiały zostaną trwale usunięte z naszych serwerów.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <p className="text-sm font-medium">
+                Aby potwierdzić, wpisz poniżej <span className="font-bold text-[var(--omni-text)]">USUŃ</span>:
+              </p>
+              <Input
+                placeholder="USUŃ"
+                value={deleteConfirmText}
+                onChange={(e) => setDeleteConfirmText(e.target.value)}
+                autoFocus
+                className="uppercase"
+                disabled={isDeleting}
+              />
+            </div>
+          </div>
+
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button
+              variant="outline"
+              onClick={() => setIsDeleteDialogOpen(false)}
+              disabled={isDeleting}
+              className="flex-1 sm:flex-none"
+            >
+              Anuluj
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleDeleteAccount}
+              disabled={deleteConfirmText !== 'USUŃ' || isDeleting}
+              className="flex-1 sm:flex-none"
+            >
+              {isDeleting ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                  Usuwanie...
+                </>
+              ) : (
+                'Trwale usuń konto'
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
