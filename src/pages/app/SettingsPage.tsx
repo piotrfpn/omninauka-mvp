@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useAuth } from '../../lib/auth-context';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { Bell, Moon, Globe, Shield, Trash2, LogOut, AlertTriangle, Loader2 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import {
@@ -249,9 +249,9 @@ export default function SettingsPage() {
         <p className="text-sm text-[var(--omni-text-muted)] mb-4">
           Twoje dane są bezpieczne. Nie udostępniamy ich osobom trzecim.
           Przeczytaj naszą{' '}
-          <a href="#" className="text-[var(--omni-accent)] hover:underline">
+          <Link to="/polityka-prywatnosci" className="text-[var(--omni-accent)] hover:underline">
             Politykę prywatności
-          </a>
+          </Link>
           .
         </p>
       </div>
