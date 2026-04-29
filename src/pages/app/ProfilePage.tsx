@@ -25,6 +25,32 @@ export default function ProfilePage() {
     }).format(date);
   };
 
+  const formatLastSignIn = (date: Date | undefined) => {
+    if (!date) return 'Brak danych';
+    const now = new Date();
+    const isToday = 
+      date.getDate() === now.getDate() &&
+      date.getMonth() === now.getMonth() &&
+      date.getFullYear() === now.getFullYear();
+      
+    const timeFormatter = new Intl.DateTimeFormat('pl-PL', {
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+    
+    if (isToday) {
+      return `Dzisiaj, ${timeFormatter.format(date)}`;
+    }
+    
+    const dateFormatter = new Intl.DateTimeFormat('pl-PL', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric'
+    });
+    
+    return `${dateFormatter.format(date)}, ${timeFormatter.format(date)}`;
+  };
+
   // Plan formatting
   const getPlanLabel = (plan: string | undefined) => {
     if (plan === 'premium') return 'Premium';
@@ -155,7 +181,7 @@ export default function ProfilePage() {
           <div>
             <p className="text-sm text-[var(--omni-text-muted)] mb-2">Ostatnie logowanie</p>
             <p className="text-[var(--omni-text)] font-medium">
-              Brak danych
+              {formatLastSignIn(user?.lastLoginAt)}
             </p>
           </div>
         </div>

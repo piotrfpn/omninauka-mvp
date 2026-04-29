@@ -15,6 +15,7 @@ export interface User {
   postalCode?: string;
   profileCompleted?: boolean;
   profileCompletedAt?: Date;
+  lastLoginAt?: Date;
 }
 
 export interface Folder {
