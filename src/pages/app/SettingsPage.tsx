@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useAuth } from '../../lib/auth-context';
 import { useNavigate } from 'react-router-dom';
-import { Bell, Moon, Globe, Shield, Trash2, LogOut, AlertTriangle, Loader2, School, GraduationCap, MapPin, UserCircle } from 'lucide-react';
+import { Bell, Moon, Globe, Shield, Trash2, LogOut, AlertTriangle, Loader2 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import {
   Dialog,
@@ -16,23 +16,13 @@ import { Input } from "../../components/ui/input";
 import { toast } from "sonner";
 
 export default function SettingsPage() {
-  const { user, logout, updateProfile } = useAuth();
+  const { logout } = useAuth();
   const navigate = useNavigate();
   const [notifications, setNotifications] = useState(true);
   const [darkMode, setDarkMode] = useState(() => {
     return document.documentElement.classList.contains('dark');
   });
   const [language, setLanguage] = useState('pl');
-  
-  // Educational metadata state
-  const [userRole, setUserRole] = useState(user?.userRole || '');
-  const [schoolType, setSchoolType] = useState(user?.schoolType || '');
-  const [educationLevel, setEducationLevel] = useState(user?.educationLevel || '');
-  // Postal code: local display state only. Save happens on blur.
-  const [postalCode, setPostalCode] = useState(user?.postalCode || '');
-  const [postalCodeError, setPostalCodeError] = useState('');
-  const [isUpdating, setIsUpdating] = useState(false);
-  
   // Deletion state
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [deleteConfirmText, setDeleteConfirmText] = useState('');
@@ -46,42 +36,6 @@ export default function SettingsPage() {
     } else {
       document.documentElement.classList.remove('dark');
       localStorage.setItem('omninauka-theme', 'light');
-    }
-  };
-
-  const handleSaveEducational = async () => {
-    let normalizedPostal = postalCode.replace(/\D/g, '');
-    
-    if (normalizedPostal.length > 0 && normalizedPostal.length < 5) {
-      setPostalCodeError('Kod pocztowy powinien mieć 5 cyfr.');
-      return;
-    }
-
-    if (normalizedPostal.length === 5) {
-      normalizedPostal = `${normalizedPostal.slice(0, 2)}-${normalizedPostal.slice(2)}`;
-    }
-
-    setPostalCode(normalizedPostal);
-    setPostalCodeError('');
-    setIsUpdating(true);
-
-    try {
-      const result = await updateProfile({
-        userRole,
-        schoolType,
-        educationLevel,
-        postalCode: normalizedPostal
-      });
-
-      if (result.success) {
-        toast.success("Dane profilu zostały zapisane.");
-      } else {
-        throw new Error(result.error);
-      }
-    } catch (err: any) {
-      toast.error(err.message || "Nie udało się zapisać danych profilu.");
-    } finally {
-      setIsUpdating(false);
     }
   };
 
@@ -155,69 +109,7 @@ export default function SettingsPage() {
         },
       ],
     },
-    {
-      title: 'Dane edukacyjne (opcjonalne)',
-      items: [
-        {
-          icon: UserCircle,
-          label: 'Kim jesteś?',
-          description: 'Twoja rola w systemie',
-          type: 'select' as const,
-          value: userRole,
-          options: [
-            { value: '', label: 'Wybierz rolę...' },
-            { value: 'student', label: 'Uczeń' },
-            { value: 'parent', label: 'Rodzic/opiekun' },
-            { value: 'teacher', label: 'Nauczyciel' },
-            { value: 'other', label: 'Inne' },
-            { value: 'prefer_not_to_say', label: 'Nie chcę podawać' },
-          ],
-          onChange: setUserRole,
-        },
-        {
-          icon: School,
-          label: 'Typ szkoły',
-          description: 'Do jakiej szkoły uczęszczasz',
-          type: 'select' as const,
-          value: schoolType,
-          options: [
-            { value: '', label: 'Wybierz typ...' },
-            { value: 'primary_school', label: 'Szkoła podstawowa' },
-            { value: 'high_school', label: 'Liceum' },
-            { value: 'technical_school', label: 'Technikum' },
-            { value: 'vocational_school_1', label: 'Branżowa I st.' },
-            { value: 'vocational_school_2', label: 'Branżowa II st.' },
-            { value: 'post_secondary', label: 'Policealna' },
-            { value: 'homeschooling', label: 'Edukacja domowa' },
-            { value: 'other', label: 'Inna' },
-            { value: 'prefer_not_to_say', label: 'Nie chcę podawać' },
-          ],
-          onChange: setSchoolType,
-        },
-        {
-          icon: GraduationCap,
-          label: 'Poziom edukacji',
-          description: 'Twój aktualny etap nauki',
-          type: 'select' as const,
-          value: educationLevel,
-          options: [
-            { value: '', label: 'Wybierz poziom...' },
-            { value: 'primary_1_3', label: 'Klasy 1-3' },
-            { value: 'primary_4_6', label: 'Klasy 4-6' },
-            { value: 'primary_7_8', label: 'Klasy 7-8' },
-            { value: 'secondary_1', label: 'Liceum/Tech. kl. 1' },
-            { value: 'secondary_2', label: 'Liceum/Tech. kl. 2' },
-            { value: 'secondary_3', label: 'Liceum/Tech. kl. 3' },
-            { value: 'secondary_4', label: 'Liceum/Tech. kl. 4' },
-            { value: 'secondary_5', label: 'Technikum kl. 5' },
-            { value: 'other', label: 'Inne' },
-            { value: 'prefer_not_to_say', label: 'Nie chcę podawać' },
-          ],
-          onChange: setEducationLevel,
-        },
-        // Postal code is rendered separately below the group — see standalone section
-      ],
-    },
+
   ];
 
   return (
@@ -277,7 +169,6 @@ export default function SettingsPage() {
                   <select
                     value={item.value}
                     onChange={(e) => item.onChange(e.target.value)}
-                    disabled={isUpdating}
                     className="px-4 py-2 bg-background border border-input rounded-lg text-[var(--omni-text)] focus:ring-2 focus:ring-primary/20 transition-all disabled:opacity-50"
                   >
                     {item.options?.map((opt) => (
@@ -294,51 +185,19 @@ export default function SettingsPage() {
         </div>
       ))}
 
-      {/* Postal code — standalone section to avoid onChange→API loop */}
+      {/* Profile Link */}
       <div className="omni-card p-6">
-        <h3 className="font-semibold text-[var(--omni-text)] mb-4">Kod pocztowy (opcjonalny)</h3>
-        <div className="flex items-center justify-between py-3">
-          <div className="flex items-center gap-4">
-            <div className="w-10 h-10 bg-[var(--omni-lavender)] rounded-lg flex items-center justify-center">
-              <MapPin className="w-5 h-5 text-[var(--omni-text)]" />
-            </div>
-            <div>
-              <p className="font-medium text-[var(--omni-text)]">Kod pocztowy</p>
-              <p className="text-sm text-[var(--omni-text-muted)]">
-                Wpisz i kliknij poza polem, aby zapisać
-              </p>
-              {postalCodeError && (
-                <p className="text-xs text-red-500 mt-1">{postalCodeError}</p>
-              )}
-            </div>
+        <h3 className="font-semibold text-[var(--omni-text)] mb-4">Profil</h3>
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="font-medium text-[var(--omni-text)]">Dane edukacyjne i profilowe</p>
+            <p className="text-sm text-[var(--omni-text-muted)]">Edytuj dane profilu i informacje edukacyjne.</p>
           </div>
-          <div className="flex flex-col items-end gap-2">
-            <input
-              type="text"
-              value={postalCode}
-              onChange={(e) => {
-                const digitsOnly = e.target.value.replace(/\D/g, '').substring(0, 5);
-                setPostalCode(digitsOnly);
-                setPostalCodeError('');
-              }}
-              disabled={isUpdating}
-              placeholder="np. 60142"
-              maxLength={6}
-              className={`w-28 px-4 py-2 bg-background border rounded-lg text-[var(--omni-text)] text-center focus:ring-2 focus:ring-primary/20 transition-all disabled:opacity-50 ${
-                postalCodeError ? 'border-red-400' : 'border-input'
-              }`}
-            />
-          </div>
-        </div>
-        
-        <div className="flex justify-end pt-4 mt-2 border-t border-border">
-          <button
-            onClick={handleSaveEducational}
-            disabled={isUpdating}
-            className="omni-btn-primary py-2 px-6 flex items-center gap-2"
+          <button 
+            onClick={() => navigate('/app/profile')}
+            className="omni-btn-secondary px-6 py-2"
           >
-            {isUpdating && <Loader2 className="w-4 h-4 animate-spin" />}
-            Zapisz zmiany
+            Przejdź do profilu
           </button>
         </div>
       </div>
