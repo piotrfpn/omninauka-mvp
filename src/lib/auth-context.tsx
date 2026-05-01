@@ -5,7 +5,7 @@ import { supabase } from './supabase';
 
 interface AuthContextType extends AuthState {
   login: (email: string, password: string) => Promise<boolean>;
-  register: (email: string, password: string, name: string, ageBand: string) => Promise<{ success: boolean; message?: string; requireEmailVerification?: boolean }>;
+  register: (email: string, password: string, name: string, ageBand: string, userRole?: string) => Promise<{ success: boolean; message?: string; requireEmailVerification?: boolean }>;
   logout: () => void;
   loginAsDemo: () => void;
   updateProfile: (updates: any) => Promise<{ success: boolean; error?: string }>;
@@ -162,7 +162,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return true;
   };
 
-  const register = async (email: string, password: string, name: string, ageBand: string) => {
+  const register = async (email: string, password: string, name: string, ageBand: string, userRole: string = 'student') => {
     setIsDemoMode(false);
     
     // Initial status based on age band logic (matching the DB trigger)
@@ -175,7 +175,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         data: {
           name,
           ageBand,
-          accountStatus: initialStatus
+          accountStatus: initialStatus,
+          user_role: userRole
         }
       }
     });

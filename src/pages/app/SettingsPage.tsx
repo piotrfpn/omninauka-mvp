@@ -16,7 +16,7 @@ import { Input } from "../../components/ui/input";
 import { toast } from "sonner";
 
 export default function SettingsPage() {
-  const { logout } = useAuth();
+  const { user, logout } = useAuth();
   const navigate = useNavigate();
   const [notifications, setNotifications] = useState(true);
   const [darkMode, setDarkMode] = useState(() => {
@@ -201,6 +201,25 @@ export default function SettingsPage() {
           </button>
         </div>
       </div>
+
+      {/* Parent Dashboard Link */}
+      {(user?.userRole === 'parent' || user?.userRole === 'guardian') && (
+        <div className="omni-card p-6">
+          <h3 className="font-semibold text-[var(--omni-text)] mb-4">Dla rodzica / opiekuna</h3>
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+              <p className="font-medium text-[var(--omni-text)]">Panel rodzica</p>
+              <p className="text-sm text-[var(--omni-text-muted)]">Sprawdź status zgody i podstawowe informacje o postępach dziecka.</p>
+            </div>
+            <button 
+              onClick={() => navigate('/app/parent')}
+              className="omni-btn-secondary px-6 py-2 whitespace-nowrap"
+            >
+              Otwórz Panel Rodzica
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Account Actions */}
       <div className="omni-card p-6">

@@ -5,7 +5,7 @@ import { Eye, EyeOff, Mail, Lock, User, ArrowRight } from 'lucide-react';
 import OmniNaukaLogo from '../components/brand/OmniNaukaLogo';
 
 export default function RegisterPage() {
-  const { register, isAuthenticated } = useAuth();
+  const { register, isAuthenticated, user } = useAuth();
   const navigate = useNavigate();
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -16,26 +16,37 @@ export default function RegisterPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [ageBand, setAgeBand] = useState('');
   const [showAgeBlock, setShowAgeBlock] = useState(false);
+  const [userRole, setUserRole] = useState<'student' | 'parent' | ''>('');
 
   // Redirect if already logged in
   useEffect(() => {
-    if (isAuthenticated) {
-      navigate('/app/dashboard');
+    if (isAuthenticated && user) {
+      if (user.userRole === 'parent' || user.userRole === 'guardian') {
+        navigate('/app/parent');
+      } else {
+        navigate('/app/dashboard');
+      }
     }
-  }, [isAuthenticated, navigate]);
+  }, [isAuthenticated, user, navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     setIsLoading(true);
 
-    if (ageBand === 'under_13') {
+    if (!userRole) {
+      setError('Proszę wybrać rolę (Uczeń lub Rodzic/Opiekun)');
+      setIsLoading(false);
+      return;
+    }
+
+    if (userRole === 'student' && ageBand === 'under_13') {
       setShowAgeBlock(true);
       setIsLoading(false);
       return;
     }
 
-    if (!ageBand) {
+    if (userRole === 'student' && !ageBand) {
       setError('Proszę wybrać grupę wiekową');
       setIsLoading(false);
       return;
@@ -48,7 +59,7 @@ export default function RegisterPage() {
     }
 
     try {
-      const result = await register(email, password, name, ageBand);
+      const result = await register(email, password, name, userRole === 'parent' ? 'parent' : ageBand, userRole);
       
       if (!result.success) {
         setError(result.message || 'Nie udało się utworzyć konta.');
@@ -134,22 +145,47 @@ export default function RegisterPage() {
 
             <div>
               <label className="block text-sm font-medium text-[var(--omni-text)] mb-2">
-                Wiek / Rola
+                Kim jesteś?
               </label>
-              <select
-                value={ageBand}
-                onChange={(e) => setAgeBand(e.target.value)}
-                className="omni-input"
-                required
-              >
-                <option value="" disabled>Wybierz grupę wiekową</option>
-                <option value="under_13">Mniej niż 13 lat</option>
-                <option value="13_15">13 – 15 lat</option>
-                <option value="16_17">16 – 17 lat</option>
-                <option value="18_plus">18+ lat</option>
-                <option value="parent">Rodzic / Opiekun</option>
-              </select>
+              <div className="grid grid-cols-2 gap-4">
+                <button
+                  type="button"
+                  onClick={() => { setUserRole('student'); setAgeBand(''); }}
+                  className={`p-4 border rounded-xl flex flex-col items-center justify-center gap-2 transition-all ${userRole === 'student' ? 'border-[var(--omni-primary)] bg-[var(--omni-primary)]/5 text-[var(--omni-primary)]' : 'border-border hover:border-gray-300 text-[var(--omni-text-muted)]'}`}
+                >
+                  <User className="w-6 h-6" />
+                  <span className="font-medium text-sm">Jestem uczniem</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { setUserRole('parent'); setAgeBand('parent'); }}
+                  className={`p-4 border rounded-xl flex flex-col items-center justify-center gap-2 transition-all ${userRole === 'parent' ? 'border-[var(--omni-primary)] bg-[var(--omni-primary)]/5 text-[var(--omni-primary)]' : 'border-border hover:border-gray-300 text-[var(--omni-text-muted)]'}`}
+                >
+                  <User className="w-6 h-6" />
+                  <span className="font-medium text-sm">Jestem rodzicem / opiekunem</span>
+                </button>
+              </div>
             </div>
+
+            {userRole === 'student' && (
+              <div className="animate-in fade-in slide-in-from-top-2 duration-300">
+                <label className="block text-sm font-medium text-[var(--omni-text)] mb-2">
+                  Wiek
+                </label>
+                <select
+                  value={ageBand}
+                  onChange={(e) => setAgeBand(e.target.value)}
+                  className="omni-input"
+                  required
+                >
+                  <option value="" disabled>Wybierz grupę wiekową</option>
+                  <option value="under_13">Mniej niż 13 lat</option>
+                  <option value="13_15">13 – 15 lat</option>
+                  <option value="16_17">16 – 17 lat</option>
+                  <option value="18_plus">18+ lat</option>
+                </select>
+              </div>
+            )}
 
             <div>
               <label className="block text-sm font-medium text-[var(--omni-text)] mb-2">

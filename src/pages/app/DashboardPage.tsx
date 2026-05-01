@@ -24,6 +24,12 @@ export default function DashboardPage() {
   const navigate = useNavigate();
   const { user, isDemoMode } = useAuth();
   
+  useEffect(() => {
+    if (user?.userRole === 'parent' || user?.userRole === 'guardian') {
+      navigate('/app/parent', { replace: true });
+    }
+  }, [user, navigate]);
+  
   const [sessions, setSessions] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);

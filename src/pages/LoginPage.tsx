@@ -1,11 +1,11 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../lib/auth-context';
-import { Eye, EyeOff, Mail, Lock, ArrowRight, Sparkles } from 'lucide-react';
+import { Eye, EyeOff, Mail, Lock, ArrowRight, Sparkles, ShieldCheck } from 'lucide-react';
 import OmniNaukaLogo from '../components/brand/OmniNaukaLogo';
 
 export default function LoginPage() {
-  const { login, loginAsDemo, isAuthenticated } = useAuth();
+  const { login, loginAsDemo, isAuthenticated, user } = useAuth();
   const navigate = useNavigate();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -15,10 +15,14 @@ export default function LoginPage() {
 
   // Redirect if already logged in
   useEffect(() => {
-    if (isAuthenticated) {
-      navigate('/app/dashboard');
+    if (isAuthenticated && user) {
+      if (user.userRole === 'parent' || user.userRole === 'guardian') {
+        navigate('/app/parent');
+      } else {
+        navigate('/app/dashboard');
+      }
     }
-  }, [isAuthenticated, navigate]);
+  }, [isAuthenticated, user, navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -56,6 +60,17 @@ export default function LoginPage() {
           <p className="text-[var(--omni-text-muted)]">
             Zaloguj się, by kontynuować naukę
           </p>
+        </div>
+
+        {/* Parent Info Card */}
+        <div className="mb-6 p-4 bg-[var(--omni-lavender)] rounded-xl flex items-start gap-4">
+          <ShieldCheck className="w-6 h-6 text-[var(--omni-primary)] shrink-0" />
+          <div className="text-left">
+            <h3 className="font-semibold text-[var(--omni-text)] text-sm">Panel Rodzica — logowanie</h3>
+            <p className="text-xs text-[var(--omni-text-muted)] mt-1">
+              Zaloguj się jako rodzic lub opiekun (poniżej), aby sprawdzić postępy dziecka. Użyj danych podanych przy rejestracji.
+            </p>
+          </div>
         </div>
 
         {/* Login Form */}

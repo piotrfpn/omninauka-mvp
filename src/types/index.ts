@@ -184,3 +184,21 @@ export interface DashboardSummary {
   subjectProgress: SubjectProgress[];
   recentUploads: UploadedFile[];
 }
+
+// Parent Dashboard Types
+export interface ParentChildData {
+  consent_id: string;
+  consent_status: 'pending' | 'approved' | 'withdrawn' | 'revoked' | 'suspended' | string;
+  consent_created_at: string;
+  consent_updated_at: string;
+  consent_approved_at: string | null;
+  child_user_id: string | null;
+  safe_child_name: string | null;
+  child_email_masked: string | null;
+  education_level: string | null;
+  school_type: string | null;
+  grade_level: string | null;
+  profile_completed: boolean | null;
+  last_login_at: string | null;
+}
+

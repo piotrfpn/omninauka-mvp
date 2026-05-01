@@ -15,6 +15,7 @@ import {
   X,
   LogOut,
   ChevronRight,
+  ShieldCheck,
 } from 'lucide-react';
 import OmniNaukaLogo from '../brand/OmniNaukaLogo';
 
@@ -60,7 +61,18 @@ export function AppShell({ children }: AppShellProps) {
 
   const activeId = getActiveSessionId();
 
-  const dynamicNavItems = navItems.map(item => {
+  const isParent = user?.userRole === 'parent' || user?.userRole === 'guardian';
+
+  let baseNavItems = [];
+  if (isParent) {
+    baseNavItems = [
+      { label: 'Panel rodzica', href: '/app/parent', icon: ShieldCheck as any }
+    ];
+  } else {
+    baseNavItems = [...navItems];
+  }
+
+  const dynamicNavItems = baseNavItems.map(item => {
     // Only apply to learning modules
     if (activeId && ['Fiszki', 'Quiz', 'Lekcja AI'].includes(item.label)) {
       return { ...item, href: `${item.href}/${activeId}` };
