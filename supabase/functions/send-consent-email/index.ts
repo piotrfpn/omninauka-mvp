@@ -24,11 +24,17 @@ serve(async (req) => {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const resendApiKey = Deno.env.get('RESEND_API_KEY');
-    const resendFromEmail = Deno.env.get('RESEND_FROM_EMAIL') || 'OmniNauka <zgody@mail.omninauka.eu>';
-    const appBaseUrl = Deno.env.get('APP_BASE_URL') || 'https://omninauka.vercel.app';
+    const resendFromEmail = Deno.env.get('RESEND_FROM_EMAIL');
+    const appBaseUrl = Deno.env.get('APP_BASE_URL');
 
     if (!resendApiKey) {
-      throw new Error("Missing RESEND_API_KEY");
+      throw new Error("Missing RESEND_API_KEY configuration");
+    }
+    if (!resendFromEmail) {
+      throw new Error("Missing RESEND_FROM_EMAIL configuration");
+    }
+    if (!appBaseUrl) {
+      throw new Error("Missing APP_BASE_URL configuration");
     }
 
     // 1. Auth check

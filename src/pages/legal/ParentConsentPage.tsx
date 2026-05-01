@@ -133,7 +133,7 @@ export default function ParentConsentPage() {
           </div>
           <h1 className="omni-heading-3 mb-4">Zgoda zatwierdzona!</h1>
           <p className="text-[var(--omni-text-muted)] mb-8">
-            Dziękujemy. Twoje dziecko (<strong>{consentData?.profiles?.name}</strong>) może już w pełni korzystać z funkcji edukacyjnych OmniNauka.
+            Dziękujemy. Twoje dziecko może już w pełni korzystać z funkcji edukacyjnych OmniNauka.
           </p>
           <Link to="/" className="omni-btn-primary w-full">
             Przejdź do OmniNauka
