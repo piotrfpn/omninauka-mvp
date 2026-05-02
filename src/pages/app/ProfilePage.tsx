@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react';
 import { useAuth } from '../../lib/auth-context';
 import { EducationalProfileForm } from '../../components/profile/EducationalProfileForm';
 import { 
@@ -9,13 +10,51 @@ import {
   Clock, 
   CheckCircle2, 
   AlertTriangle, 
-  XCircle 
+  XCircle,
+  Loader2
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import { toast } from 'sonner';
 
 export default function ProfilePage() {
   const { t, i18n } = useTranslation();
-  const { user } = useAuth();
+  const { user, updateProfile } = useAuth();
+
+  const [isEditingName, setIsEditingName] = useState(false);
+  const [editedName, setEditedName] = useState(user?.name || '');
+  const [isUpdatingName, setIsUpdatingName] = useState(false);
+
+  useEffect(() => {
+    if (user?.name && !isEditingName) {
+      setEditedName(user.name);
+    }
+  }, [user?.name, isEditingName]);
+
+  const handleSaveName = async () => {
+    if (!editedName.trim()) {
+      toast.error(t('profile.error.emptyName', 'Imię nie może być puste'));
+      return;
+    }
+    setIsUpdatingName(true);
+    try {
+      const result = await updateProfile({ name: editedName });
+      if (result.success) {
+        toast.success(t('profile.toast.nameUpdated', 'Imię zostało zaktualizowane'));
+        setIsEditingName(false);
+      } else {
+        throw new Error(result.error);
+      }
+    } catch (err: any) {
+      toast.error(err.message || t('profile.error.updateFailed', 'Błąd podczas aktualizacji'));
+    } finally {
+      setIsUpdatingName(false);
+    }
+  };
+
+  const handleCancelName = () => {
+    setEditedName(user?.name || '');
+    setIsEditingName(false);
+  };
 
   const currentLocale = i18n.language === 'pl' ? 'pl-PL' : i18n.language;
 
@@ -109,23 +148,62 @@ export default function ProfilePage() {
               <UserCircle className="w-10 h-10 text-[var(--omni-primary)]" />
             )}
           </div>
-          <div className="min-w-0">
-            <h2 className="text-2xl font-bold text-[var(--omni-text)] truncate">
-              {user?.name || t('appShell.user', 'Użytkownik')}
-            </h2>
-            <p className="text-[var(--omni-text-muted)] truncate">
-              {user?.email}
-            </p>
+          <div className="min-w-0 flex-1">
+            {isEditingName ? (
+              <div className="flex flex-col gap-2">
+                <input
+                  type="text"
+                  value={editedName}
+                  onChange={(e) => setEditedName(e.target.value)}
+                  disabled={isUpdatingName}
+                  className="text-xl font-bold text-[var(--omni-text)] bg-background border border-primary/30 rounded-lg px-3 py-1 w-full max-w-md focus:ring-2 focus:ring-primary/20 outline-none"
+                  placeholder={t('auth.register.namePlaceholder', 'Twoje imię')}
+                  autoFocus
+                />
+                <p className="text-sm text-[var(--omni-text-muted)]">
+                  {user?.email}
+                </p>
+              </div>
+            ) : (
+              <>
+                <h2 className="text-2xl font-bold text-[var(--omni-text)] truncate">
+                  {user?.name || t('appShell.user', 'Użytkownik')}
+                </h2>
+                <p className="text-[var(--omni-text-muted)] truncate">
+                  {user?.email}
+                </p>
+              </>
+            )}
           </div>
         </div>
-        <button 
-          onClick={() => {
-            document.getElementById('educational-section')?.scrollIntoView({ behavior: 'smooth' });
-          }}
-          className="omni-btn-secondary px-6 py-2 shrink-0"
-        >
-          {t('profile.editData', 'Edytuj dane')}
-        </button>
+        <div className="flex gap-3 shrink-0">
+          {isEditingName ? (
+            <>
+              <button 
+                onClick={handleCancelName}
+                disabled={isUpdatingName}
+                className="omni-btn-secondary px-4 py-2 text-sm"
+              >
+                {t('common.cancel', 'Anuluj')}
+              </button>
+              <button 
+                onClick={handleSaveName}
+                disabled={isUpdatingName}
+                className="omni-btn-primary px-6 py-2 text-sm flex items-center gap-2"
+              >
+                {isUpdatingName && <Loader2 className="w-4 h-4 animate-spin" />}
+                {t('common.save', 'Zapisz')}
+              </button>
+            </>
+          ) : (
+            <button 
+              onClick={() => setIsEditingName(true)}
+              className="omni-btn-secondary px-6 py-2"
+            >
+              {t('profile.editProfile', 'Edytuj profil')}
+            </button>
+          )}
+        </div>
       </div>
 
       {/* 2. Information Cards */}
