@@ -387,11 +387,11 @@
   },
   "profile": {
     "title": "Twój profil",
-    "subtitle": "Dostosuj dane profilu i informacje edukacyjne",
+    "subtitle": "Dostosuj profil i dane edukacyjne",
     "editData": "Edytuj dane",
     "info": {
       "plan": "Plan",
-      "joined": "Dołączył(a)",
+      "joined": "Dołączono",
       "email": "E-mail"
     },
     "activity": {
@@ -400,10 +400,10 @@
       "lastLogin": "Ostatnie logowanie"
     },
     "status": {
-      "active": "Aktywne",
-      "pending": "Oczekuje na zgodę rodzica",
-      "withdrawn": "Cofnięta zgoda",
-      "suspended": "Zawieszone"
+      "active": "Dostęp edukacyjny: aktywny",
+      "pending": "Zgoda rodzica: oczekuje na zatwierdzenie",
+      "withdrawn": "Dostęp edukacyjny: wstrzymany",
+      "suspended": "Dostęp edukacyjny: wstrzymany"
     },
     "educational": {
       "title": "Dane edukacyjne",

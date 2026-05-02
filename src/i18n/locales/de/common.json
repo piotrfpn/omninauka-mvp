@@ -387,7 +387,7 @@
   },
   "profile": {
     "title": "Dein Profil",
-    "subtitle": "Profil- und Bildungsdaten anpassen",
+    "subtitle": "Profil und Bildungsdaten anpassen",
     "editData": "Daten bearbeiten",
     "info": {
       "plan": "Plan",
@@ -400,10 +400,10 @@
       "lastLogin": "Letzter Login"
     },
     "status": {
-      "active": "Aktiv",
-      "pending": "Warten auf Zustimmung",
-      "withdrawn": "Zustimmung zurückgezogen",
-      "suspended": "Suspendiert"
+      "active": "Bildungszugang: aktiv",
+      "pending": "Elternerlaubnis: ausstehend",
+      "withdrawn": "Bildungszugang: pausiert",
+      "suspended": "Bildungszugang: pausiert"
     },
     "educational": {
       "title": "Bildungsdaten",

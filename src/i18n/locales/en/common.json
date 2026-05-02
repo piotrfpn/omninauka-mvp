@@ -400,10 +400,10 @@
       "lastLogin": "Last Login"
     },
     "status": {
-      "active": "Active",
-      "pending": "Pending Parent Consent",
-      "withdrawn": "Consent Withdrawn",
-      "suspended": "Suspended"
+      "active": "Educational access: active",
+      "pending": "Parent consent: pending approval",
+      "withdrawn": "Educational access: paused",
+      "suspended": "Educational access: paused"
     },
     "educational": {
       "title": "Educational Data",

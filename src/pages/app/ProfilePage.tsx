@@ -70,15 +70,15 @@ export default function ProfilePage() {
     switch (status) {
       case 'active':
       case 'parent_approved':
-        return { label: t('profile.status.active', 'Aktywne'), color: 'bg-green-100 text-green-700 border-green-200', icon: CheckCircle2 };
+        return { label: t('profile.status.active', 'Dostęp edukacyjny: aktywny'), color: 'bg-green-100 text-green-700 border-green-200', icon: CheckCircle2 };
       case 'pending_parent_consent':
-        return { label: t('profile.status.pending', 'Oczekuje na zgodę rodzica'), color: 'bg-yellow-100 text-yellow-700 border-yellow-200', icon: Clock };
+        return { label: t('profile.status.pending', 'Zgoda rodzica: oczekuje na zatwierdzenie'), color: 'bg-yellow-100 text-yellow-700 border-yellow-200', icon: Clock };
       case 'parent_withdrawn':
-        return { label: t('profile.status.withdrawn', 'Cofnięta zgoda'), color: 'bg-red-100 text-red-700 border-red-200', icon: XCircle };
+        return { label: t('profile.status.withdrawn', 'Dostęp edukacyjny: wstrzymany'), color: 'bg-red-100 text-red-700 border-red-200', icon: XCircle };
       case 'suspended':
-        return { label: t('profile.status.suspended', 'Zawieszone'), color: 'bg-red-100 text-red-700 border-red-200', icon: AlertTriangle };
+        return { label: t('profile.status.suspended', 'Dostęp edukacyjny: wstrzymany'), color: 'bg-red-100 text-red-700 border-red-200', icon: AlertTriangle };
       default:
-        return { label: t('profile.status.active', 'Aktywne'), color: 'bg-green-100 text-green-700 border-green-200', icon: CheckCircle2 };
+        return { label: t('profile.status.active', 'Dostęp edukacyjny: aktywny'), color: 'bg-green-100 text-green-700 border-green-200', icon: CheckCircle2 };
     }
   };
 
@@ -93,7 +93,7 @@ export default function ProfilePage() {
           {t('profile.title', 'Twój profil')}
         </h1>
         <p className="text-[var(--omni-text-muted)]">
-          {t('profile.subtitle', 'Dostosuj dane profilu i informacje edukacyjne')}
+          {t('profile.subtitle', 'Dostosuj profil i dane edukacyjne')}
         </p>
       </div>
 
@@ -149,7 +149,7 @@ export default function ProfilePage() {
             <Calendar className="w-5 h-5 text-[var(--omni-primary)]" />
           </div>
           <div>
-            <p className="text-sm font-medium text-[var(--omni-text-muted)]">{t('profile.info.joined', 'Dołączył(a)')}</p>
+            <p className="text-sm font-medium text-[var(--omni-text-muted)]">{t('profile.info.joined', 'Dołączono')}</p>
             <p className="text-lg font-semibold text-[var(--omni-text)] mt-1">
               {formatDate(user?.createdAt)}
             </p>

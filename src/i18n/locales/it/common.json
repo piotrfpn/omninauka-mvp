@@ -387,7 +387,7 @@
   },
   "profile": {
     "title": "Il Tuo Profilo",
-    "subtitle": "Personalizza i dati del profilo e dell'istruzione",
+    "subtitle": "Personalizza profilo e dati educativi",
     "editData": "Modifica dati",
     "info": {
       "plan": "Piano",
@@ -400,10 +400,10 @@
       "lastLogin": "Ultimo accesso"
     },
     "status": {
-      "active": "Attivo",
-      "pending": "In attesa di consenso",
-      "withdrawn": "Consenso revocato",
-      "suspended": "Sospeso"
+      "active": "Accesso educativo: attivo",
+      "pending": "Consenso dei genitori: in attesa",
+      "withdrawn": "Accesso educativo: sospeso",
+      "suspended": "Accesso educativo: sospeso"
     },
     "educational": {
       "title": "Dati sull'Istruzione",
