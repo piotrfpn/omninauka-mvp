@@ -99,8 +99,8 @@ export default function ContactPage() {
           <div className="flex flex-wrap justify-center gap-x-6 gap-y-3 mb-6 text-xs uppercase tracking-wider font-medium">
             <Link to="/regulamin" className="hover:text-white transition-colors">{t('home.footer.legal.terms', 'Regulamin')}</Link>
             <Link to="/polityka-prywatnosci" className="hover:text-white transition-colors">{t('home.footer.legal.privacy', 'Polityka prywatności')}</Link>
-            <Link to="/cookies" className="hover:text-white transition-colors">{t('legal.cookies.title', 'Cookies')}</Link>
-            <Link to="/ai-disclaimer" className="hover:text-white transition-colors">{t('legal.aiDisclaimer.title', 'AI Disclaimer')}</Link>
+            <Link to="/polityka-cookies" className="hover:text-white transition-colors">{t('home.footer.legal.cookies', 'Polityka cookies')}</Link>
+            <Link to="/ai-disclaimer" className="hover:text-white transition-colors">{t('home.footer.legal.aiDisclaimer', 'AI Disclaimer')}</Link>
             <Link to="/polityka-zglaszania-naruszen" className="hover:text-white transition-colors">{t('home.footer.legal.reports', 'Zgłaszanie naruszeń')}</Link>
           </div>
           <p>{t('home.footer.copyright', '© 2026 OmniNauka. Wszelkie prawa zastrzeżone.')}</p>

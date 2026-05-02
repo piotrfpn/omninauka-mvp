@@ -384,9 +384,6 @@ export default function HomePage() {
                 <li><a href="#jak-to-dziala" className="text-[#94A3B8] hover:text-[#2EE6A6] transition-colors text-sm">{t('home.footer.product.features', 'Funkcje')}</a></li>
                 <li><a href="#cennik" className="text-[#94A3B8] hover:text-[#2EE6A6] transition-colors text-sm">{t('home.footer.product.pricing', 'Cennik')}</a></li>
                 <li><a href="#faq" className="text-[#94A3B8] hover:text-[#2EE6A6] transition-colors text-sm">{t('home.footer.product.faq', 'FAQ')}</a></li>
-                <li><Link to="/ai-disclaimer" className="text-[#94A3B8] hover:text-[#2EE6A6] transition-colors text-sm">AI Disclaimer</Link></li>
-                <li><Link to="/cookies" className="text-[#94A3B8] hover:text-[#2EE6A6] transition-colors text-sm">Cookies</Link></li>
-                <li><a href="#" className="text-[#94A3B8] hover:text-[#2EE6A6] transition-colors text-sm">{t('home.footer.product.security', 'Bezpieczeństwo')}</a></li>
               </ul>
             </div>
 
@@ -400,12 +397,15 @@ export default function HomePage() {
               </ul>
             </div>
 
+            {/* Legal Column */}
             <div>
               <h4 className="font-bold text-white mb-6 uppercase tracking-wider text-sm">{t('home.footer.legal.title', 'Prawne')}</h4>
               <ul className="space-y-4">
                 <li><Link to="/regulamin" className="text-[#94A3B8] hover:text-[#2EE6A6] transition-colors text-sm">{t('home.footer.legal.terms', 'Regulamin')}</Link></li>
                 <li><Link to="/polityka-prywatnosci" className="text-[#94A3B8] hover:text-[#2EE6A6] transition-colors text-sm">{t('home.footer.legal.privacy', 'Polityka prywatności')}</Link></li>
+                <li><Link to="/polityka-cookies" className="text-[#94A3B8] hover:text-[#2EE6A6] transition-colors text-sm">{t('home.footer.legal.cookies', 'Polityka cookies')}</Link></li>
                 <li><Link to="/polityka-prywatnosci#rodo" className="text-[#94A3B8] hover:text-[#2EE6A6] transition-colors text-sm">RODO</Link></li>
+                <li><Link to="/ai-disclaimer" className="text-[#94A3B8] hover:text-[#2EE6A6] transition-colors text-sm">{t('home.footer.legal.aiDisclaimer', 'AI Disclaimer')}</Link></li>
                 <li><Link to="/polityka-zglaszania-naruszen" className="text-[#94A3B8] hover:text-[#2EE6A6] transition-colors text-sm">{t('home.footer.legal.reports', 'Zgłaszanie naruszeń i usuwanie treści')}</Link></li>
               </ul>
             </div>

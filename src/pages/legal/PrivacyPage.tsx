@@ -87,6 +87,12 @@ export default function PrivacyPage() {
         <p>
           Ze względu na edukacyjny profil aplikacji, przetwarzamy dane osób niepełnoletnich. Wymagamy, aby rejestracja odbywała się za wiedzą i zgodą rodzica lub opiekuna prawnego.
         </p>
+        <p className="mt-4">
+          Jeżeli dziecko poniżej 13 roku życia rozpocznie rejestrację konta, a podany adres e-mail nie został wcześniej dodany i zatwierdzony przez rodzica lub opiekuna prawnego w Panelu Rodzica, konto dziecka pozostaje zablokowane i nie ma dostępu do funkcji edukacyjnych OmniNauka.
+        </p>
+        <p className="mt-2">
+          Dane takiego konta są przetwarzane wyłącznie w celu umożliwienia powiązania konta z rodzicem lub opiekunem prawnym. Jeżeli konto nie zostanie powiązane z rodzicem lub opiekunem w ciągu 72 godzin, może zostać usunięte lub oznaczone do usunięcia zgodnie z zasadą minimalizacji danych.
+        </p>
       </section>
 
       <section>
@@ -107,6 +113,13 @@ export default function PrivacyPage() {
         <h2>12. Minimalizacja danych (Szkoły/JST)</h2>
         <p>
           W przypadku współpracy z placówkami oświatowymi, stosujemy zasadę minimalizacji danych, zbierając jedynie te informacje, które są niezbędne do realizacji celów dydaktycznych.
+        </p>
+      </section>
+
+      <section>
+        <h2>13. Pliki cookies</h2>
+        <p>
+          Nasza strona korzysta z plików cookies i podobnych technologii w celach technicznych i funkcjonalnych. Szczegółowe informacje na ten temat znajdziesz w naszej <a href="/polityka-cookies" className="text-[var(--omni-accent)] hover:underline">Polityce cookies</a>.
         </p>
       </section>
     </LegalPageLayout>

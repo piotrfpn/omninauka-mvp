@@ -35,7 +35,7 @@ export default function LegalPageLayout({
           to="/login" 
           className="px-4 py-2 text-[var(--omni-text)] font-medium hover:text-[var(--omni-accent)] transition-colors text-sm"
         >
-          {t('auth.login', 'Zaloguj się')}
+          {t('auth.login.submit', 'Zaloguj się')}
         </Link>
       </nav>
 
@@ -106,8 +106,8 @@ export default function LegalPageLayout({
           <div className="flex flex-wrap justify-center gap-x-8 gap-y-4 mb-8 text-xs font-medium uppercase tracking-wider">
             <Link to="/regulamin" className="hover:text-white transition-colors">{t('home.footer.legal.terms', 'Regulamin')}</Link>
             <Link to="/polityka-prywatnosci" className="hover:text-white transition-colors">{t('home.footer.legal.privacy', 'Prywatność')}</Link>
-            <Link to="/cookies" className="hover:text-white transition-colors">{t('legal.cookies.title', 'Cookies')}</Link>
-            <Link to="/ai-disclaimer" className="hover:text-white transition-colors">{t('legal.aiDisclaimer.title', 'AI Disclaimer')}</Link>
+            <Link to="/polityka-cookies" className="hover:text-white transition-colors">{t('home.footer.legal.cookies', 'Polityka cookies')}</Link>
+            <Link to="/ai-disclaimer" className="hover:text-white transition-colors">{t('home.footer.legal.aiDisclaimer', 'AI Disclaimer')}</Link>
             <Link to="/polityka-zglaszania-naruszen" className="hover:text-white transition-colors">{t('home.footer.legal.reports', 'Zgłaszanie naruszeń')}</Link>
             <Link to="/kontakt" className="hover:text-white transition-colors">{t('contact.title', 'Kontakt')}</Link>
           </div>

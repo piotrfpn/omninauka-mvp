@@ -70,7 +70,7 @@ function AppRoutes() {
       <Route path="/kontakt" element={<ContactPage />} />
       <Route path="/regulamin" element={<TermsPage />} />
       <Route path="/polityka-prywatnosci" element={<PrivacyPage />} />
-      <Route path="/cookies" element={<CookiesPage />} />
+      <Route path="/polityka-cookies" element={<CookiesPage />} />
       <Route path="/ai-disclaimer" element={<AIDisclaimerPage />} />
       <Route path="/polityka-zglaszania-naruszen" element={<ContentPolicyPage />} />
       <Route path="/consent/:token" element={<ParentConsentPage />} />
