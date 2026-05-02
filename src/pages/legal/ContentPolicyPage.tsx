@@ -1,9 +1,11 @@
 import LegalPageLayout from '../../components/legal/LegalPageLayout';
+import { useTranslation } from 'react-i18next';
 
 export default function ContentPolicyPage() {
+  const { t } = useTranslation();
   return (
     <LegalPageLayout 
-      title="Polityka zgłaszania naruszeń i usuwania treści" 
+      title={t('home.footer.legal.reports', 'Polityka zgłaszania naruszeń i usuwania treści')} 
       lastUpdated="26.04.2026"
       isDraft={false}
     >

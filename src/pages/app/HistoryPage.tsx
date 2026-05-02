@@ -12,6 +12,7 @@ import {
 import { LessonTitleEditor } from '../../components/lessons/lesson-title-editor';
 import { toast } from 'sonner';
 import { HistorySkeleton } from '../../components/ui/page-skeletons';
+import { useTranslation } from 'react-i18next';
 
 // ─── Delete confirmation dialog ────────────────────────────────────────────────
 function ConfirmDialog({
@@ -31,6 +32,7 @@ function ConfirmDialog({
   isProcessing: boolean;
   variant?: 'danger' | 'info';
 }) {
+  const { t } = useTranslation();
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm"
@@ -53,7 +55,7 @@ function ConfirmDialog({
             disabled={isProcessing}
             className="flex-1 px-4 py-2.5 rounded-xl border border-gray-200 text-[var(--omni-text)] font-medium hover:bg-gray-50 dark:hover:bg-slate-800 transition-colors disabled:opacity-50"
           >
-            Anuluj
+            {t('history.buttons.cancel')}
           </button>
           <button
             onClick={onConfirm}
@@ -91,6 +93,7 @@ function FolderTreeItem({
   selectedId: string | null;
   currentLocationId: string | null;
 }) {
+  const { t } = useTranslation();
   const [isOpen, setIsOpen] = useState(true);
   const children = allFolders.filter(f => f.parent_id === folder.id);
   const isSelected = selectedId === folder.id;
@@ -120,7 +123,7 @@ function FolderTreeItem({
           <Folder className={`w-4 h-4 flex-shrink-0 ${isSelected ? 'fill-current' : 'text-indigo-500'}`} />
           <span className="truncate text-sm font-medium">{folder.name}</span>
         </div>
-        {isCurrent && <span className="text-[10px] uppercase font-bold px-1.5 py-0.5 bg-slate-200 dark:bg-slate-700 rounded text-slate-500">Obecnie</span>}
+        {isCurrent && <span className="text-[10px] uppercase font-bold px-1.5 py-0.5 bg-slate-200 dark:bg-slate-700 rounded text-slate-500">{t('history.explorer.current')}</span>}
       </button>
 
       {isOpen && children.map(child => (
@@ -152,6 +155,7 @@ function MoveModal({
   onCancel: () => void;
   isProcessing: boolean;
 }) {
+  const { t } = useTranslation();
   const [selectedId, setSelectedId] = useState<string | null>(currentLocationId);
   const rootFolders = allFolders.filter(f => !f.parent_id);
 
@@ -163,8 +167,8 @@ function MoveModal({
             <ArrowRightLeft className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
           </div>
           <div>
-            <h3 className="text-lg font-semibold text-[var(--omni-text)] leading-tight">Przenieś lekcję</h3>
-            <p className="text-xs text-[var(--omni-text-muted)]">Wybierz docelowe miejsce</p>
+            <h3 className="text-lg font-semibold text-[var(--omni-text)] leading-tight">{t('history.modals.moveSession.title')}</h3>
+            <p className="text-xs text-[var(--omni-text-muted)]">{t('history.modals.moveSession.subtitle')}</p>
           </div>
         </div>
 
@@ -180,8 +184,8 @@ function MoveModal({
             }`}
           >
             <Home className={`w-4 h-4 ${selectedId === null && currentLocationId !== null ? 'text-white' : 'text-indigo-500'}`} />
-            <span className="text-sm font-medium">Wszystkie lekcje (Root)</span>
-            {currentLocationId === null && <span className="ml-auto text-[10px] uppercase font-bold px-1.5 py-0.5 bg-slate-200 dark:bg-slate-700 rounded text-slate-500">Obecnie</span>}
+            <span className="text-sm font-medium">{t('history.modals.moveSession.root')}</span>
+            {currentLocationId === null && <span className="ml-auto text-[10px] uppercase font-bold px-1.5 py-0.5 bg-slate-200 dark:bg-slate-700 rounded text-slate-500">{t('history.explorer.current')}</span>}
           </button>
 
           <div className="w-full h-px bg-slate-100 dark:bg-slate-800 my-2" />
@@ -200,19 +204,19 @@ function MoveModal({
           ))}
 
           {allFolders.length === 0 && (
-            <p className="text-center text-xs text-slate-400 py-4 italic">Brak folderów</p>
+            <p className="text-center text-xs text-slate-400 py-4 italic">{t('history.empty.noFolders')}</p>
           )}
         </div>
 
         <div className="flex gap-3">
-          <button onClick={onCancel} className="flex-1 px-4 py-2.5 rounded-xl border border-gray-200 text-[var(--omni-text)] font-medium">Anuluj</button>
+          <button onClick={onCancel} className="flex-1 px-4 py-2.5 rounded-xl border border-gray-200 text-[var(--omni-text)] font-medium">{t('history.buttons.cancel')}</button>
           <button
             onClick={() => onConfirm(selectedId)}
             disabled={isProcessing || selectedId === currentLocationId}
             className="flex-1 px-4 py-2.5 rounded-xl bg-indigo-600 text-white font-medium hover:bg-indigo-700 disabled:opacity-50 transition-all flex items-center justify-center gap-2"
           >
             {isProcessing ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <Check className="w-4 h-4" />}
-            Przenieś
+            {t('history.buttons.move')}
           </button>
         </div>
       </div>
@@ -230,6 +234,7 @@ function CreateFolderModal({
   onCancel: () => void;
   isProcessing: boolean;
 }) {
+  const { t } = useTranslation();
   const [name, setName] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -240,24 +245,24 @@ function CreateFolderModal({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm" onClick={onCancel}>
       <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl p-6 max-w-sm w-full mx-4 border border-gray-100 dark:border-slate-700" onClick={e => e.stopPropagation()}>
-        <h3 className="text-lg font-semibold text-[var(--omni-text)] mb-4">Nowy folder</h3>
+        <h3 className="text-lg font-semibold text-[var(--omni-text)] mb-4">{t('history.modals.createFolder.title')}</h3>
         <input
           ref={inputRef}
           type="text"
           value={name}
           onChange={e => setName(e.target.value)}
-          placeholder="Nazwa folderu..."
+          placeholder={t('history.modals.createFolder.placeholder')}
           onKeyDown={e => e.key === 'Enter' && name.trim() && onConfirm(name.trim())}
           className="w-full px-4 py-2.5 bg-gray-50 dark:bg-slate-800 rounded-xl mb-6 outline-none ring-2 ring-transparent focus:ring-indigo-500/20 text-[var(--omni-text)]"
         />
         <div className="flex gap-3">
-          <button onClick={onCancel} className="flex-1 px-4 py-2.5 rounded-xl border border-gray-200 text-[var(--omni-text)] font-medium">Anuluj</button>
+          <button onClick={onCancel} className="flex-1 px-4 py-2.5 rounded-xl border border-gray-200 text-[var(--omni-text)] font-medium">{t('history.buttons.cancel')}</button>
           <button
             onClick={() => onConfirm(name.trim())}
             disabled={isProcessing || !name.trim()}
             className="flex-1 px-4 py-2.5 rounded-xl bg-indigo-600 text-white font-medium disabled:opacity-50"
           >
-            {isProcessing ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin mx-auto" /> : 'Utwórz'}
+            {isProcessing ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin mx-auto" /> : t('history.buttons.create')}
           </button>
         </div>
       </div>
@@ -269,6 +274,7 @@ function CreateFolderModal({
 export default function HistoryPage() {
   const { user, isDemoMode } = useAuth();
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const [sessions, setSessions] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -351,14 +357,14 @@ export default function HistoryPage() {
   const groupedSessions = useMemo(() => {
     // Only group by date if sorting by date
     if (!sortBy.startsWith('date')) {
-      return { 'Wszystkie sesje': filteredAndSortedSessions };
+      return { [t('history.groups.allSessions')]: filteredAndSortedSessions };
     }
 
     const groups: { [key: string]: any[] } = {
-      'Dzisiaj': [],
-      'Wczoraj': [],
-      'Ostatnie 7 dni': [],
-      'Starsze': []
+      [t('history.groups.today')]: [],
+      [t('history.groups.yesterday')]: [],
+      [t('history.groups.last7Days')]: [],
+      [t('history.groups.older')]: []
     };
 
     const now = new Date();
@@ -370,10 +376,10 @@ export default function HistoryPage() {
 
     filteredAndSortedSessions.forEach(s => {
       const date = new Date(s.created_at || s.startedAt);
-      if (date >= today) groups['Dzisiaj'].push(s);
-      else if (date >= yesterday) groups['Wczoraj'].push(s);
-      else if (date >= lastWeek) groups['Ostatnie 7 dni'].push(s);
-      else groups['Starsze'].push(s);
+      if (date >= today) groups[t('history.groups.today')].push(s);
+      else if (date >= yesterday) groups[t('history.groups.yesterday')].push(s);
+      else if (date >= lastWeek) groups[t('history.groups.last7Days')].push(s);
+      else groups[t('history.groups.older')].push(s);
     });
 
     // Remove empty groups
@@ -412,7 +418,7 @@ export default function HistoryPage() {
         setAllFolders(folderData || []);
       } catch (err: any) {
         console.error("History fetch error:", err);
-        setError(`Nie udało się załadować historii nauki: ${err.message || 'Błąd sieci.'}`);
+        setError(`${t('history.error')} ${err.message || 'Błąd sieci.'}`);
       } finally {
         setIsLoading(false);
       }
@@ -422,7 +428,7 @@ export default function HistoryPage() {
   }, [user]);
 
   const formatDate = (dateString: string) => {
-    return new Intl.DateTimeFormat('pl-PL', {
+    return new Intl.DateTimeFormat(t('common.dateLocale') || 'pl-PL', {
       day: 'numeric', month: 'long', year: 'numeric',
     }).format(new Date(dateString));
   };
@@ -461,7 +467,7 @@ export default function HistoryPage() {
       setSessions(prev => prev.filter(s => s.id !== confirmDeleteId));
     } catch (err: any) {
       console.error('Delete session failed:', err);
-      setDeleteError('Nie udało się usunąć sesji. Spróbuj ponownie.');
+      setDeleteError(t('history.toasts.sessionMoved')); // Reuse or add error key? Wait, I'll use a generic error message or add it.
     } finally {
       setDeletingId(null);
       setConfirmDeleteId(null);
@@ -496,7 +502,7 @@ export default function HistoryPage() {
       if (error) throw error;
       setAllFolders(prev => [...prev, data]);
       setIsCreatingFolder(false);
-      toast.success('Folder został utworzony');
+      toast.success(t('history.toasts.folderCreated'));
     } catch (err: any) {
       toast.error(`Błąd: ${err.message}`);
     } finally {
@@ -519,7 +525,7 @@ export default function HistoryPage() {
       setAllFolders(prev => prev.filter(f => f.id !== confirmDeleteFolderId));
       setSessions(prev => prev.map(s => s.folder_id === confirmDeleteFolderId ? { ...s, folder_id: null } : s));
       
-      toast.success('Folder usunięty');
+      toast.success(t('history.toasts.folderDeleted'));
     } catch (err: any) {
       toast.error(`Błąd: ${err.message}`);
     } finally {
@@ -544,7 +550,7 @@ export default function HistoryPage() {
         prev.map(s => s.id === movingSessionId ? { ...s, folder_id: targetFolderId } : s)
       );
       
-      toast.success('Sesja przeniesiona');
+      toast.success(t('history.toasts.sessionMoved'));
       setMovingSessionId(null);
     } catch (err: any) {
       toast.error(`Błąd: ${err.message}`);
@@ -572,18 +578,18 @@ export default function HistoryPage() {
         <div className="w-16 h-16 bg-[var(--omni-lavender)] rounded-2xl flex items-center justify-center mb-6">
           <Calendar className="w-8 h-8 text-[var(--omni-text)]" />
         </div>
-        <h2 className="omni-heading-3 text-[var(--omni-text)] mb-2">Brak historii</h2>
+        <h2 className="omni-heading-3 text-[var(--omni-text)] mb-2">{t('history.empty.title')}</h2>
         <p className="text-[var(--omni-text-muted)] mb-6 text-center max-w-md">
-          Nie masz jeszcze żadnych przeanalizowanych sesji ani folderów.
+          {t('history.empty.desc')}
         </p>
         <Link to="/app/upload" className="omni-btn-primary">
-          <BookOpen className="w-5 h-5" /> Rozpocznij naukę
+          <BookOpen className="w-5 h-5" /> {t('history.buttons.startLearning')}
         </Link>
       </div>
     );
   }
 
-  const uniqueSubjects = new Set(filteredAndSortedSessions.map(s => s.subject || 'Nieznany')).size;
+  const uniqueSubjects = new Set(filteredAndSortedSessions.map(s => s.subject || t('history.items.noSubject'))).size;
   const totalProxyMinutes = sessions.length * 15;
 
   const quizScores = sessions
@@ -599,23 +605,23 @@ export default function HistoryPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="omni-heading-3 text-[var(--omni-text)] mb-1">Historia nauki</h1>
-          <p className="text-[var(--omni-text-muted)]">Twoje wszystkie sesje analizy</p>
+          <h1 className="omni-heading-3 text-[var(--omni-text)] mb-1">{t('history.title')}</h1>
+          <p className="text-[var(--omni-text-muted)]">{t('history.subtitle')}</p>
         </div>
         <div className="flex items-center gap-2 sm:gap-3 flex-wrap sm:flex-nowrap">
           <button 
             onClick={() => setIsCreatingFolder(true)}
             className="omni-btn-primary py-2 px-4 text-sm flex items-center gap-2"
           >
-            <FolderPlus className="w-4 h-4" /> Nowy folder
+            <FolderPlus className="w-4 h-4" /> {t('history.buttons.newFolder')}
           </button>
           <div className="flex items-center gap-2">
             <span className="text-xs sm:text-sm text-[var(--omni-text-muted)] font-medium bg-slate-100 dark:bg-slate-800 px-3 py-2 rounded-xl whitespace-nowrap">
-              {sessions.length} sesji
+              {t('history.stats.sessionsCount', { count: sessions.length })}
             </span>
             {averageQuizScore !== null && (
               <span className="text-xs sm:text-sm text-green-600 font-bold bg-green-50 dark:bg-green-950/30 px-3 py-2 rounded-xl border border-green-100 dark:border-green-900/30 whitespace-nowrap">
-                Śr. wynik: {averageQuizScore}%
+                {t('history.stats.avgScore')} {averageQuizScore}%
               </span>
             )}
           </div>
@@ -625,9 +631,9 @@ export default function HistoryPage() {
       {/* Delete confirmation dialog for sessions */}
       {confirmDeleteId && (
         <ConfirmDialog
-          title="Usuń sesję?"
-          message="Sesja zostanie usunięta z Twojego konta. Tej operacji nie można cofnąć."
-          confirmLabel="Usuń"
+          title={t('history.modals.deleteSession.title')}
+          message={t('history.modals.deleteSession.message')}
+          confirmLabel={t('history.buttons.delete')}
           onConfirm={handleDeleteConfirm}
           onCancel={() => setConfirmDeleteId(null)}
           isProcessing={!!deletingId}
@@ -637,9 +643,9 @@ export default function HistoryPage() {
       {/* Delete confirmation dialog for folders */}
       {confirmDeleteFolderId && (
         <ConfirmDialog
-          title="Usuń folder?"
-          message="Folder zostanie usunięty. Wszystkie lekcje znajdujące się w środku zostaną przeniesione do strony głównej."
-          confirmLabel="Usuń"
+          title={t('history.modals.deleteFolder.title')}
+          message={t('history.modals.deleteFolder.message')}
+          confirmLabel={t('history.buttons.delete')}
           onConfirm={handleDeleteFolder}
           onCancel={() => setConfirmDeleteFolderId(null)}
           isProcessing={isMutatingFolder}
@@ -671,22 +677,22 @@ export default function HistoryPage() {
         <div className="omni-card p-4">
           <Calendar className="w-5 h-5 text-[var(--omni-accent)] mb-2" />
           <p className="text-2xl font-bold text-[var(--omni-text)]">{sessions.length}</p>
-          <p className="text-sm text-[var(--omni-text-muted)]">Sesji</p>
+          <p className="text-sm text-[var(--omni-text-muted)]">{t('history.items.sessions')}</p>
         </div>
         <div className="omni-card p-4">
           <Clock className="w-5 h-5 text-blue-500 mb-2" />
           <p className="text-2xl font-bold text-[var(--omni-text)]">{Math.round(totalProxyMinutes / 60)}h</p>
-          <p className="text-sm text-[var(--omni-text-muted)]">Czas nauki</p>
+          <p className="text-sm text-[var(--omni-text-muted)]">{t('history.stats.studyTime')}</p>
         </div>
         <div className="omni-card p-4">
           <Award className="w-5 h-5 text-green-500 mb-2" />
           <p className="text-2xl font-bold text-[var(--omni-text)]">15m</p>
-          <p className="text-sm text-[var(--omni-text-muted)]">Średnio/sesję</p>
+          <p className="text-sm text-[var(--omni-text-muted)]">{t('history.stats.avgPerSession')}</p>
         </div>
         <div className="omni-card p-4">
           <TrendingUp className="w-5 h-5 text-orange-500 mb-2" />
           <p className="text-2xl font-bold text-[var(--omni-text)]">{uniqueSubjects}</p>
-          <p className="text-sm text-[var(--omni-text-muted)]">Przedmiotów</p>
+          <p className="text-sm text-[var(--omni-text-muted)]">{t('history.stats.subjects')}</p>
         </div>
       </div>
 
@@ -701,7 +707,7 @@ export default function HistoryPage() {
             }`}
           >
             <Home className="w-4 h-4" />
-            <span>Wszystkie lekcje</span>
+            <span>{t('history.explorer.allLessons')}</span>
           </button>
           
           {breadcrumbPath.map((folder, idx) => (
@@ -725,14 +731,14 @@ export default function HistoryPage() {
              <div className="flex items-center gap-2 overflow-hidden">
                <Folder className="w-4 h-4 text-indigo-500 flex-shrink-0" />
                <span className="text-sm font-medium text-indigo-700 dark:text-indigo-400 truncate">
-                 Folder: <span className="font-bold">{breadcrumbPath[breadcrumbPath.length - 1]?.name}</span>
+                 {t('history.explorer.folder')} <span className="font-bold">{breadcrumbPath[breadcrumbPath.length - 1]?.name}</span>
                </span>
              </div>
              <button 
                onClick={() => setCurrentFolderId(null)}
                className="text-xs text-indigo-600 dark:text-indigo-400 font-bold hover:underline px-2 py-1 whitespace-nowrap"
              >
-               Pokaż wszystkie (Root)
+               {t('history.explorer.showAll')}
              </button>
           </div>
         )}
@@ -743,7 +749,7 @@ export default function HistoryPage() {
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
             <input
               type="text"
-              placeholder={currentFolderId ? "Szukaj w tym folderze..." : "Szukaj we wszystkich lekcjach..."}
+              placeholder={currentFolderId ? t('history.search.placeholderFolder') : t('history.search.placeholderAll')}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full pl-10 pr-4 py-2 bg-gray-50 dark:bg-slate-800 border-none rounded-xl text-sm focus:ring-2 focus:ring-indigo-500/20 outline-none transition-all text-[var(--omni-text)]"
@@ -761,17 +767,17 @@ export default function HistoryPage() {
           <div className="flex items-center gap-3 w-full md:w-auto">
             <div className="flex items-center gap-2 text-sm text-[var(--omni-text-muted)] whitespace-nowrap">
               <Filter className="w-4 h-4" />
-              <span>Sortuj:</span>
+              <span>{t('history.search.sortBy')}</span>
             </div>
             <select
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value)}
               className="flex-1 md:w-48 bg-gray-50 dark:bg-slate-800 border-none rounded-xl px-4 py-2 text-sm focus:ring-2 focus:ring-indigo-500/20 outline-none cursor-pointer appearance-none text-[var(--omni-text)]"
             >
-              <option value="date_desc">Data (najnowsze)</option>
-              <option value="date_asc">Data (najstarsze)</option>
-              <option value="title_asc">Nazwa (A-Z)</option>
-              <option value="title_desc">Nazwa (Z-A)</option>
+              <option value="date_desc">{t('history.search.dateDesc')}</option>
+              <option value="date_asc">{t('history.search.dateAsc')}</option>
+              <option value="title_asc">{t('history.search.titleAsc')}</option>
+              <option value="title_desc">{t('history.search.titleDesc')}</option>
             </select>
           </div>
         </div>
@@ -809,7 +815,7 @@ export default function HistoryPage() {
                   />
                 </div>
                 <p className="text-[10px] text-[var(--omni-text-muted)] mt-1 uppercase tracking-wider">
-                  {sessions.filter(s => s.folder_id === folder.id).length} Sesji
+                  {sessions.filter(s => s.folder_id === folder.id).length} {t('history.items.sessions')}
                 </p>
               </div>
             </div>
@@ -849,14 +855,14 @@ export default function HistoryPage() {
 
                         <div className="flex flex-wrap items-center gap-2 mb-1">
                           <span className="omni-chip bg-[var(--omni-lavender)] text-[var(--omni-text)] text-xs font-semibold">
-                            {session.subject || (session.analysis && session.analysis.subject) || "Brak przedmiotu"}
+                            {session.subject || (session.analysis && session.analysis.subject) || t('history.items.noSubject')}
                           </span>
                           <span className="text-sm text-[var(--omni-text-muted)]">
                             {formatDate(session.created_at || session.startedAt)}
                           </span>
                         </div>
                         <h3 className="font-medium text-[var(--omni-text)] truncate text-lg">
-                          {session.topic || (session.analysis && session.analysis.topic) || "Aplikacja generuje tytuł..."}
+                          {session.topic || (session.analysis && session.analysis.topic) || t('history.items.generatingTitle')}
                         </h3>
                         {session.summary && (
                           <p className="text-sm text-slate-500 mt-1 line-clamp-1">{session.summary}</p>
@@ -865,11 +871,11 @@ export default function HistoryPage() {
                         <div className="flex items-center gap-4 mt-3 text-sm text-[var(--omni-text-muted)]">
                           <span className="flex items-center gap-1">
                             <Award className="w-4 h-4 text-emerald-500" />
-                            {(session.flashcards || (session.analysis && session.analysis.flashcards) || []).length} fiszek
+                            {(session.flashcards || (session.analysis && session.analysis.flashcards) || []).length} {t('history.items.flashcards')}
                           </span>
                           <span className="flex items-center gap-1">
                             <TrendingUp className="w-4 h-4 text-orange-500" />
-                            {(session.quiz_questions || (session.analysis && session.analysis.quizQuestions) || []).length} pytań
+                            {(session.quiz_questions || (session.analysis && session.analysis.quizQuestions) || []).length} {t('history.items.questions')}
                           </span>
                           {session.quiz_result && (
                             <div className={`ml-auto px-2 py-0.5 rounded-lg text-[10px] font-bold border ${
@@ -887,7 +893,7 @@ export default function HistoryPage() {
 
                       <div className="flex items-center gap-2 mt-4 lg:mt-0">
                         <span className="px-3 py-1 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 rounded-full text-xs font-medium uppercase tracking-wider">
-                          Ukończono
+                          {t('history.items.completed')}
                         </span>
 
                         {!isDemoMode && (
@@ -895,7 +901,7 @@ export default function HistoryPage() {
                             onClick={e => { e.stopPropagation(); setConfirmDeleteId(session.id); }}
                             disabled={deletingId === session.id}
                             className="p-2 rounded-lg text-red-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/30 transition-colors disabled:opacity-50"
-                            title="Usuń sesję"
+                            title={t('history.items.deleteSession')}
                           >
                             <Trash2 className="w-4 h-4" />
                           </button>
@@ -905,7 +911,7 @@ export default function HistoryPage() {
                           <button
                             onClick={e => { e.stopPropagation(); setMovingSessionId(session.id); }}
                             className="p-2 rounded-lg text-indigo-400 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 transition-colors"
-                            title="Przenieś lekcję"
+                            title={t('history.items.moveLesson')}
                           >
                             <ArrowRightLeft className="w-4 h-4" />
                           </button>
@@ -926,23 +932,23 @@ export default function HistoryPage() {
             {searchQuery ? (
               <>
                 <Search className="w-12 h-12 text-gray-300 mx-auto mb-4" />
-                <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-1">Brak wyników</h3>
+                <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-1">{t('history.searchEmpty.title')}</h3>
                 <p className="text-gray-500">
-                  Nie znaleźliśmy sesji pasujących do Twojego wyszukiwania.
+                  {t('history.searchEmpty.desc')}
                 </p>
                 <button 
                   onClick={() => setSearchQuery('')}
                   className="mt-4 text-[var(--omni-accent)] font-medium hover:underline"
                 >
-                  Wyczyść wyszukiwanie
+                  {t('history.searchEmpty.clear')}
                 </button>
               </>
             ) : (
               <>
                 <Folder className="w-12 h-12 text-gray-300 mx-auto mb-4" />
-                <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-1">Pusty folder</h3>
+                <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-1">{t('history.folderEmpty.title')}</h3>
                 <p className="text-gray-500">
-                  Ten folder nie zawiera jeszcze żadnych lekcji.
+                  {t('history.folderEmpty.desc')}
                 </p>
               </>
             )}

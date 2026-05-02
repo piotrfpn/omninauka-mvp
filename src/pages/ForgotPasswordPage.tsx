@@ -4,8 +4,11 @@ import { supabase } from '../lib/supabase';
 import { Mail, ArrowLeft, Loader2, CheckCircle2 } from 'lucide-react';
 import OmniNaukaLogo from '../components/brand/OmniNaukaLogo';
 import { toast } from 'sonner';
+import { useTranslation } from 'react-i18next';
+import { LanguageSwitcher } from '../components/LanguageSwitcher';
 
 export default function ForgotPasswordPage() {
+  const { t } = useTranslation();
   const [email, setEmail] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
@@ -25,7 +28,7 @@ export default function ForgotPasswordPage() {
       if (error) throw error;
 
       setIsSubmitted(true);
-      toast.success('Wysłano link do resetu hasła');
+      toast.success(t('auth.forgot.toastSuccess'));
     } catch (error: any) {
       console.error('Forgot Password Error:', error);
       // We still show a generic message to prevent email enumeration
@@ -38,7 +41,10 @@ export default function ForgotPasswordPage() {
 
   if (isSubmitted) {
     return (
-      <div className="min-h-screen bg-[var(--omni-bg)] flex items-center justify-center px-6 py-12">
+      <div className="min-h-screen bg-[var(--omni-bg)] flex items-center justify-center px-6 py-12 relative">
+        <div className="absolute top-4 right-4">
+          <LanguageSwitcher />
+        </div>
         <div className="w-full max-w-md text-center">
           <div className="mb-8">
             <OmniNaukaLogo size={48} className="mx-auto" />
@@ -47,16 +53,16 @@ export default function ForgotPasswordPage() {
             <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto text-green-600">
               <CheckCircle2 className="w-8 h-8" />
             </div>
-            <h1 className="omni-heading-3">Sprawdź swoją pocztę</h1>
+            <h1 className="omni-heading-3">{t('auth.forgot.successTitle')}</h1>
             <p className="text-[var(--omni-text-muted)]">
-              Jeżeli konto z adresem <span className="font-medium text-[var(--omni-text)]">{email}</span> istnieje w naszym systemie, wysłaliśmy na nie link do resetowania hasła.
+              {t('auth.forgot.successDesc1')} <span className="font-medium text-[var(--omni-text)]">{email}</span> {t('auth.forgot.successDesc2')}
             </p>
             <Link
               to="/login"
               className="inline-flex items-center gap-2 text-[var(--omni-accent)] hover:underline font-medium"
             >
               <ArrowLeft className="w-4 h-4" />
-              Wróć do logowania
+              {t('auth.forgot.backToLogin')}
             </Link>
           </div>
         </div>
@@ -65,17 +71,20 @@ export default function ForgotPasswordPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[var(--omni-bg)] flex items-center justify-center px-6 py-12">
+    <div className="min-h-screen bg-[var(--omni-bg)] flex items-center justify-center px-6 py-12 relative">
+      <div className="absolute top-4 right-4">
+        <LanguageSwitcher />
+      </div>
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
           <Link to="/" className="inline-flex items-center mb-4">
             <OmniNaukaLogo size={48} />
           </Link>
           <h1 className="omni-heading-3 text-[var(--omni-text)] mb-2">
-            Resetowanie hasła
+            {t('auth.forgot.title')}
           </h1>
           <p className="text-[var(--omni-text-muted)]">
-            Wpisz swój adres email, a wyślemy Ci link do zmiany hasła
+            {t('auth.forgot.subtitle')}
           </p>
         </div>
 
@@ -83,7 +92,7 @@ export default function ForgotPasswordPage() {
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
               <label className="block text-sm font-medium text-[var(--omni-text)] mb-2">
-                Email
+                {t('auth.email')}
               </label>
               <div className="relative">
                 <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
@@ -107,7 +116,7 @@ export default function ForgotPasswordPage() {
               {isLoading ? (
                 <Loader2 className="w-5 h-5 animate-spin" />
               ) : (
-                'Wyślij link do resetu'
+                t('auth.forgot.submit')
               )}
             </button>
           </form>
@@ -118,7 +127,7 @@ export default function ForgotPasswordPage() {
               className="text-[var(--omni-text-muted)] text-sm hover:text-[var(--omni-text)] flex items-center justify-center gap-2"
             >
               <ArrowLeft className="w-4 h-4" />
-              Wróć do logowania
+              {t('auth.forgot.backToLogin')}
             </Link>
           </div>
         </div>

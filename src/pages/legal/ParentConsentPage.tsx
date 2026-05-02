@@ -4,8 +4,11 @@ import { supabase } from '../../lib/supabase';
 import { hashConsentToken } from '../../lib/consent';
 import { ShieldCheck, CheckCircle2, AlertTriangle, Loader2, ArrowRight, ExternalLink } from 'lucide-react';
 import OmniNaukaLogo from '../../components/brand/OmniNaukaLogo';
+import { useTranslation } from 'react-i18next';
+import { LanguageSwitcher } from '../../components/LanguageSwitcher';
 
 export default function ParentConsentPage() {
+  const { t } = useTranslation();
   const { token } = useParams<{ token: string }>();
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -97,27 +100,32 @@ export default function ParentConsentPage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-[var(--omni-bg)] flex flex-col items-center justify-center p-6">
+      <div className="min-h-screen bg-[var(--omni-bg)] flex flex-col items-center justify-center p-6 relative">
+        <div className="absolute top-4 right-4">
+          <LanguageSwitcher />
+        </div>
         <Loader2 className="w-12 h-12 text-[var(--omni-accent)] animate-spin mb-4" />
-        <p className="text-[var(--omni-text-muted)]">Weryfikacja prośby...</p>
+        <p className="text-[var(--omni-text-muted)]">{t('auth.parentConsent.loading')}</p>
       </div>
     );
   }
 
   if (status === 'invalid' || status === 'expired') {
     return (
-      <div className="min-h-screen bg-[var(--omni-bg)] flex items-center justify-center p-6">
+      <div className="min-h-screen bg-[var(--omni-bg)] flex items-center justify-center p-6 relative">
+        <div className="absolute top-4 right-4">
+          <LanguageSwitcher />
+        </div>
         <div className="omni-card p-10 max-w-md text-center">
           <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center text-red-600 mx-auto mb-6">
             <AlertTriangle className="w-8 h-8" />
           </div>
-          <h1 className="omni-heading-3 mb-4">Link nieprawidłowy lub wygasł</h1>
+          <h1 className="omni-heading-3 mb-4">{t('auth.parentConsent.invalid.title')}</h1>
           <p className="text-[var(--omni-text-muted)] mb-8">
-            Ten link do potwierdzenia zgody rodzica jest już nieaktywny lub został wygenerowany ponownie. 
-            Poproś dziecko o wysłanie nowej prośby.
+            {t('auth.parentConsent.invalid.desc')}
           </p>
           <Link to="/" className="omni-btn-primary w-full">
-            Wróć do strony głównej
+            {t('auth.parentConsent.invalid.back')}
           </Link>
         </div>
       </div>
@@ -126,17 +134,20 @@ export default function ParentConsentPage() {
 
   if (status === 'success') {
     return (
-      <div className="min-h-screen bg-[var(--omni-bg)] flex items-center justify-center p-6">
+      <div className="min-h-screen bg-[var(--omni-bg)] flex items-center justify-center p-6 relative">
+        <div className="absolute top-4 right-4">
+          <LanguageSwitcher />
+        </div>
         <div className="omni-card p-10 max-w-md text-center">
           <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center text-green-600 mx-auto mb-6">
             <CheckCircle2 className="w-8 h-8" />
           </div>
-          <h1 className="omni-heading-3 mb-4">Zgoda zatwierdzona!</h1>
+          <h1 className="omni-heading-3 mb-4">{t('auth.parentConsent.success.title')}</h1>
           <p className="text-[var(--omni-text-muted)] mb-8">
-            Dziękujemy. Twoje dziecko może już w pełni korzystać z funkcji edukacyjnych OmniNauka.
+            {t('auth.parentConsent.success.desc')}
           </p>
           <Link to="/" className="omni-btn-primary w-full">
-            Przejdź do OmniNauka
+            {t('auth.parentConsent.success.goToApp')}
           </Link>
         </div>
       </div>
@@ -146,17 +157,20 @@ export default function ParentConsentPage() {
   const allChecked = Object.values(consents).every(v => v === true);
 
   return (
-    <div className="min-h-screen bg-gray-50 py-12 px-6">
+    <div className="min-h-screen bg-gray-50 py-12 px-6 relative">
+      <div className="absolute top-4 right-4">
+        <LanguageSwitcher />
+      </div>
       <div className="max-w-2xl mx-auto">
         <div className="text-center mb-10">
           <Link to="/" className="inline-block mb-6">
             <OmniNaukaLogo size={48} />
           </Link>
           <h1 className="omni-heading-2 text-[var(--omni-text)]">
-            Potwierdzenie zgody rodzica
+            {t('auth.parentConsent.form.title')}
           </h1>
           <p className="text-[var(--omni-text-muted)] mt-2">
-            Zgoda dla użytkownika: <span className="font-bold text-[var(--omni-text)]">{consentData?.profiles?.name}</span>
+            {t('auth.parentConsent.form.forUser')} <span className="font-bold text-[var(--omni-text)]">{consentData?.profiles?.name}</span>
           </p>
         </div>
 
@@ -253,14 +267,14 @@ export default function ParentConsentPage() {
                 <Loader2 className="w-6 h-6 animate-spin" />
               ) : (
                 <>
-                  Potwierdzam zgodę i odblokowuję konto
+                  {t('auth.parentConsent.form.submit')}
                   <ArrowRight className="w-6 h-6" />
                 </>
               )}
             </button>
             {!allChecked && (
               <p className="text-center text-xs text-red-500 mt-3 font-medium">
-                Aby kontynuować, musisz zaznaczyć wszystkie powyższe oświadczenia.
+                {t('auth.parentConsent.form.errorChecked')}
               </p>
             )}
           </div>
@@ -269,9 +283,9 @@ export default function ParentConsentPage() {
         <div className="mt-8 text-center text-[var(--omni-text-muted)] text-sm">
           <p>© 2026 OmniNauka | PFConsulting Piotr Fiszer</p>
           <div className="mt-2 flex items-center justify-center gap-4">
-            <Link to="/regulamin" className="hover:underline">Regulamin</Link>
-            <Link to="/polityka-prywatnosci" className="hover:underline">Prywatność</Link>
-            <Link to="/kontakt" className="hover:underline">Kontakt</Link>
+            <Link to="/regulamin" className="hover:underline">{t('auth.parentConsent.footer.terms')}</Link>
+            <Link to="/polityka-prywatnosci" className="hover:underline">{t('auth.parentConsent.footer.privacy')}</Link>
+            <Link to="/kontakt" className="hover:underline">{t('auth.parentConsent.footer.contact')}</Link>
           </div>
         </div>
       </div>

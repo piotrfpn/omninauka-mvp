@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import type { QuizQuestion, QuizAnswer } from '../../types';
 import { Check, X, ArrowRight, HelpCircle, Trophy, RotateCw } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../lib/auth-context';
 
@@ -9,6 +10,7 @@ export default function QuizPage() {
   const navigate = useNavigate();
   const { id: routeId } = useParams();
   const { isDemoMode } = useAuth();
+  const { t } = useTranslation();
   
   const [questions, setQuestions] = useState<QuizQuestion[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -133,12 +135,12 @@ export default function QuizPage() {
     const sessionId = routeId || sessionStorage.getItem('currentSessionId');
     if (!sessionId) return;
 
-    if (!confirm("Czy na pewno chcesz wygenerować nowy quiz? Obecne pytania zostaną zastąpione nowymi wyzwaniami z Twoich notatek.")) {
+    if (!confirm(t('quiz.notifications.regenerateConfirm'))) {
       return;
     }
 
     setIsRegenerating(true);
-    setRegenerationMessage("Magia AI: Generowanie nowego quizu...");
+    setRegenerationMessage(t('quiz.notifications.regenerating'));
 
     try {
       const { data: { session: authSession } } = await supabase.auth.getSession();
@@ -191,11 +193,11 @@ export default function QuizPage() {
       setShowFeedback(false);
       localStorage.removeItem(`quiz-progress-${sessionId}`);
 
-      setRegenerationMessage("Quiz zaktualizowany pomyślnie!");
+      setRegenerationMessage(t('quiz.notifications.success'));
       setTimeout(() => setRegenerationMessage(null), 3000);
     } catch (err: any) {
       console.error("Regeneration failed:", err);
-      alert("Błąd regeneracji: " + err.message);
+      alert(t('quiz.notifications.error') + ": " + err.message);
     } finally {
       setIsRegenerating(false);
     }
@@ -285,16 +287,16 @@ export default function QuizPage() {
           <HelpCircle className="w-8 h-8 text-[var(--omni-text)]" />
         </div>
         <h2 className="omni-heading-3 text-[var(--omni-text)] mb-2">
-          Brak pytań
+          {t('quiz.empty.title')}
         </h2>
         <p className="text-[var(--omni-text-muted)] mb-6 text-center max-w-md">
-          Najpierw prześlij swoje notatki, a AI wygeneruje pytania do quizu.
+          {t('quiz.empty.desc')}
         </p>
         <button
           onClick={() => navigate('/app/upload')}
           className="omni-btn-primary"
         >
-          Prześlij notatki
+          {t('quiz.empty.cta')}
         </button>
       </div>
     );
@@ -311,10 +313,10 @@ export default function QuizPage() {
             <Trophy className="w-10 h-10 text-[var(--omni-text)]" />
           </div>
           <h2 className="omni-heading-3 text-[var(--omni-text)] mb-2">
-            Quiz ukończony!
+            {t('quiz.completion.title')}
           </h2>
           <p className="text-[var(--omni-text-muted)] mb-6">
-            Twój wynik: {correctCount} z {questions.length} poprawnych odpowiedzi
+            {t('quiz.completion.score', { correct: correctCount, total: questions.length })}
           </p>
           
           <div className="text-5xl font-bold text-[var(--omni-accent)] mb-8">
@@ -351,7 +353,7 @@ export default function QuizPage() {
               }}
               className="omni-btn-primary"
             >
-              Rozwiąż ten sam quiz
+              {t('quiz.buttons.repeat')}
             </button>
             <button
               onClick={handleRegenerate}
@@ -363,13 +365,13 @@ export default function QuizPage() {
               ) : (
                 <RotateCw className="w-4 h-4" />
               )}
-              Wygeneruj nowy quiz
+              {t('quiz.buttons.regenerate')}
             </button>
             <button
               onClick={() => navigate('/app/analysis/' + (routeId || ''))}
               className="omni-btn-secondary"
             >
-              Wróć do analizy
+              {t('quiz.buttons.backToAnalysis')}
             </button>
           </div>
         </div>
@@ -405,10 +407,10 @@ export default function QuizPage() {
       {/* Header */}
       <div>
         <h1 className="omni-heading-3 text-[var(--omni-text)] mb-2">
-          Quiz
+          {t('quiz.title')}
         </h1>
         <p className="text-[var(--omni-text-muted)]">
-          Sprawdź swoją wiedzę
+          {t('quiz.subtitle')}
         </p>
       </div>
 
@@ -478,7 +480,7 @@ export default function QuizPage() {
 
           {currentQuestion.type === 'true_false' && (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {['Prawda', 'Fałsz'].map((option, index) => {
+              {[t('quiz.options.true'), t('quiz.options.false')].map((option, index) => {
                 const isSelected = selectedAnswer === (index === 0 ? 0 : 1);
                 const isCorrectAnswer = currentQuestion.correctAnswer === (index === 0 ? 0 : 1);
                 const showCorrect = showFeedback && isCorrectAnswer;
@@ -530,12 +532,12 @@ export default function QuizPage() {
               {isCorrect ? (
                 <>
                   <Check className="w-5 h-5 text-green-600 dark:text-green-400" />
-                  <span className="font-medium text-green-700 dark:text-green-400">Poprawna odpowiedź!</span>
+                  <span className="font-medium text-green-700 dark:text-green-400">{t('quiz.feedback.correct')}</span>
                 </>
               ) : (
                 <>
                   <X className="w-5 h-5 text-red-500 dark:text-red-400" />
-                  <span className="font-medium text-red-700 dark:text-red-400">Niepoprawna odpowiedź</span>
+                  <span className="font-medium text-red-700 dark:text-red-400">{t('quiz.feedback.incorrect')}</span>
                 </>
               )}
             </div>
@@ -553,12 +555,12 @@ export default function QuizPage() {
           >
             {currentIndex < questions.length - 1 ? (
               <>
-                Następne pytanie
+                {t('quiz.buttons.next')}
                 <ArrowRight className="w-6 h-6" />
               </>
             ) : (
               <>
-                Zakończ quiz i zobacz wynik
+                {t('quiz.buttons.finish')}
                 <Trophy className="w-6 h-6" />
               </>
             )}
@@ -578,12 +580,12 @@ export default function QuizPage() {
               : 'text-orange-500'
           }`}
         >
-          Poziom trudności:{' '}
+          {t('quiz.difficulty.label')}:{' '}
           {currentQuestion.difficulty === 'easy'
-            ? 'Łatwy'
+            ? t('quiz.difficulty.easy')
             : currentQuestion.difficulty === 'medium'
-            ? 'Średni'
-            : 'Trudny'}
+            ? t('quiz.difficulty.medium')
+            : t('quiz.difficulty.hard')}
         </span>
       </div>
     </div>

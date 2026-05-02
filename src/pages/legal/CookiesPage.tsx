@@ -1,8 +1,10 @@
 import LegalPageLayout from '../../components/legal/LegalPageLayout';
+import { useTranslation } from 'react-i18next';
 
 export default function CookiesPage() {
+  const { t } = useTranslation();
   return (
-    <LegalPageLayout title="Polityka Cookies i Przechowywania Danych" lastUpdated="26.04.2026">
+    <LegalPageLayout title={t('legal.cookies.title', 'Polityka Cookies i Przechowywania Danych')} lastUpdated="26.04.2026">
       <p>
         Serwis OmniNauka wykorzystuje pliki "cookies" oraz funkcje przeglądarki (localStorage i sessionStorage) w celu zapewnienia prawidłowego działania aplikacji.
       </p>

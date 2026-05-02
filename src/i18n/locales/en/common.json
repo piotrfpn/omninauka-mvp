@@ -1,0 +1,859 @@
+{
+  "auth": {
+    "email": "Email",
+    "password": "Password",
+    "backToHome": "← Back to home",
+    "login": {
+      "title": "Welcome back",
+      "subtitle": "Log in to continue learning",
+      "parent": {
+        "title": "Parent Dashboard — Login",
+        "desc": "Log in as a parent or guardian below to check your child's progress. Use the details provided during registration."
+      },
+      "forgot": "Forgot password?",
+      "submit": "Log in",
+      "demo": "Demo mode - enter without logging in",
+      "noAccount": "Don't have an account?",
+      "register": "Sign up",
+      "error": {
+        "invalid": "Invalid email or password",
+        "generic": "An error occurred during login"
+      }
+    },
+    "register": {
+      "title": "Create an account",
+      "subtitle": "Start learning smarter with OmniNauka",
+      "name": "First name",
+      "namePlaceholder": "Your name",
+      "role": "Who are you?",
+      "roleStudent": "I am a student",
+      "roleParent": "I am a parent / guardian",
+      "age": "Age",
+      "agePlaceholder": "Select age group",
+      "ageUnder13": "Under 13 years",
+      "age13to15": "13 – 15 years",
+      "age16to17": "16 – 17 years",
+      "age18plus": "18+ years",
+      "passwordMin": "Minimum 6 characters",
+      "submit": "Create account",
+      "hasAccount": "Already have an account?",
+      "login": "Log in",
+      "error": {
+        "noRole": "Please select a role (Student or Parent/Guardian)",
+        "noAge": "Please select an age group",
+        "passLength": "Password must be at least 6 characters",
+        "failed": "Failed to create account.",
+        "generic": "An error occurred during registration"
+      },
+      "success": {
+        "verify": "Account created. Check your email and confirm the address to log in.",
+        "consent": "Account created! Since you are 13-15 years old, we still need your parent's or guardian's consent. You can now log in to send the consent link.",
+        "toLogin": "Go to login"
+      },
+      "ageBlock": {
+        "title": "We need a parent's help",
+        "desc": "Due to safety regulations (GDPR), people under 13 cannot create an account on their own.",
+        "whatNow": "What now?",
+        "instruction": "Ask a parent or guardian to create an account and add your student profile. This will allow you to safely use OmniNauka.",
+        "back": "Back to form"
+      }
+    },
+    "forgot": {
+      "title": "Reset password",
+      "subtitle": "Enter your email address and we will send you a password reset link",
+      "submit": "Send reset link",
+      "backToLogin": "Back to login",
+      "successTitle": "Check your email",
+      "successDesc1": "If an account with the address",
+      "successDesc2": "exists in our system, we have sent a password reset link to it.",
+      "toastSuccess": "Password reset link sent"
+    },
+    "reset": {
+      "title": "Set new password",
+      "subtitle": "Choose a strong password that you will remember",
+      "newPassword": "New password",
+      "newPasswordPlaceholder": "Min. 8 characters",
+      "confirmPassword": "Confirm password",
+      "confirmPasswordPlaceholder": "••••••••",
+      "submit": "Change password",
+      "error": {
+        "length": "Password must be at least 8 characters",
+        "mismatch": "Passwords do not match",
+        "generic": "An error occurred while changing the password"
+      },
+      "toastSuccess": "Password has been changed",
+      "expired": {
+        "title": "Session expired",
+        "desc": "The password reset link is invalid or has already been used.",
+        "submit": "Send new link"
+      },
+      "success": {
+        "title": "Password changed!",
+        "desc": "Your new password has been set. You will be redirected to the login page shortly.",
+        "submit": "Log in now"
+      }
+    },
+    "pending": {
+      "title": "We need parent's consent",
+      "desc1": "Hello,",
+      "desc2": "! Since you are under 16, according to safety regulations (GDPR), we need confirmation from your parent or guardian for you to use AI features in OmniNauka.",
+      "emailLabel": "Parent's or guardian's email",
+      "emailPlaceholder": "parent@email.com",
+      "emailHelp": "We will send a secure consent confirmation link to this address.",
+      "submit": "Send consent request",
+      "wait": "Wait",
+      "waitSuffix": "s...",
+      "successTitle": "Request sent!",
+      "successDesc1": "Ask your parent to check their email (",
+      "successDesc2": ") and click the confirmation link.",
+      "successNote": "Once the parent approves the consent, your account will be automatically unlocked.",
+      "otherEmail": "Use a different email address",
+      "otherEmailWait": "Use a different address in",
+      "resend": "Resend to the same address",
+      "logout": "Log out and return later",
+      "terms": "Read the terms",
+      "error": {
+        "wait": "Please wait a moment before sending again.",
+        "config": "Email sending configuration is not ready yet.",
+        "notPending": "Your account is no longer pending parent's consent.",
+        "invalidData": "Failed to send message. Check the data.",
+        "network": "No connection to the sending function. Check your internet connection.",
+        "auth": "Authorization error. Try logging in again.",
+        "generic": "Failed to send message. Try again later.",
+        "technical": "A technical connection error occurred. Try again in a moment."
+      }
+    },
+    "parentConsent": {
+      "loading": "Verifying request...",
+      "invalid": {
+        "title": "Invalid or expired link",
+        "desc": "This parent consent confirmation link is no longer active or a new one was generated. Ask your child to send a new request.",
+        "back": "Return to homepage"
+      },
+      "success": {
+        "title": "Consent approved!",
+        "desc": "Thank you. Your child can now fully use the educational features of OmniNauka.",
+        "goToApp": "Go to OmniNauka"
+      },
+      "form": {
+        "title": "Parent consent confirmation",
+        "forUser": "Consent for user:",
+        "submit": "I confirm consent and unlock the account",
+        "errorChecked": "To continue, you must check all the statements above."
+      },
+      "footer": {
+        "terms": "Terms of Service",
+        "privacy": "Privacy",
+        "contact": "Contact"
+      }
+    }
+  },
+  "home": {
+    "howItWorks": {
+      "title": "How it works?",
+      "scan": {
+        "title": "Scan notes",
+        "description": "Upload a photo of your notes or a textbook page."
+      },
+      "ai": {
+        "title": "AI analyzes",
+        "description": "Artificial intelligence extracts key concepts and creates material."
+      },
+      "learn": {
+        "title": "Learn effectively",
+        "description": "Flashcards, quizzes, and lessons tailored to your materials."
+      },
+      "chat": {
+        "title": "Chat with AI",
+        "description": "Ask questions and learn through dialogue with the AI tutor."
+      },
+      "progress": {
+        "title": "Track progress",
+        "description": "Monitor your results and identify weak points."
+      }
+    },
+    "pricing": {
+      "title": "Choose a plan",
+      "period": "/ month",
+      "free": {
+        "title": "Free",
+        "price": "0 PLN",
+        "feat1": "2 AI lessons daily",
+        "feat2": "Text AI Tutor",
+        "feat3": "Quizzes with explanations",
+        "feat4": "Learning history",
+        "feat5": "Next AI lesson: 1.99 PLN",
+        "cta": "Start for free"
+      },
+      "premium": {
+        "title": "Premium",
+        "price": "29 PLN",
+        "badge": "Most Popular",
+        "feat1": "More AI lessons every day",
+        "feat2": "Advanced AI Tutor",
+        "feat3": "Error reviews",
+        "feat4": "Tests with error reports",
+        "feat5": "Priority AI",
+        "cta": "Try 7 days"
+      },
+      "premiumPlus": {
+        "title": "Premium+",
+        "price": "49 PLN",
+        "badge": "Exams",
+        "feat1": "Everything in Premium",
+        "feat2": "Eighth-grade exam preparation",
+        "feat3": "Matura exam preparation",
+        "feat4": "Exam-style tasks",
+        "feat5": "Mock exams and error reports",
+        "cta": "Try 7 days"
+      },
+      "family": {
+        "title": "Family",
+        "price": "59 PLN",
+        "feat1": "Up to 3 student accounts",
+        "feat2": "Everything in Premium",
+        "feat3": "Progress reports",
+        "feat4": "Shared learning history",
+        "feat5": "Parent panel — coming soon",
+        "cta": "Try 7 days"
+      },
+      "extra": {
+        "info": "1 AI lesson = up to 5 photos or 1 PDF/DOCX document.",
+        "title": "Additional AI lessons",
+        "pack1": "5 AI lessons",
+        "price1": "7.99 PLN",
+        "pack2": "10 AI lessons",
+        "price2": "14.99 PLN",
+        "pack3": "25 AI lessons",
+        "price3": "29.99 PLN",
+        "note": "Additional lesson packages will be available once payments are launched."
+      }
+    },
+    "faq": {
+      "title": "Frequently Asked Questions",
+      "q1": {
+        "q": "What is an AI lesson?",
+        "a": "An AI lesson is one analysis of material added by the student. This can be up to 5 photos of notes or 1 PDF/DOCX document. After adding material, OmniNauka helps understand the topic, conducts a conversation with the AI Tutor, and can prepare a quiz."
+      },
+      "q2": {
+        "q": "How does a quiz differ from a test?",
+        "a": "A quiz with explanations is a short training session after a lesson. It helps check basic understanding of the topic and shows why an answer is right or wrong. A test with an error report is a larger readiness test for a pop quiz or exam. At the end, the student receives a score and information on which topics to review."
+      },
+      "q3": {
+        "q": "What is Premium+?",
+        "a": "Premium+ is a plan for students preparing for major exams, such as the eighth-grade exam or matura. It includes exam-style tasks, mock exams, and error reports."
+      },
+      "q4": {
+        "q": "Will OmniNauka prepare me for the eighth-grade and matura exams?",
+        "a": "Yes, we are planning an exam mode for the eighth-grade exam and matura. This will be a separate module developed after the basic version of the application."
+      },
+      "q5": {
+        "q": "Is OmniNauka an official tool of the CKE (Central Examination Board)?",
+        "a": "No. OmniNauka is not an official tool of the CKE. The exam mode will be created as a study support, with exam-style tasks and materials inspired by examination requirements."
+      },
+      "q6": {
+        "q": "Can I add a PDF or Word document?",
+        "a": "Yes. OmniNauka supports JPG, PNG, WEBP photos, text PDF files, and DOCX documents. Scanned PDFs may require adding pages as photos."
+      },
+      "q7": {
+        "q": "Does OmniNauka solve tasks for the student?",
+        "a": "The goal of OmniNauka is not to provide ready answers without learning. The AI Tutor helps understand the material, explains mistakes, asks questions, and guides the student step by step."
+      },
+      "q8": {
+        "q": "Are payments already active?",
+        "a": "During the beta version stage, payments and limits may be launched in stages. Current packages show the planned usage model for OmniNauka."
+      }
+    },
+    "about": {
+      "title": "About us",
+      "p1": "OmniNauka is a modern AI tutor for students. It helps understand material from notes, photos, PDFs, and Word documents, conducts a conversation with the AI Tutor, creates quizzes, and supports error reviews.",
+      "p2": "We create an application that does not do the work for the student but helps them truly understand the topic.",
+      "p3": "OmniNauka is being developed as a mobile-first product — simple, fast, and convenient for students using mostly phones or tablets."
+    },
+    "footer": {
+      "brandDesc": "Personalized learning for every student",
+      "product": {
+        "title": "Product",
+        "features": "Features",
+        "pricing": "Pricing",
+        "faq": "FAQ",
+        "security": "Security"
+      },
+      "company": {
+        "title": "Company",
+        "about": "About us",
+        "contact": "Contact"
+      },
+      "legal": {
+        "title": "Legal",
+        "terms": "Terms of Service",
+        "privacy": "Privacy Policy",
+        "reports": "Reporting Violations and Content Removal"
+      },
+      "copyright": "© 2026 OmniNauka. All rights reserved."
+    },
+    "nav": {
+      "login": "Log in",
+      "tryFree": "Try for free"
+    },
+    "hero": {
+      "title": "Learning that comes alive",
+      "subtitle": "Scan your notes. OmniNauka will create flashcards, quizzes, and voice reviews tailored to your materials.",
+      "cta": {
+        "tryFree": "Try for free",
+        "howItWorks": "See how it works"
+      }
+    },
+    "cta": {
+      "title": "Ready to start?",
+      "subtitle": "Join thousands of students who study smarter, not harder."
+    }
+  },
+  "contact": {
+    "backHome": "Back to home",
+    "title": "Contact",
+    "description": "For cooperation, beta testing, or questions regarding OmniNauka, please contact us by email or phone.",
+    "emailLabel": "E-MAIL",
+    "phoneLabel": "PHONE",
+    "operator": "Service Operator",
+    "address": "Address",
+    "hours": "Working hours",
+    "hoursDesc": "Monday - Friday: 09:00 - 17:00",
+    "message": {
+      "label": "Send a message",
+      "desc": "The fastest way to get technical support."
+    }
+  },
+  "legal": {
+    "bindingNotice": "This translation is for informational purposes. The legally binding version is the Polish version.",
+    "footer": {
+      "allRightsReserved": "All rights reserved."
+    },
+    "cookies": {
+      "title": "Cookies and Data Storage Policy"
+    },
+    "aiDisclaimer": {
+      "title": "AI Disclaimer"
+    }
+  },
+  "appShell": {
+    "nav": {
+      "dashboard": "Dashboard",
+      "upload": "Upload",
+      "flashcards": "Flashcards",
+      "quiz": "Quiz",
+      "lesson": "AI Lesson",
+      "results": "Results",
+      "history": "History",
+      "profile": "Profile",
+      "settings": "Settings",
+      "parentPanel": "Parent Panel"
+    },
+    "user": "User",
+    "plan": {
+      "premium": "Premium",
+      "free": "Free"
+    },
+    "logout": "Logout"
+  },
+  "dashboard": {
+    "welcome": "Hi",
+    "subtitle": "Ready for your next study session?",
+    "newUpload": "New upload",
+    "stats": {
+      "sessions": "Study sessions",
+      "hours": "Study hours",
+      "avgScore": "Average quiz score",
+      "streak": "Streak"
+    },
+    "quickActions": {
+      "title": "Quick actions",
+      "newUpload": "New upload"
+    },
+    "recentSessions": "Recent sessions",
+    "seeAll": "See all",
+    "processing": "Analyzing...",
+    "other": "Other",
+    "deleteSession": "Delete session",
+    "confirmDelete": "Are you sure you want to delete this session?",
+    "error": "Failed to fetch data from the cloud.",
+    "images": "photos",
+    "empty": {
+      "title": "You don't have any saved sessions yet.",
+      "cta": "Start learning"
+    },
+    "subjectProgress": "Subject Progress",
+    "sessions": "sessions"
+  },
+  "profile": {
+    "title": "Your Profile",
+    "subtitle": "Customize profile and educational data",
+    "editData": "Edit data",
+    "info": {
+      "plan": "Plan",
+      "joined": "Joined",
+      "email": "E-mail"
+    },
+    "activity": {
+      "title": "Account Activity & Status",
+      "status": "Account Status",
+      "lastLogin": "Last Login"
+    },
+    "status": {
+      "active": "Active",
+      "pending": "Pending Parent Consent",
+      "withdrawn": "Consent Withdrawn",
+      "suspended": "Suspended"
+    },
+    "educational": {
+      "title": "Educational Data",
+      "notice": "This data is optional. It helps us tailor your experience and develop OmniNauka. Do not provide addresses, school names, or sensitive data.",
+      "role": {
+        "label": "Who are you?",
+        "desc": "Your role in the system",
+        "select": "Select role...",
+        "student": "Student",
+        "parent": "Parent/Guardian",
+        "teacher": "Teacher",
+        "other": "Other",
+        "preferNotToSay": "Prefer not to say"
+      },
+      "school": {
+        "label": "School Type",
+        "desc": "What type of school do you attend",
+        "select": "Select type...",
+        "primary": "Primary School",
+        "high": "High School",
+        "technical": "Technical School",
+        "vocational1": "Vocational (Stage I)",
+        "vocational2": "Vocational (Stage II)",
+        "postSecondary": "Post-secondary",
+        "homeschooling": "Homeschooling",
+        "other": "Other",
+        "preferNotToSay": "Prefer not to say"
+      },
+      "level": {
+        "label": "Education Level",
+        "desc": "Your current study stage",
+        "select": "Select level...",
+        "primary13": "Grades 1-3",
+        "primary46": "Grades 4-6",
+        "primary78": "Grades 7-8",
+        "secondary1": "High/Tech. Grade 1",
+        "secondary2": "High/Tech. Grade 2",
+        "secondary3": "High/Tech. Grade 3",
+        "secondary4": "High/Tech. Grade 4",
+        "secondary5": "Technical Grade 5",
+        "other": "Other",
+        "preferNotToSay": "Prefer not to say"
+      },
+      "postalCode": {
+        "label": "Postal Code",
+        "desc": "Optional",
+        "postalCodeError": "Postal code should be 5 digits."
+      }
+    },
+    "toast": {
+      "saved": "Profile data saved.",
+      "error": "Failed to save profile data."
+    }
+  },
+  "settings": {
+    "account": {
+      "deleted": "Account has been deleted.",
+      "deleteError": "Failed to delete account. Please try again later.",
+      "title": "Account",
+      "delete": "Delete account",
+      "deleteDesc": "This action cannot be undone",
+      "logout": "Log out",
+      "logoutDesc": "End your session"
+    },
+    "language": {
+      "saved": "Interface language saved",
+      "title": "Language",
+      "interface": "Interface language",
+      "desc": "Choose your preferred language",
+      "save": "Save changes"
+    },
+    "notifications": {
+      "title": "Notifications",
+      "enable": "Enable notifications",
+      "desc": "Receive reminders about study sessions"
+    },
+    "appearance": {
+      "title": "Appearance",
+      "dark": "Dark mode",
+      "desc": "Change the application theme"
+    },
+    "header": {
+      "title": "Settings",
+      "desc": "Customize the application to your needs"
+    },
+    "profile": {
+      "title": "Profile",
+      "data": "Educational and profile data",
+      "desc": "Edit profile data and educational information.",
+      "goTo": "Go to profile"
+    },
+    "parent": {
+      "title": "For parent / guardian",
+      "dashboard": "Parent Dashboard",
+      "desc": "Check consent status and basic information about child progress.",
+      "open": "Open Parent Dashboard"
+    },
+    "privacy": {
+      "title": "Privacy",
+      "desc1": "Your data is safe. We do not share it with third parties. Read our",
+      "desc2": "Privacy Policy"
+    }
+  },
+  "common": {
+    "noData": "No data",
+    "today": "Today",
+    "saveChanges": "Save changes",
+    "dateLocale": "en-US"
+  },
+  "flashcards": {
+    "title": "Flashcards",
+    "subtitle": "Learn key concepts",
+    "progress": "Progress",
+    "cardCounter": "Card {{current}} of {{total}}",
+    "buckets": {
+      "toReview": "To review",
+      "difficult": "Difficult",
+      "mastered": "Mastered"
+    },
+    "card": {
+      "term": "Concept",
+      "definition": "Definition",
+      "clickToFlip": "Click to flip"
+    },
+    "controls": {
+      "dontKnow": "Don't know",
+      "know": "I know",
+      "prev": "Previous card",
+      "next": "Next card"
+    },
+    "difficulty": {
+      "label": "Level",
+      "easy": "Easy",
+      "medium": "Medium",
+      "hard": "Hard"
+    },
+    "empty": {
+      "title": "No flashcards",
+      "desc": "Upload your notes first, and AI will generate flashcards for you.",
+      "cta": "Upload notes"
+    },
+    "completion": {
+      "title": "Congratulations!",
+      "desc": "You've finished all flashcards. You know {{known}} out of {{total}} concepts.",
+      "repeatDifficult": "Repeat difficult ({{count}})",
+      "repeatAll": "Repeat all",
+      "repeatSame": "Repeat same set",
+      "regenerate": "Generate new flashcards",
+      "goToQuiz": "Go to quiz",
+      "backToResults": "Back to results"
+    },
+    "notifications": {
+      "regenerateConfirm": "Are you sure you want to generate a new set of flashcards? The current set will be replaced by new concepts from your notes.",
+      "regenerating": "AI Magic: Generating new set...",
+      "success": "Set updated successfully!",
+      "error": "Regeneration error"
+    }
+  },
+  "quiz": {
+    "title": "Quiz",
+    "subtitle": "Test your knowledge",
+    "empty": {
+      "title": "No questions",
+      "desc": "Upload your notes first, and AI will generate quiz questions for you.",
+      "cta": "Upload notes"
+    },
+    "options": {
+      "true": "True",
+      "false": "False"
+    },
+    "feedback": {
+      "correct": "Correct answer!",
+      "incorrect": "Incorrect answer"
+    },
+    "buttons": {
+      "next": "Next question",
+      "finish": "Finish quiz and see result",
+      "repeat": "Take the same quiz again",
+      "regenerate": "Generate new quiz",
+      "backToAnalysis": "Back to analysis"
+    },
+    "difficulty": {
+      "label": "Difficulty level",
+      "easy": "Easy",
+      "medium": "Medium",
+      "hard": "Hard"
+    },
+    "completion": {
+      "title": "Quiz completed!",
+      "score": "Your score: {{correct}} out of {{total}} correct answers"
+    },
+    "notifications": {
+      "regenerateConfirm": "Are you sure you want to generate a new quiz? Current questions will be replaced by new challenges from your notes.",
+      "regenerating": "AI Magic: Generating new quiz...",
+      "success": "Quiz updated successfully!",
+      "error": "Regeneration error"
+    }
+  },
+  "results": {
+    "title": "Quiz results",
+    "empty": {
+      "title": "No results",
+      "desc": "Take a quiz to see your results.",
+      "cta": "Start quiz"
+    },
+    "messages": {
+      "excellent": "Great result! 🎉",
+      "good": "Good result! 👍",
+      "improve": "Needs improvement 📚"
+    },
+    "stats": {
+      "correctFromTotal": "{{correct}} correct out of {{total}} questions",
+      "totalQuestions": "Total questions",
+      "correct": "Correct",
+      "incorrect": "Incorrect",
+      "time": "Time"
+    },
+    "recommendations": {
+      "title": "Recommendations",
+      "strengths": "Your strengths:",
+      "toImprove": "To improve:",
+      "repeatMaterial": "Repeat material:",
+      "repeatFlashcardsDesc": "Try going through flashcards again before taking the quiz again.",
+      "strengthsDesc": "You are doing well with basic concepts. Keep learning!",
+      "improveDesc": "You have {{count}} incorrect answers. Review the explanations for these questions."
+    },
+    "actions": {
+      "repeatQuiz": "Repeat quiz",
+      "learnFlashcards": "Learn flashcards",
+      "dashboard": "Dashboard"
+    }
+  },
+  "history": {
+    "title": "Study History",
+    "subtitle": "All your analysis sessions",
+    "buttons": {
+      "newFolder": "New folder",
+      "move": "Move",
+      "create": "Create",
+      "cancel": "Cancel",
+      "delete": "Delete",
+      "startLearning": "Start learning"
+    },
+    "stats": {
+      "sessionsCount": "{{count}} sessions",
+      "avgScore": "Avg. score:",
+      "studyTime": "Study time",
+      "avgPerSession": "Avg/session",
+      "subjects": "Subjects"
+    },
+    "explorer": {
+      "allLessons": "All lessons",
+      "folder": "Folder:",
+      "showAll": "Show all (Root)",
+      "current": "Current"
+    },
+    "search": {
+      "placeholderFolder": "Search in this folder...",
+      "placeholderAll": "Search in all lessons...",
+      "sortBy": "Sort by:",
+      "dateDesc": "Date (newest)",
+      "dateAsc": "Date (oldest)",
+      "titleAsc": "Name (A-Z)",
+      "titleDesc": "Name (Z-A)"
+    },
+    "groups": {
+      "today": "Today",
+      "yesterday": "Yesterday",
+      "last7Days": "Last 7 days",
+      "older": "Older",
+      "allSessions": "All sessions"
+    },
+    "modals": {
+      "deleteSession": {
+        "title": "Delete session?",
+        "message": "The session will be deleted from your account. This operation cannot be undone."
+      },
+      "deleteFolder": {
+        "title": "Delete folder?",
+        "message": "The folder will be deleted. All lessons inside will be moved to the root."
+      },
+      "moveSession": {
+        "title": "Move lesson",
+        "subtitle": "Choose destination",
+        "root": "All lessons (Root)"
+      },
+      "createFolder": {
+        "title": "New folder",
+        "placeholder": "Folder name..."
+      }
+    },
+    "empty": {
+      "title": "No history",
+      "desc": "You don't have any analyzed sessions or folders yet.",
+      "noFolders": "No folders"
+    },
+    "items": {
+      "sessions": "sessions",
+      "noSubject": "No subject",
+      "generatingTitle": "Generating title...",
+      "flashcards": "flashcards",
+      "questions": "questions",
+      "completed": "Completed",
+      "deleteSession": "Delete session",
+      "moveLesson": "Move lesson"
+    },
+    "searchEmpty": {
+      "title": "No results",
+      "desc": "We couldn't find any sessions matching your search.",
+      "clear": "Clear search"
+    },
+    "folderEmpty": {
+      "title": "Empty folder",
+      "desc": "This folder does not contain any lessons yet."
+    },
+    "toasts": {
+      "folderCreated": "Folder created",
+      "folderDeleted": "Folder deleted",
+      "sessionMoved": "Session moved",
+      "demoError": "Demo mode: cannot create folder"
+    },
+    "error": "Failed to load study history:"
+  },
+  "analysis": {
+    "error": {
+      "title": "Analysis Error",
+      "retry": "Try again with another photo",
+      "network": "An unexpected network error occurred."
+    },
+    "empty": {
+      "title": "Analysis not found",
+      "back": "Back to upload"
+    },
+    "header": {
+      "confidence": "Confidence:",
+      "demo": "Demo Mode",
+      "namePrompt": "Name this lesson to easily find it later"
+    },
+    "gallery": {
+      "openDoc": "Click to download or open document",
+      "docAdded": "Document<br/>added",
+      "openImage": "Click to open full size",
+      "page": "Page {{current}} of {{total}}"
+    },
+    "actions": {
+      "title": "Start learning",
+      "lesson": {
+        "title": "AI Lesson (Socratic)",
+        "desc": "Talk and understand the material through dialogue"
+      },
+      "quiz": {
+        "title": "Take a quiz",
+        "desc": "{{count}} knowledge check questions"
+      },
+      "flashcards": {
+        "title": "Learn flashcards",
+        "desc": "{{count}} concepts to master"
+      }
+    },
+    "summary": {
+      "title": "Lesson Summary"
+    },
+    "concepts": {
+      "title": "Key Concepts ({{count}})",
+      "hint": "Click a concept to explore it"
+    },
+    "categories": {
+      "definition": "Definition",
+      "date": "Date",
+      "formula": "Formula",
+      "person": "Person",
+      "event": "Event",
+      "concept": "Concept"
+    },
+    "stats": {
+      "concepts": "Concepts",
+      "flashcards": "Flashcards",
+      "questions": "Questions"
+    },
+    "backendErrors": {
+      "generic": "A problem occurred with the AI analysis server. Please try again or contact support.",
+      "unreadableText": "Could not read text from the photo. Try taking a closer picture, in better light, so the text is clear.",
+      "unauthorized": "Session authentication expired. Refresh the page and log in again if needed.",
+      "sessionNotFound": "The analysis session expired or was not saved correctly. Please upload the note again.",
+      "downloadFailed": "Permission error while loading image. Try uploading the file again.",
+      "aiUnderstanding": "The AI model had trouble understanding these notes. Try a clearer shot.",
+      "serverError": "A temporary server error occurred. Please try again later."
+    }
+  },
+  "upload": {
+    "title": "Upload materials",
+    "subtitle": "Add up to {{maxImages}} photos of notes or 1 text document (PDF/DOCX). AI will prepare a lesson in a few seconds.",
+    "demoMode": "Demo mode — uploaded file will be processed locally only.",
+    "cameraCta": "Take a photo of notes",
+    "or": "or",
+    "chooseFiles": "Choose files from device",
+    "dropHere": "Drop files here...",
+    "supportedFormats": "JPG, PNG, WEBP, text PDF or DOCX",
+    "limitInfo": "max 5 photos or 1 document · max 10MB",
+    "cropPanel": {
+      "title": "Crop photo",
+      "zoom": "Zoom:",
+      "processing": "Processing...",
+      "confirm": "Confirm crop",
+      "skip": "Skip cropping"
+    },
+    "tips": {
+      "title": "Tips for better results:",
+      "readable": "Ensure text is readable and well lit",
+      "angle": "Avoid photos at an angle — take them horizontally from above",
+      "multiplePages": "You can add multiple pages at once — AI will combine them into one lesson"
+    },
+    "safety": {
+      "title": "Before you upload",
+      "line1": "Do not upload documents with ID numbers, addresses, health data, photos of people, or materials you do not own rights to.",
+      "line2": "Send only notes and files needed for learning. If you're not sure, ask a parent or teacher."
+    },
+    "actions": {
+      "submit": "Submit material",
+      "analyzeDoc": "Analyze document",
+      "analyzeImages": "Analyze {{count}} photo(s)",
+      "remove": "Remove",
+      "addMore": "Add more",
+      "retry": "Try again"
+    },
+    "states": {
+      "extractingDoc": "Extracting text from document...",
+      "justAMoment": "This will just take a moment.",
+      "selectedDoc": "Selected document",
+      "readSize": "Read {{size}} KB of text",
+      "uploadingAndAnalyzing": "Uploading and analyzing...",
+      "imageCount": "{{current}} of {{max}} photos",
+      "readyCount": "({{ready}} ready)",
+      "previewIndex": "Preview — photo {{index}}",
+      "unprocessed": "{{remaining}} photo(s) not yet processed. Finish cropping or remove unprocessed ones."
+    },
+    "errors": {
+      "pdfScan": "This PDF looks like a scan. Currently we only support text PDFs. Try taking a photo of the page or upload a DOCX file.",
+      "docRead": "Error reading document. Check the file and try again.",
+      "mixedTypes": "You cannot add documents and photos in the same session.",
+      "imagesExist": "You already have photos added. You cannot add a document.",
+      "oneDocOnly": "You can only add 1 document at a time.",
+      "docTooLarge": "Document is too large (max 10MB)",
+      "docExists": "You already have a document added. You cannot add photos.",
+      "imageTooLarge": "One of the photos is too large (max 10MB)",
+      "compressionError": "Photo compression error. Try again.",
+      "docSaveError": "An error occurred while saving the document. Try again.",
+      "imageSaveError": "An error occurred while saving images. Try again.",
+      "uploadFailed": "Upload error",
+      "generic": "Error"
+    }
+  }
+}

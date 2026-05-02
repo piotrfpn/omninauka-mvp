@@ -2,8 +2,10 @@ import { useState } from 'react';
 import { useAuth } from '../../lib/auth-context';
 import { Loader2, School, GraduationCap, MapPin, UserCircle } from 'lucide-react';
 import { toast } from 'sonner';
+import { useTranslation } from 'react-i18next';
 
 export function EducationalProfileForm({ onSuccess }: { onSuccess?: () => void }) {
+  const { t } = useTranslation();
   const { user, updateProfile } = useAuth();
   
   const [userRole, setUserRole] = useState(user?.userRole || '');
@@ -17,7 +19,7 @@ export function EducationalProfileForm({ onSuccess }: { onSuccess?: () => void }
     let normalizedPostal = postalCode.replace(/\D/g, '');
     
     if (normalizedPostal.length > 0 && normalizedPostal.length < 5) {
-      setPostalCodeError('Kod pocztowy powinien mieć 5 cyfr.');
+      setPostalCodeError(t('profile.educational.postalCodeError', 'Kod pocztowy powinien mieć 5 cyfr.'));
       return;
     }
 
@@ -38,13 +40,13 @@ export function EducationalProfileForm({ onSuccess }: { onSuccess?: () => void }
       });
 
       if (result.success) {
-        toast.success("Dane profilu zostały zapisane.");
+        toast.success(t('profile.toast.saved', 'Dane profilu zostały zapisane.'));
         if (onSuccess) onSuccess();
       } else {
         throw new Error(result.error);
       }
     } catch (err: any) {
-      toast.error(err.message || "Nie udało się zapisać danych profilu.");
+      toast.error(err.message || t('profile.toast.error', 'Nie udało się zapisać danych profilu.'));
     } finally {
       setIsUpdating(false);
     }
@@ -59,8 +61,8 @@ export function EducationalProfileForm({ onSuccess }: { onSuccess?: () => void }
             <UserCircle className="w-5 h-5 text-[var(--omni-text)]" />
           </div>
           <div>
-            <p className="font-medium text-[var(--omni-text)]">Kim jesteś?</p>
-            <p className="text-sm text-[var(--omni-text-muted)]">Twoja rola w systemie</p>
+            <p className="font-medium text-[var(--omni-text)]">{t('profile.educational.role.label', 'Kim jesteś?')}</p>
+            <p className="text-sm text-[var(--omni-text-muted)]">{t('profile.educational.role.desc', 'Twoja rola w systemie')}</p>
           </div>
         </div>
         <select
@@ -69,12 +71,12 @@ export function EducationalProfileForm({ onSuccess }: { onSuccess?: () => void }
           disabled={isUpdating}
           className="px-4 py-2 bg-background border border-input rounded-lg text-[var(--omni-text)] focus:ring-2 focus:ring-primary/20 transition-all disabled:opacity-50"
         >
-          <option value="">Wybierz rolę...</option>
-          <option value="student">Uczeń</option>
-          <option value="parent">Rodzic/opiekun</option>
-          <option value="teacher">Nauczyciel</option>
-          <option value="other">Inne</option>
-          <option value="prefer_not_to_say">Nie chcę podawać</option>
+          <option value="">{t('profile.educational.role.select', 'Wybierz rolę...')}</option>
+          <option value="student">{t('profile.educational.role.student', 'Uczeń')}</option>
+          <option value="parent">{t('profile.educational.role.parent', 'Rodzic/opiekun')}</option>
+          <option value="teacher">{t('profile.educational.role.teacher', 'Nauczyciel')}</option>
+          <option value="other">{t('profile.educational.role.other', 'Inne')}</option>
+          <option value="prefer_not_to_say">{t('profile.educational.role.preferNotToSay', 'Nie chcę podawać')}</option>
         </select>
       </div>
 
@@ -85,8 +87,8 @@ export function EducationalProfileForm({ onSuccess }: { onSuccess?: () => void }
             <School className="w-5 h-5 text-[var(--omni-text)]" />
           </div>
           <div>
-            <p className="font-medium text-[var(--omni-text)]">Typ szkoły</p>
-            <p className="text-sm text-[var(--omni-text-muted)]">Do jakiej szkoły uczęszczasz</p>
+            <p className="font-medium text-[var(--omni-text)]">{t('profile.educational.school.label', 'Typ szkoły')}</p>
+            <p className="text-sm text-[var(--omni-text-muted)]">{t('profile.educational.school.desc', 'Do jakiej szkoły uczęszczasz')}</p>
           </div>
         </div>
         <select
@@ -95,16 +97,16 @@ export function EducationalProfileForm({ onSuccess }: { onSuccess?: () => void }
           disabled={isUpdating}
           className="px-4 py-2 bg-background border border-input rounded-lg text-[var(--omni-text)] focus:ring-2 focus:ring-primary/20 transition-all disabled:opacity-50"
         >
-          <option value="">Wybierz typ...</option>
-          <option value="primary_school">Szkoła podstawowa</option>
-          <option value="high_school">Liceum</option>
-          <option value="technical_school">Technikum</option>
-          <option value="vocational_school_1">Branżowa I st.</option>
-          <option value="vocational_school_2">Branżowa II st.</option>
-          <option value="post_secondary">Policealna</option>
-          <option value="homeschooling">Edukacja domowa</option>
-          <option value="other">Inna</option>
-          <option value="prefer_not_to_say">Nie chcę podawać</option>
+          <option value="">{t('profile.educational.school.select', 'Wybierz typ...')}</option>
+          <option value="primary_school">{t('profile.educational.school.primary', 'Szkoła podstawowa')}</option>
+          <option value="high_school">{t('profile.educational.school.high', 'Liceum')}</option>
+          <option value="technical_school">{t('profile.educational.school.technical', 'Technikum')}</option>
+          <option value="vocational_school_1">{t('profile.educational.school.vocational1', 'Branżowa I st.')}</option>
+          <option value="vocational_school_2">{t('profile.educational.school.vocational2', 'Branżowa II st.')}</option>
+          <option value="post_secondary">{t('profile.educational.school.postSecondary', 'Policealna')}</option>
+          <option value="homeschooling">{t('profile.educational.school.homeschooling', 'Edukacja domowa')}</option>
+          <option value="other">{t('profile.educational.school.other', 'Inna')}</option>
+          <option value="prefer_not_to_say">{t('profile.educational.school.preferNotToSay', 'Nie chcę podawać')}</option>
         </select>
       </div>
 
@@ -115,8 +117,8 @@ export function EducationalProfileForm({ onSuccess }: { onSuccess?: () => void }
             <GraduationCap className="w-5 h-5 text-[var(--omni-text)]" />
           </div>
           <div>
-            <p className="font-medium text-[var(--omni-text)]">Poziom edukacji</p>
-            <p className="text-sm text-[var(--omni-text-muted)]">Twój aktualny etap nauki</p>
+            <p className="font-medium text-[var(--omni-text)]">{t('profile.educational.level.label', 'Poziom edukacji')}</p>
+            <p className="text-sm text-[var(--omni-text-muted)]">{t('profile.educational.level.desc', 'Twój aktualny etap nauki')}</p>
           </div>
         </div>
         <select
@@ -125,17 +127,17 @@ export function EducationalProfileForm({ onSuccess }: { onSuccess?: () => void }
           disabled={isUpdating}
           className="px-4 py-2 bg-background border border-input rounded-lg text-[var(--omni-text)] focus:ring-2 focus:ring-primary/20 transition-all disabled:opacity-50"
         >
-          <option value="">Wybierz poziom...</option>
-          <option value="primary_1_3">Klasy 1-3</option>
-          <option value="primary_4_6">Klasy 4-6</option>
-          <option value="primary_7_8">Klasy 7-8</option>
-          <option value="secondary_1">Liceum/Tech. kl. 1</option>
-          <option value="secondary_2">Liceum/Tech. kl. 2</option>
-          <option value="secondary_3">Liceum/Tech. kl. 3</option>
-          <option value="secondary_4">Liceum/Tech. kl. 4</option>
-          <option value="secondary_5">Technikum kl. 5</option>
-          <option value="other">Inne</option>
-          <option value="prefer_not_to_say">Nie chcę podawać</option>
+          <option value="">{t('profile.educational.level.select', 'Wybierz poziom...')}</option>
+          <option value="primary_1_3">{t('profile.educational.level.primary13', 'Klasy 1-3')}</option>
+          <option value="primary_4_6">{t('profile.educational.level.primary46', 'Klasy 4-6')}</option>
+          <option value="primary_7_8">{t('profile.educational.level.primary78', 'Klasy 7-8')}</option>
+          <option value="secondary_1">{t('profile.educational.level.secondary1', 'Liceum/Tech. kl. 1')}</option>
+          <option value="secondary_2">{t('profile.educational.level.secondary2', 'Liceum/Tech. kl. 2')}</option>
+          <option value="secondary_3">{t('profile.educational.level.secondary3', 'Liceum/Tech. kl. 3')}</option>
+          <option value="secondary_4">{t('profile.educational.level.secondary4', 'Liceum/Tech. kl. 4')}</option>
+          <option value="secondary_5">{t('profile.educational.level.secondary5', 'Technikum kl. 5')}</option>
+          <option value="other">{t('profile.educational.level.other', 'Inne')}</option>
+          <option value="prefer_not_to_say">{t('profile.educational.level.preferNotToSay', 'Nie chcę podawać')}</option>
         </select>
       </div>
 
@@ -146,8 +148,8 @@ export function EducationalProfileForm({ onSuccess }: { onSuccess?: () => void }
             <MapPin className="w-5 h-5 text-[var(--omni-text)]" />
           </div>
           <div>
-            <p className="font-medium text-[var(--omni-text)]">Kod pocztowy</p>
-            <p className="text-sm text-[var(--omni-text-muted)]">Opcjonalnie</p>
+            <p className="font-medium text-[var(--omni-text)]">{t('profile.educational.postalCode.label', 'Kod pocztowy')}</p>
+            <p className="text-sm text-[var(--omni-text-muted)]">{t('profile.educational.postalCode.desc', 'Opcjonalnie')}</p>
             {postalCodeError && (
               <p className="text-xs text-red-500 mt-1">{postalCodeError}</p>
             )}
@@ -180,7 +182,7 @@ export function EducationalProfileForm({ onSuccess }: { onSuccess?: () => void }
           className="omni-btn-primary py-2 px-6 flex items-center gap-2"
         >
           {isUpdating && <Loader2 className="w-4 h-4 animate-spin" />}
-          Zapisz zmiany
+          {t('common.saveChanges', 'Zapisz zmiany')}
         </button>
       </div>
     </div>

@@ -1,0 +1,859 @@
+{
+  "auth": {
+    "email": "E-mail",
+    "password": "Password",
+    "backToHome": "← Torna alla home",
+    "login": {
+      "title": "Bentornato",
+      "subtitle": "Accedi per continuare a imparare",
+      "parent": {
+        "title": "Dashboard Genitori — Accesso",
+        "desc": "Accedi come genitore o tutore qui sotto per controllare i progressi di tuo figlio."
+      },
+      "forgot": "Password dimenticata?",
+      "submit": "Accedi",
+      "demo": "Modalità demo - entra senza accedere",
+      "noAccount": "Non hai un account?",
+      "register": "Iscriviti",
+      "error": {
+        "invalid": "E-mail o password non validi",
+        "generic": "Si è verificato un errore durante l'accesso"
+      }
+    },
+    "register": {
+      "title": "Crea un account",
+      "subtitle": "Inizia a imparare in modo intelligente",
+      "name": "Nome",
+      "namePlaceholder": "Il tuo nome",
+      "role": "Chi sei?",
+      "roleStudent": "Sono uno studente",
+      "roleParent": "Sono un genitore / tutore",
+      "age": "Età",
+      "agePlaceholder": "Seleziona la fascia d'età",
+      "ageUnder13": "Meno di 13 anni",
+      "age13to15": "13 – 15 anni",
+      "age16to17": "16 – 17 anni",
+      "age18plus": "18+ anni",
+      "passwordMin": "Minimo 6 caratteri",
+      "submit": "Crea account",
+      "hasAccount": "Hai già un account?",
+      "login": "Accedi",
+      "error": {
+        "noRole": "Seleziona un ruolo",
+        "noAge": "Seleziona una fascia d'età",
+        "passLength": "La password deve contenere almeno 6 caratteri",
+        "failed": "Impossibile creare l'account.",
+        "generic": "Si è verificato un errore durante la registrazione"
+      },
+      "success": {
+        "verify": "Account creato. Controlla la tua e-mail e conferma l'indirizzo.",
+        "consent": "Account creato! Poiché hai 13-15 anni, ci serve il consenso dei genitori.",
+        "toLogin": "Vai al login"
+      },
+      "ageBlock": {
+        "title": "Abbiamo bisogno dell'aiuto dei genitori",
+        "desc": "A causa delle norme di sicurezza (GDPR), i minori di 13 anni non possono creare un account.",
+        "whatNow": "E adesso?",
+        "instruction": "Chiedi a un genitore di creare un account e aggiungere il tuo profilo studente.",
+        "back": "Torna al modulo"
+      }
+    },
+    "forgot": {
+      "title": "Reimposta password",
+      "subtitle": "Inserisci la tua e-mail e ti invieremo un link",
+      "submit": "Invia link",
+      "backToLogin": "Torna al login",
+      "successTitle": "Controlla la tua e-mail",
+      "successDesc1": "Se esiste un account con l'indirizzo",
+      "successDesc2": ", abbiamo inviato un link.",
+      "toastSuccess": "Link inviato"
+    },
+    "reset": {
+      "title": "Imposta nuova password",
+      "subtitle": "Scegli una password sicura",
+      "newPassword": "Nuova password",
+      "newPasswordPlaceholder": "Min. 8 caratteri",
+      "confirmPassword": "Conferma password",
+      "confirmPasswordPlaceholder": "••••••••",
+      "submit": "Cambia password",
+      "error": {
+        "length": "Minimo 8 caratteri",
+        "mismatch": "Le password non coincidono",
+        "generic": "Errore durante la modifica della password"
+      },
+      "toastSuccess": "La password è stata cambiata",
+      "expired": {
+        "title": "Sessione scaduta",
+        "desc": "Il link non è valido o è già stato utilizzato.",
+        "submit": "Invia nuovo link"
+      },
+      "success": {
+        "title": "Password cambiata!",
+        "desc": "La tua nuova password è stata impostata.",
+        "submit": "Accedi ora"
+      }
+    },
+    "pending": {
+      "title": "Abbiamo bisogno del consenso",
+      "desc1": "Ciao,",
+      "desc2": "! Poiché hai meno di 16 anni, abbiamo bisogno della conferma dei tuoi genitori (GDPR).",
+      "emailLabel": "E-mail del genitore",
+      "emailPlaceholder": "genitore@email.it",
+      "emailHelp": "Invieremo un link sicuro a questo indirizzo.",
+      "submit": "Invia richiesta",
+      "wait": "Attendi",
+      "waitSuffix": "s...",
+      "successTitle": "Richiesta inviata!",
+      "successDesc1": "Chiedi ai tuoi genitori di controllare la posta (",
+      "successDesc2": ") e cliccare sul link.",
+      "successNote": "Appena approveranno, il tuo account sarà sbloccato.",
+      "otherEmail": "Usa un altro indirizzo",
+      "otherEmailWait": "Usa un altro indirizzo tra",
+      "resend": "Invia di nuovo",
+      "logout": "Esci e torna più tardi",
+      "terms": "Leggi i termini",
+      "error": {
+        "wait": "Attendi un momento.",
+        "config": "Configurazione e-mail non pronta.",
+        "notPending": "L'account non è in attesa di consenso.",
+        "invalidData": "Impossibile inviare. Controlla i dati.",
+        "network": "Nessuna connessione.",
+        "auth": "Errore di autorizzazione.",
+        "generic": "Errore durante l'invio. Riprova.",
+        "technical": "Errore tecnico."
+      }
+    },
+    "parentConsent": {
+      "loading": "Verifica in corso...",
+      "invalid": {
+        "title": "Link non valido o scaduto",
+        "desc": "Questo link non è più attivo.",
+        "back": "Torna alla home"
+      },
+      "success": {
+        "title": "Consenso approvato!",
+        "desc": "Grazie. Tuo figlio può ora utilizzare OmniNauka.",
+        "goToApp": "Vai a OmniNauka"
+      },
+      "form": {
+        "title": "Conferma del consenso",
+        "forUser": "Consenso per:",
+        "submit": "Confermo e sblocco l'account",
+        "errorChecked": "Devi selezionare tutte le caselle."
+      },
+      "footer": {
+        "terms": "Termini",
+        "privacy": "Privacy",
+        "contact": "Contatti"
+      }
+    }
+  },
+  "home": {
+    "howItWorks": {
+      "title": "Come funziona?",
+      "scan": {
+        "title": "Scansiona gli appunti",
+        "description": "Carica una foto dei tuoi appunti o di una pagina del libro di testo."
+      },
+      "ai": {
+        "title": "L'IA analizza",
+        "description": "L'intelligenza artificiale estrae concetti chiave e crea materiale."
+      },
+      "learn": {
+        "title": "Impara efficacemente",
+        "description": "Flashcard, quiz e lezioni adattati ai tuoi materiali."
+      },
+      "chat": {
+        "title": "Chatta con l'IA",
+        "description": "Fai domande e impara attraverso il dialogo con il tutor IA."
+      },
+      "progress": {
+        "title": "Traccia i progressi",
+        "description": "Monitora i tuoi risultati e identifica i punti deboli."
+      }
+    },
+    "pricing": {
+      "title": "Scegli un piano",
+      "period": "/ mese",
+      "free": {
+        "title": "Gratuito",
+        "price": "0 PLN",
+        "feat1": "2 lezioni IA al giorno",
+        "feat2": "Tutor IA testuale",
+        "feat3": "Quiz con spiegazioni",
+        "feat4": "Cronologia di apprendimento",
+        "feat5": "Prossima lezione IA: 1,99 PLN",
+        "cta": "Inizia gratis"
+      },
+      "premium": {
+        "title": "Premium",
+        "price": "29 PLN",
+        "badge": "Il Più Popolare",
+        "feat1": "Più lezioni IA ogni giorno",
+        "feat2": "Tutor IA avanzato",
+        "feat3": "Revisioni degli errori",
+        "feat4": "Test con rapporti sugli errori",
+        "feat5": "IA prioritaria",
+        "cta": "Prova per 7 giorni"
+      },
+      "premiumPlus": {
+        "title": "Premium+",
+        "price": "49 PLN",
+        "badge": "Esami",
+        "feat1": "Tutto nel Premium",
+        "feat2": "Preparazione esame di ottava classe",
+        "feat3": "Preparazione esame di maturità",
+        "feat4": "Compiti stile esame",
+        "feat5": "Esami simulati e rapporti sugli errori",
+        "cta": "Prova per 7 giorni"
+      },
+      "family": {
+        "title": "Famiglia",
+        "price": "59 PLN",
+        "feat1": "Fino a 3 account per studenti",
+        "feat2": "Tutto nel Premium",
+        "feat3": "Rapporti sui progressi",
+        "feat4": "Cronologia di apprendimento condivisa",
+        "feat5": "Pannello genitori — in arrivo",
+        "cta": "Prova per 7 giorni"
+      },
+      "extra": {
+        "info": "1 lezione IA = fino a 5 foto o 1 documento PDF/DOCX.",
+        "title": "Lezioni IA aggiuntive",
+        "pack1": "5 lezioni IA",
+        "price1": "7,99 PLN",
+        "pack2": "10 lezioni IA",
+        "price2": "14,99 PLN",
+        "pack3": "25 lezioni IA",
+        "price3": "29,99 PLN",
+        "note": "Pacchetti di lezioni aggiuntive saranno disponibili una vez lanciati i pagamenti."
+      }
+    },
+    "faq": {
+      "title": "Domande Frequenti",
+      "q1": {
+        "q": "Cos'è una lezione IA?",
+        "a": "Una lezione IA è un'analisi del materiale aggiunto dallo studente. Può essere fino a 5 foto di appunti o 1 documento PDF/DOCX. Dopo aver aggiunto il materiale, OmniNauka aiuta a comprendere l'argomento, conduce una conversazione con il Tutor IA e può preparare un quiz."
+      },
+      "q2": {
+        "q": "In che modo un quiz differisce da un test?",
+        "a": "Un quiz con spiegazioni è una breve sessione di allenamento dopo una lezione. Aiuta a verificare la comprensione di base dell'argomento e mostra perché una risposta è giusta o sbagliata. Un test con un rapporto sugli errori è un test di prontezza più ampio per un compito in classe o un esame. Alla fine, lo studente riceve un punteggio e informazioni su quali argomenti ripassare."
+      },
+      "q3": {
+        "q": "Cos'è Premium+?",
+        "a": "Premium+ è un piano per gli studenti che si preparano per esami importanti, come l'esame di ottava classe o la maturità. Include compiti in stile esame, esami simulati e rapporti sugli errori."
+      },
+      "q4": {
+        "q": "OmniNauka mi preparerà per l'esame di ottava classe e la maturità?",
+        "a": "Sì, stiamo pianificando una modalità esame per l'esame di ottava classe e la maturità. Questo sarà un modulo separato sviluppato dopo la versione base dell'applicazione."
+      },
+      "q5": {
+        "q": "OmniNauka è uno strumento ufficiale del CKE?",
+        "a": "No. OmniNauka non è uno strumento ufficiale del CKE. La modalità esame sarà creata come supporto allo studio, con compiti in stile esame e materiali ispirati ai requisiti di valutazione."
+      },
+      "q6": {
+        "q": "Posso aggiungere un PDF o un documento Word?",
+        "a": "Sì. OmniNauka supporta foto JPG, PNG, WEBP, file PDF di testo e documenti DOCX. I PDF scansionati potrebbero richiedere l'aggiunta di pagine come foto."
+      },
+      "q7": {
+        "q": "OmniNauka risolve i compiti per lo studente?",
+        "a": "L'obiettivo di OmniNauka non è fornire risposte pronte senza imparare. Il Tutor IA aiuta a comprendere il materiale, spiega gli errori, fa domande e guida lo studente passo dopo passo."
+      },
+      "q8": {
+        "q": "I pagamenti sono già attivi?",
+        "a": "Durante la fase beta, i pagamenti e i limiti potrebbero essere lanciati in fasi. I pacchetti attuali mostrano il modello di utilizzo pianificato per OmniNauka."
+      }
+    },
+    "about": {
+      "title": "Chi siamo",
+      "p1": "OmniNauka è un tutor IA moderno per studenti. Aiuta a comprendere il materiale da appunti, foto, PDF e documenti Word, conduce una conversazione con il Tutor IA, crea quiz e supporta la revisione degli errori.",
+      "p2": "Creiamo un'applicazione che non fa il lavoro al posto dello studente, ma lo aiuta a comprendere veramente l'argomento.",
+      "p3": "OmniNauka è in fase di sviluppo come prodotto mobile-first — semplice, veloce e conveniente per gli studenti che utilizzano principalmente telefoni o tablet."
+    },
+    "footer": {
+      "brandDesc": "Apprendimento personalizzato per ogni studente",
+      "product": {
+        "title": "Prodotto",
+        "features": "Funzionalità",
+        "pricing": "Prezzi",
+        "faq": "FAQ",
+        "security": "Sicurezza"
+      },
+      "company": {
+        "title": "Azienda",
+        "about": "Chi siamo",
+        "contact": "Contatto"
+      },
+      "legal": {
+        "title": "Legale",
+        "terms": "Termini di Servizio",
+        "privacy": "Informativa sulla privacy",
+        "reports": "Segnalazione di violazioni e rimozione dei contenuti"
+      },
+      "copyright": "© 2026 OmniNauka. Tutti i diritti riservati."
+    },
+    "nav": {
+      "login": "Accedi",
+      "tryFree": "Prova gratis"
+    },
+    "hero": {
+      "title": "L'apprendimento prende vita",
+      "subtitle": "Scansiona i tuoi appunti. OmniNauka creerà quiz e flashcard.",
+      "cta": {
+        "tryFree": "Prova gratis",
+        "howItWorks": "Come funziona"
+      }
+    },
+    "cta": {
+      "title": "Pronto per iniziare?",
+      "subtitle": "Unisciti a migliaia di studenti."
+    }
+  },
+  "contact": {
+    "backHome": "Torna alla home",
+    "title": "Contatto",
+    "description": "Per collaborazioni, beta test o domande relative a OmniNauka, contattaci via e-mail o telefono.",
+    "emailLabel": "E-MAIL",
+    "phoneLabel": "TELEFONO",
+    "operator": "Operatore del servizio",
+    "address": "Indirizzo",
+    "hours": "Orario di lavoro",
+    "hoursDesc": "Lunedì - Venerdì: 09:00 - 17:00",
+    "message": {
+      "label": "Invia un messaggio",
+      "desc": "Il modo più veloce per ottenere supporto tecnico."
+    }
+  },
+  "legal": {
+    "bindingNotice": "Questa traduzione è a scopo informativo. La versione legalmente vincolante è quella polacca.",
+    "footer": {
+      "allRightsReserved": "Tutti i diritti riservati."
+    },
+    "cookies": {
+      "title": "Informativa sui Cookie e sulla Conservazione dei Dati"
+    },
+    "aiDisclaimer": {
+      "title": "Disclaimer sull'Intelligenza Artificiale (AI Disclaimer)"
+    }
+  },
+  "appShell": {
+    "nav": {
+      "dashboard": "Dashboard",
+      "upload": "Carica",
+      "flashcards": "Flashcard",
+      "quiz": "Quiz",
+      "lesson": "Lezione IA",
+      "results": "Risultati",
+      "history": "Cronologia",
+      "profile": "Profilo",
+      "settings": "Impostazioni",
+      "parentPanel": "Pannello Genitori"
+    },
+    "user": "Utente",
+    "plan": {
+      "premium": "Premium",
+      "free": "Gratuito"
+    },
+    "logout": "Esci"
+  },
+  "dashboard": {
+    "welcome": "Ciao",
+    "subtitle": "Pronto per la tua prossima sessione di studio?",
+    "newUpload": "Nuovo caricamento",
+    "stats": {
+      "sessions": "Sessioni",
+      "hours": "Ore di studio",
+      "avgScore": "Punteggio medio",
+      "streak": "Serie"
+    },
+    "quickActions": {
+      "title": "Azioni rapide",
+      "newUpload": "Nuovo caricamento"
+    },
+    "recentSessions": "Sessioni recenti",
+    "seeAll": "Vedi tutto",
+    "processing": "Analizzando...",
+    "other": "Altro",
+    "deleteSession": "Elimina sessione",
+    "confirmDelete": "Sei sicuro di voler eliminare questa sessione?",
+    "error": "Errore nel recupero dei dati dal cloud.",
+    "images": "foto",
+    "empty": {
+      "title": "Non hai ancora sessioni salvate.",
+      "cta": "Inizia a imparare"
+    },
+    "subjectProgress": "Progresso per materia",
+    "sessions": "sessioni"
+  },
+  "profile": {
+    "title": "Il Tuo Profilo",
+    "subtitle": "Personalizza i dati del profilo e dell'istruzione",
+    "editData": "Modifica dati",
+    "info": {
+      "plan": "Piano",
+      "joined": "Iscritto",
+      "email": "E-mail"
+    },
+    "activity": {
+      "title": "Attività e Stato dell'Account",
+      "status": "Stato account",
+      "lastLogin": "Ultimo accesso"
+    },
+    "status": {
+      "active": "Attivo",
+      "pending": "In attesa di consenso",
+      "withdrawn": "Consenso revocato",
+      "suspended": "Sospeso"
+    },
+    "educational": {
+      "title": "Dati sull'Istruzione",
+      "notice": "Questi dati sono facoltativi. Ci aiutano a migliorare OmniNauka. Non fornire dati sensibili.",
+      "role": {
+        "label": "Chi sei?",
+        "desc": "Il tuo ruolo nel sistema",
+        "select": "Seleziona ruolo...",
+        "student": "Studente",
+        "parent": "Genitore/Tutore",
+        "teacher": "Insegnante",
+        "other": "Altro",
+        "preferNotToSay": "Preferisco non dirlo"
+      },
+      "school": {
+        "label": "Tipo di scuola",
+        "desc": "Che tipo di scuola frequenti",
+        "select": "Seleziona tipo...",
+        "primary": "Scuola Primaria",
+        "high": "Liceum",
+        "technical": "Istituto Tecnico",
+        "vocational1": "Professionale I",
+        "vocational2": "Professionale II",
+        "postSecondary": "Post-secondaria",
+        "homeschooling": "Istruzione domiciliare",
+        "other": "Altro",
+        "preferNotToSay": "Preferisco non dirlo"
+      },
+      "level": {
+        "label": "Livello di istruzione",
+        "desc": "La tua fase attuale di studio",
+        "select": "Seleziona livello...",
+        "primary13": "Classi 1-3",
+        "primary46": "Classi 4-6",
+        "primary78": "Classi 7-8",
+        "secondary1": "Liceo/Tecn. anno 1",
+        "secondary2": "Liceo/Tecn. anno 2",
+        "secondary3": "Liceo/Tecn. anno 3",
+        "secondary4": "Liceo/Tecn. anno 4",
+        "secondary5": "Anno finale Tecnico",
+        "other": "Altro",
+        "preferNotToSay": "Preferisco non dirlo"
+      },
+      "postalCode": {
+        "label": "Codice Postale",
+        "desc": "Facoltativo",
+        "postalCodeError": "Il codice postale deve avere 5 cifre."
+      }
+    },
+    "toast": {
+      "saved": "Dati del profilo salvati.",
+      "error": "Errore nel salvataggio dei dati."
+    }
+  },
+  "settings": {
+    "account": {
+      "deleted": "L'account è stato eliminato.",
+      "deleteError": "Impossibile eliminare l'account. Riprova più tardi.",
+      "title": "Account",
+      "delete": "Elimina account",
+      "deleteDesc": "Questa azione non può essere annullata",
+      "logout": "Esci",
+      "logoutDesc": "Termina la sessione"
+    },
+    "language": {
+      "saved": "Lingua dell'interfaccia salvata",
+      "title": "Lingua",
+      "interface": "Lingua dell'interfaccia",
+      "desc": "Scegli la tua lingua preferita",
+      "save": "Salva modifiche"
+    },
+    "notifications": {
+      "title": "Notifiche",
+      "enable": "Abilita notifiche",
+      "desc": "Ricevi promemoria sulle sessioni di studio"
+    },
+    "appearance": {
+      "title": "Aspetto",
+      "dark": "Modalità scura",
+      "desc": "Cambia il tema dell'applicazione"
+    },
+    "header": {
+      "title": "Impostazioni",
+      "desc": "Personalizza l'applicazione secondo le tue esigenze"
+    },
+    "profile": {
+      "title": "Profilo",
+      "data": "Dati educativi e del profilo",
+      "desc": "Modifica i dati del profilo e le informazioni educative.",
+      "goTo": "Vai al profilo"
+    },
+    "parent": {
+      "title": "Per genitori / tutori",
+      "dashboard": "Pannello Genitori",
+      "desc": "Verifica lo stato del consenso e le informazioni di base sui progressi del bambino.",
+      "open": "Apri Pannello Genitori"
+    },
+    "privacy": {
+      "title": "Privacy",
+      "desc1": "I tuoi dati sono al sicuro. Non li condividiamo con terze parti. Leggi la nostra",
+      "desc2": "Informativa sulla privacy"
+    }
+  },
+  "common": {
+    "noData": "Nessun dato",
+    "today": "Oggi",
+    "saveChanges": "Salva modifiche",
+    "dateLocale": "it-IT"
+  },
+  "flashcards": {
+    "title": "Flashcard",
+    "subtitle": "Impara i concetti chiave",
+    "progress": "Progresso",
+    "cardCounter": "Carta {{current}} di {{total}}",
+    "buckets": {
+      "toReview": "Da ripassare",
+      "difficult": "Difficili",
+      "mastered": "Imparate"
+    },
+    "card": {
+      "term": "Concetto",
+      "definition": "Definizione",
+      "clickToFlip": "Clicca per girare"
+    },
+    "controls": {
+      "dontKnow": "Non lo so",
+      "know": "Lo so",
+      "prev": "Carta precedente",
+      "next": "Carta successiva"
+    },
+    "difficulty": {
+      "label": "Livello",
+      "easy": "Facile",
+      "medium": "Medio",
+      "hard": "Difficile"
+    },
+    "empty": {
+      "title": "Nessuna flashcard",
+      "desc": "Carica prima i tuoi appunti e l'IA genererà le flashcard per te.",
+      "cta": "Carica appunti"
+    },
+    "completion": {
+      "title": "Congratulazioni!",
+      "desc": "Hai terminato tutte le flashcard. Conosci {{known}} concetti su {{total}}.",
+      "repeatDifficult": "Ripeti difficili ({{count}})",
+      "repeatAll": "Ripeti tutte",
+      "repeatSame": "Ripeti stessa serie",
+      "regenerate": "Genera nuove flashcard",
+      "goToQuiz": "Vai al quiz",
+      "backToResults": "Torna ai risultati"
+    },
+    "notifications": {
+      "regenerateConfirm": "Sei sicuro di voler generare un nuovo set di flashcard? Il set attuale sarà sostituito da nuovi concetti dai tuoi appunti.",
+      "regenerating": "Magia dell'IA: Generazione nuovo set...",
+      "success": "Set aggiornato con successo!",
+      "error": "Errore di rigenerazione"
+    }
+  },
+  "quiz": {
+    "title": "Quiz",
+    "subtitle": "Metti alla prova le tue conoscenze",
+    "empty": {
+      "title": "Nessuna domanda",
+      "desc": "Carica prima i tuoi appunti e l'IA genererà le domande del quiz per te.",
+      "cta": "Carica appunti"
+    },
+    "options": {
+      "true": "Vero",
+      "false": "Falso"
+    },
+    "feedback": {
+      "correct": "Risposta corretta!",
+      "incorrect": "Risposta errata"
+    },
+    "buttons": {
+      "next": "Prossima domanda",
+      "finish": "Finisci quiz e vedi risultato",
+      "repeat": "Rifai lo stesso quiz",
+      "regenerate": "Genera nuovo quiz",
+      "backToAnalysis": "Torna all'analisi"
+    },
+    "difficulty": {
+      "label": "Livello di difficoltà",
+      "easy": "Facile",
+      "medium": "Medio",
+      "hard": "Difficile"
+    },
+    "completion": {
+      "title": "Quiz completato!",
+      "score": "Il tuo punteggio: {{correct}} risposte corrette su {{total}}"
+    },
+    "notifications": {
+      "regenerateConfirm": "Sei sicuro di voler generare un nuovo quiz? Le domande attuali saranno sostituite da nuove sfide dai tuoi appunti.",
+      "regenerating": "Magia dell'IA: Generazione nuovo quiz...",
+      "success": "Quiz aggiornato con successo!",
+      "error": "Errore di rigenerazione"
+    }
+  },
+  "results": {
+    "title": "Risultati del quiz",
+    "empty": {
+      "title": "Nessun risultato",
+      "desc": "Fai un quiz per vedere i tuoi risultati.",
+      "cta": "Inizia quiz"
+    },
+    "messages": {
+      "excellent": "Ottimo risultato! 🎉",
+      "good": "Buon risultato! 👍",
+      "improve": "Da migliorare 📚"
+    },
+    "stats": {
+      "correctFromTotal": "{{correct}} corrette su {{total}} domande",
+      "totalQuestions": "Domande totali",
+      "correct": "Corrette",
+      "incorrect": "Errate",
+      "time": "Tempo"
+    },
+    "recommendations": {
+      "title": "Raccomandazioni",
+      "strengths": "I tuoi punti di forza:",
+      "toImprove": "Da migliorare:",
+      "repeatMaterial": "Ripeti materiale:",
+      "repeatFlashcardsDesc": "Prova a ripassare le flashcard prima di rifare il quiz.",
+      "strengthsDesc": "Te la cavi bene con i concetti base. Continua a imparare!",
+      "improveDesc": "Hai {{count}} risposte errate. Rivedi le spiegazioni di queste domande."
+    },
+    "actions": {
+      "repeatQuiz": "Ripeti quiz",
+      "learnFlashcards": "Studia flashcard",
+      "dashboard": "Dashboard"
+    }
+  },
+  "history": {
+    "title": "Cronologia studi",
+    "subtitle": "Tutte le tue sessioni di analisi",
+    "buttons": {
+      "newFolder": "Nuova cartella",
+      "move": "Sposta",
+      "create": "Crea",
+      "cancel": "Annulla",
+      "delete": "Elimina",
+      "startLearning": "Inizia a imparare"
+    },
+    "stats": {
+      "sessionsCount": "{{count}} sessioni",
+      "avgScore": "Media punteggio:",
+      "studyTime": "Tempo di studio",
+      "avgPerSession": "Media/sessione",
+      "subjects": "Materie"
+    },
+    "explorer": {
+      "allLessons": "Tutte le lezioni",
+      "folder": "Cartella:",
+      "showAll": "Mostra tutto (Root)",
+      "current": "Attuale"
+    },
+    "search": {
+      "placeholderFolder": "Cerca in questa cartella...",
+      "placeholderAll": "Cerca in tutte le lezioni...",
+      "sortBy": "Ordina per:",
+      "dateDesc": "Data (più recente)",
+      "dateAsc": "Data (meno recente)",
+      "titleAsc": "Nome (A-Z)",
+      "titleDesc": "Nome (Z-A)"
+    },
+    "groups": {
+      "today": "Oggi",
+      "yesterday": "Ieri",
+      "last7Days": "Ultimi 7 giorni",
+      "older": "Precedenti",
+      "allSessions": "Tutte le sessioni"
+    },
+    "modals": {
+      "deleteSession": {
+        "title": "Elimina sessione?",
+        "message": "La sessione sarà eliminata dal tuo account. Questa operazione non può essere annullata."
+      },
+      "deleteFolder": {
+        "title": "Elimina cartella?",
+        "message": "La cartella sarà eliminata. Tutte le lezioni all'interno saranno spostate nella radice."
+      },
+      "moveSession": {
+        "title": "Sposta lezione",
+        "subtitle": "Scegli destinazione",
+        "root": "Tutte le lezioni (Root)"
+      },
+      "createFolder": {
+        "title": "Nuova cartella",
+        "placeholder": "Nome cartella..."
+      }
+    },
+    "empty": {
+      "title": "Nessuna cronologia",
+      "desc": "Non hai ancora sessioni analizzate o cartelle.",
+      "noFolders": "Nessuna cartella"
+    },
+    "items": {
+      "sessions": "sessioni",
+      "noSubject": "Nessuna materia",
+      "generatingTitle": "Generazione titolo...",
+      "flashcards": "flashcard",
+      "questions": "domande",
+      "completed": "Completato",
+      "deleteSession": "Elimina sessione",
+      "moveLesson": "Sposta lezione"
+    },
+    "searchEmpty": {
+      "title": "Nessun risultato",
+      "desc": "Non abbiamo trovato sessioni corrispondenti alla tua ricerca.",
+      "clear": "Cancella ricerca"
+    },
+    "folderEmpty": {
+      "title": "Cartella vuota",
+      "desc": "Questa cartella non contiene ancora lezioni."
+    },
+    "toasts": {
+      "folderCreated": "Cartella creata",
+      "folderDeleted": "Cartella eliminata",
+      "sessionMoved": "Sessione spostata",
+      "demoError": "Modalità demo: impossibile creare cartella"
+    },
+    "error": "Impossibile caricare la cronologia:"
+  },
+  "analysis": {
+    "error": {
+      "title": "Errore di analisi",
+      "retry": "Riprova con un'altra foto",
+      "network": "Si è verificato un errore di rete imprevisto."
+    },
+    "empty": {
+      "title": "Analisi non trovata",
+      "back": "Torna al caricamento"
+    },
+    "header": {
+      "confidence": "Sicurezza:",
+      "demo": "Modalità Demo",
+      "namePrompt": "Dai un nome a questa lezione per trovarla facilmente dopo"
+    },
+    "gallery": {
+      "openDoc": "Clicca per scaricare o aprire il documento",
+      "docAdded": "Documento<br/>aggiunto",
+      "openImage": "Clicca per aprire a grandezza naturale",
+      "page": "Pagina {{current}} di {{total}}"
+    },
+    "actions": {
+      "title": "Inizia a imparare",
+      "lesson": {
+        "title": "Lezione IA (Socratica)",
+        "desc": "Parla e comprendi il materiale attraverso il dialogo"
+      },
+      "quiz": {
+        "title": "Fai un quiz",
+        "desc": "{{count}} domande di verifica"
+      },
+      "flashcards": {
+        "title": "Studia flashcard",
+        "desc": "{{count}} concetti da padroneggiare"
+      }
+    },
+    "summary": {
+      "title": "Riepilogo della lezione"
+    },
+    "concepts": {
+      "title": "Concetti chiave ({{count}})",
+      "hint": "Clicca su un concetto per esplorarlo"
+    },
+    "categories": {
+      "definition": "Definizione",
+      "date": "Data",
+      "formula": "Formula",
+      "person": "Persona",
+      "event": "Evento",
+      "concept": "Concetto"
+    },
+    "stats": {
+      "concepts": "Concetti",
+      "flashcards": "Flashcard",
+      "questions": "Domande"
+    },
+    "backendErrors": {
+      "generic": "Si è verificato un problema con il server di analisi IA. Riprova o contatta il supporto.",
+      "unreadableText": "Impossibile leggere il testo dalla foto. Prova a scattare una foto più ravvicinata e con luce migliore.",
+      "unauthorized": "Autenticazione della sessione scaduta. Aggiorna la pagina e accedi di nuovo se necessario.",
+      "sessionNotFound": "La sessione di analisi è scaduta o non è stata salvata correttamente. Carica di nuovo l'appunto.",
+      "downloadFailed": "Errore di autorizzazione durante il caricamento dell'immagine. Prova a ricaricare il file.",
+      "aiUnderstanding": "Il modello IA ha avuto problemi a comprendere questi appunti. Prova con un'inquadratura più chiara.",
+      "serverError": "Si è verificato un errore temporaneo del server. Riprova più tardi."
+    }
+  },
+  "upload": {
+    "title": "Carica materiali",
+    "subtitle": "Aggiungi fino a {{maxImages}} foto di appunti o 1 documento di testo (PDF/DOCX). L'IA preparerà una lezione in pochi secondi.",
+    "demoMode": "Modalità demo — il file caricato verrà elaborato solo localmente.",
+    "cameraCta": "Fai una foto agli appunti",
+    "or": "oppure",
+    "chooseFiles": "Scegli file dal dispositivo",
+    "dropHere": "Rilascia i file qui...",
+    "supportedFormats": "JPG, PNG, WEBP, PDF di testo o DOCX",
+    "limitInfo": "max 5 foto o 1 documento · max 10MB",
+    "cropPanel": {
+      "title": "Ritaglia foto",
+      "zoom": "Zoom:",
+      "processing": "Elaborazione...",
+      "confirm": "Conferma ritaglio",
+      "skip": "Salta ritaglio"
+    },
+    "tips": {
+      "title": "Suggerimenti per risultati migliori:",
+      "readable": "Assicurati che il testo sia leggibile e ben illuminato",
+      "angle": "Evita foto angolate — scattale orizzontalmente dall'alto",
+      "multiplePages": "Puoi aggiungere più pagine contemporaneamente — l'IA le combinerà in un'unica lezione"
+    },
+    "safety": {
+      "title": "Prima di caricare",
+      "line1": "Non caricare documenti con numeri di identificazione, indirizzi, dati sanitari, foto di persone o materiali di cui non possiedi i diritti.",
+      "line2": "Invia solo appunti e file necessari per l'apprendimento. Se non sei sicuro, chiedi a un genitore o insegnante."
+    },
+    "actions": {
+      "submit": "Carica materiale",
+      "analyzeDoc": "Analizza documento",
+      "analyzeImages": "Analizza {{count}} foto",
+      "remove": "Rimuovi",
+      "addMore": "Aggiungi altro",
+      "retry": "Riprova"
+    },
+    "states": {
+      "extractingDoc": "Estrazione del testo dal documento...",
+      "justAMoment": "Ci vorrà solo un momento.",
+      "selectedDoc": "Documento selezionato",
+      "readSize": "{{size}} KB di testo letto",
+      "uploadingAndAnalyzing": "Caricamento e analisi in corso...",
+      "imageCount": "{{current}} di {{max}} foto",
+      "readyCount": "({{ready}} pronte)",
+      "previewIndex": "Anteprima — foto {{index}}",
+      "unprocessed": "{{remaining}} foto non ancora elaborate. Completa il ritaglio o rimuovi quelle non elaborate."
+    },
+    "errors": {
+      "pdfScan": "Questo PDF sembra una scansione. Attualmente supportiamo solo PDF di testo. Prova a scattare una foto della pagina o carica un file DOCX.",
+      "docRead": "Errore durante la lettura del documento. Controlla il file e riprova.",
+      "mixedTypes": "Non puoi aggiungere documenti e foto nella stessa sessione.",
+      "imagesExist": "Hai già aggiunto foto. Non puoi aggiungere un documento.",
+      "oneDocOnly": "Puoi aggiungere solo 1 documento alla volta.",
+      "docTooLarge": "Il documento è troppo grande (max 10MB)",
+      "docExists": "Hai già aggiunto un documento. Non puoi aggiungere foto.",
+      "imageTooLarge": "Una delle foto è troppo grande (max 10MB)",
+      "compressionError": "Errore di compressione della foto. Riprova.",
+      "docSaveError": "Si è verificato un errore durante il salvataggio del documento. Riprova.",
+      "imageSaveError": "Si è verificato un errore durante il salvataggio delle immagini. Riprova.",
+      "uploadFailed": "Errore di caricamento",
+      "generic": "Errore"
+    }
+  }
+}

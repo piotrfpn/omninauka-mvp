@@ -5,6 +5,7 @@ import Cropper from 'react-easy-crop';
 import imageCompression from 'browser-image-compression';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../lib/auth-context';
+import { useTranslation } from 'react-i18next';
 import {
   X,
   Image as ImageIcon,
@@ -67,12 +68,13 @@ function ImageCropPanel({
   onSkip: () => void;
   isCompressing: boolean;
 }) {
+  const { t } = useTranslation();
   return (
     <div className="omni-card p-4 lg:p-6">
       <div className="flex items-center justify-between mb-4">
         <h3 className="font-semibold text-[var(--omni-text)] flex items-center gap-2">
           <Crop className="w-5 h-5" />
-          Przytnij zdjęcie
+          {t('upload.cropPanel.title')}
         </h3>
       </div>
 
@@ -92,7 +94,7 @@ function ImageCropPanel({
       </div>
 
       <div className="flex items-center gap-4 mb-4">
-        <span className="text-sm text-[var(--omni-text-muted)]">Zoom:</span>
+        <span className="text-sm text-[var(--omni-text-muted)]">{t('upload.cropPanel.zoom')}</span>
         <input
           type="range"
           min={1}
@@ -114,14 +116,14 @@ function ImageCropPanel({
           {isCompressing
             ? <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin flex-shrink-0" />
             : <Check className="w-5 h-5 flex-shrink-0" />}
-          {isCompressing ? 'Przetwarzanie...' : 'Potwierdź wycięcie'}
+          {isCompressing ? t('upload.cropPanel.processing') : t('upload.cropPanel.confirm')}
         </button>
         <button
           onClick={onSkip}
           disabled={isCompressing}
           className="omni-btn-secondary disabled:opacity-50 disabled:cursor-wait"
         >
-          Pomiń przycinanie
+          {t('upload.cropPanel.skip')}
         </button>
       </div>
     </div>
@@ -141,6 +143,7 @@ function ThumbnailStrip({
   onSelect: (idx: number) => void;
   onRemove: (idx: number) => void;
 }) {
+  const { t } = useTranslation();
   return (
     <div className="flex gap-3 flex-wrap">
       {images.map((img, idx) => (
@@ -177,7 +180,7 @@ function ThumbnailStrip({
           <button
             onClick={e => { e.stopPropagation(); onRemove(idx); }}
             className="absolute top-0.5 right-0.5 opacity-0 group-hover:opacity-100 transition-opacity bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center shadow"
-            title="Usuń"
+            title={t('upload.actions.remove')}
           >
             <X className="w-3 h-3" />
           </button>
@@ -192,6 +195,7 @@ function ThumbnailStrip({
 export default function UploadPage() {
   const navigate = useNavigate();
   const { user, isDemoMode } = useAuth();
+  const { t } = useTranslation();
 
   const [images, setImages] = useState<QueuedImage[]>([]);
   const [documentFile, setDocumentFile] = useState<{ file: File, text: string } | null>(null);
@@ -223,7 +227,7 @@ export default function UploadPage() {
         extractedText = fullText.trim();
 
         if (extractedText.length < 50) {
-          setError('Ten PDF wygląda jak skan. Na razie obsługujemy PDF-y z tekstem. Spróbuj dodać zdjęcie strony albo plik DOCX.');
+          setError(t('upload.errors.pdfScan'));
           setIsExtractingText(false);
           return;
         }
@@ -240,7 +244,7 @@ export default function UploadPage() {
       setDocumentFile({ file, text: extractedText });
     } catch (err) {
       console.error('Doc extraction error:', err);
-      setError('Błąd podczas odczytu dokumentu. Sprawdź plik i spróbuj ponownie.');
+      setError(t('upload.errors.docRead'));
     } finally {
       setIsExtractingText(false);
     }
@@ -258,22 +262,22 @@ export default function UploadPage() {
     const droppedImages = rawFiles.filter(f => validImageTypes.includes(f.type));
 
     if (droppedDocs.length > 0 && droppedImages.length > 0) {
-      setError('Nie możesz dodawać dokumentów i zdjęć w tej samej sesji.');
+      setError(t('upload.errors.mixedTypes'));
       return;
     }
 
     if (droppedDocs.length > 0) {
       if (hasImages) {
-        setError('Masz już dodane zdjęcia. Nie możesz dodać dokumentu.');
+        setError(t('upload.errors.imagesExist'));
         return;
       }
       if (droppedDocs.length > 1 || hasDoc) {
-        setError('Możesz dodać tylko 1 dokument naraz.');
+        setError(t('upload.errors.oneDocOnly'));
         return;
       }
       const doc = droppedDocs[0];
       if (doc.size > 10 * 1024 * 1024) {
-        setError('Dokument jest za duży (max 10MB)');
+        setError(t('upload.errors.docTooLarge'));
         return;
       }
       handleDocumentUpload(doc);
@@ -282,7 +286,7 @@ export default function UploadPage() {
 
     if (droppedImages.length > 0) {
       if (hasDoc) {
-        setError('Masz już dodany dokument. Nie możesz dodać zdjęć.');
+        setError(t('upload.errors.docExists'));
         return;
       }
       
@@ -290,7 +294,7 @@ export default function UploadPage() {
       const toAdd: QueuedImage[] = [];
       for (const f of droppedImages.slice(0, available)) {
         if (f.size > 10 * 1024 * 1024) {
-          setError('Jeden ze zdjęć jest za duże (max 10MB)');
+          setError(t('upload.errors.imageTooLarge'));
           continue;
         }
         toAdd.push({
@@ -389,7 +393,7 @@ export default function UploadPage() {
     const img = images[activeIdx];
     if (!img) return;
     const result = await compressAndStore(img.previewUrl, img.croppedArea);
-    if (!result) { setError('Błąd kompresji zdjęcia. Spróbuj ponownie.'); return; }
+    if (!result) { setError(t('upload.errors.compressionError')); return; }
     updateImage(activeIdx, { compressedBase64: result, isCropping: false });
     // Auto-advance to next unprocessed image
     const nextUnprocessed = images.findIndex((im, i) => i > activeIdx && !im.compressedBase64);
@@ -400,7 +404,7 @@ export default function UploadPage() {
     const img = images[activeIdx];
     if (!img) return;
     const result = await compressAndStore(img.previewUrl, null);
-    if (!result) { setError('Błąd kompresji zdjęcia. Spróbuj ponownie.'); return; }
+    if (!result) { setError(t('upload.errors.compressionError')); return; }
     updateImage(activeIdx, { compressedBase64: result, isCropping: false });
     const nextUnprocessed = images.findIndex((im, i) => i > activeIdx && !im.compressedBase64);
     if (nextUnprocessed !== -1) setActiveIdx(nextUnprocessed);
@@ -455,7 +459,7 @@ export default function UploadPage() {
         navigate('/app/analysis');
       } catch (err: any) {
         console.error('Document upload error:', err);
-        setError('Wystąpił błąd podczas zapisywania dokumentu. Spróbuj ponownie.');
+        setError(t('upload.errors.docSaveError'));
         setIsAnalyzing(false);
       }
       return;
@@ -533,7 +537,7 @@ export default function UploadPage() {
 
     } catch (err: any) {
       console.error('Upload error:', err);
-      setError('Wystąpił błąd podczas zapisywania obrazów. Spróbuj ponownie.');
+      setError(t('upload.errors.imageSaveError'));
       setIsAnalyzing(false);
     }
   };
@@ -552,14 +556,14 @@ export default function UploadPage() {
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <h1 className="omni-heading-3 text-[var(--omni-text)] mb-2">Upload materiałów</h1>
+        <h1 className="omni-heading-3 text-[var(--omni-text)] mb-2">{t('upload.title')}</h1>
         <p className="text-[var(--omni-text-muted)]">
-          Dodaj do {MAX_IMAGES} zdjęć notatek lub 1 dokument tekstowy (PDF/DOCX). AI przygotuje lekcję w parę sekund.
+          {t('upload.subtitle', { maxImages: MAX_IMAGES })}
         </p>
         {isDemoMode && (
           <div className="mt-4 p-3 bg-blue-50 text-blue-700 rounded-lg flex items-center gap-3 text-sm border border-blue-100">
             <AlertCircle className="w-5 h-5 flex-shrink-0" />
-            <p className="font-medium">Tryb demo — wgrany plik zostanie przetworzony tylko lokalnie.</p>
+            <p className="font-medium">{t('upload.demoMode')}</p>
           </div>
         )}
       </div>
@@ -576,8 +580,8 @@ export default function UploadPage() {
       {isExtractingText && (
         <div className="omni-card p-12 flex flex-col items-center justify-center text-center">
            <Loader2 className="w-10 h-10 text-[var(--omni-accent)] animate-spin mb-4" />
-           <h3 className="font-medium text-lg text-[var(--omni-text)] mb-2">Wyciągam tekst z dokumentu...</h3>
-           <p className="text-sm text-[var(--omni-text-muted)]">To zajmie tylko chwilę.</p>
+           <h3 className="font-medium text-lg text-[var(--omni-text)] mb-2">{t('upload.states.extractingDoc')}</h3>
+           <p className="text-sm text-[var(--omni-text-muted)]">{t('upload.states.justAMoment')}</p>
         </div>
       )}
 
@@ -587,7 +591,7 @@ export default function UploadPage() {
           <div className="flex items-center justify-between mb-6">
             <h3 className="font-semibold text-[var(--omni-text)] flex items-center gap-2">
               <FileText className="w-5 h-5" />
-              Wybrany dokument
+              {t('upload.states.selectedDoc')}
             </h3>
             <button
               onClick={() => setDocumentFile(null)}
@@ -604,7 +608,7 @@ export default function UploadPage() {
             </div>
             <div className="flex-1 min-w-0">
               <p className="font-medium text-[var(--omni-text)] truncate">{documentFile.file.name}</p>
-              <p className="text-sm text-[var(--omni-text-muted)]">Odczytano {(documentFile.text.length / 1024).toFixed(1)} KB tekstu</p>
+              <p className="text-sm text-[var(--omni-text-muted)]">{t('upload.states.readSize', { size: (documentFile.text.length / 1024).toFixed(1) })}</p>
             </div>
           </div>
 
@@ -616,11 +620,11 @@ export default function UploadPage() {
             {isAnalyzing ? (
               <div className="flex items-center justify-center gap-2">
                 <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin flex-shrink-0" />
-                <span>Przesyłanie i analizowanie...</span>
+                <span>{t('upload.states.uploadingAndAnalyzing')}</span>
               </div>
             ) : (
               <div className="flex items-center justify-center gap-2">
-                <span>Analizuj dokument</span>
+                <span>{t('upload.actions.analyzeDoc')}</span>
                 <ArrowRight className="w-5 h-5" />
               </div>
             )}
@@ -638,7 +642,7 @@ export default function UploadPage() {
               className="w-full omni-btn-primary flex items-center justify-center gap-3 py-5 text-lg rounded-2xl shadow-lg active:scale-[0.98] transition-all"
             >
               <Camera className="w-7 h-7" />
-              Zrób zdjęcie notatek
+              {t('upload.cameraCta')}
             </button>
             <input
               type="file"
@@ -653,7 +657,7 @@ export default function UploadPage() {
           {/* Divider */}
           <div className="flex items-center gap-4">
             <div className="flex-1 h-px bg-gray-200" />
-            <span className="text-sm text-gray-400 font-medium">albo</span>
+            <span className="text-sm text-gray-400 font-medium">{t('upload.or')}</span>
             <div className="flex-1 h-px bg-gray-200" />
           </div>
 
@@ -671,13 +675,13 @@ export default function UploadPage() {
               <Images className="w-7 h-7 text-[var(--omni-text)]" />
             </div>
             <p className="font-medium text-[var(--omni-text)] mb-1">
-              {isDragActive ? 'Upuść pliki tutaj...' : 'Wybierz pliki z urządzenia'}
+              {isDragActive ? t('upload.states.dropHere') : t('upload.chooseFiles')}
             </p>
             <p className="text-sm text-[var(--omni-text-muted)]">
-              JPG, PNG, WEBP, PDF tekstowy lub DOCX
+              {t('upload.supportedFormats')}
             </p>
             <p className="text-xs text-[var(--omni-text-muted)] mt-1">
-              max 5 zdjęć albo 1 dokument · max 10MB
+              {t('upload.limitInfo')}
             </p>
           </div>
         </div>
@@ -690,9 +694,9 @@ export default function UploadPage() {
           <div className="omni-card p-4">
             <div className="flex items-center justify-between mb-3">
               <span className="text-sm font-medium text-[var(--omni-text)]">
-                {images.length} z {MAX_IMAGES} zdjęć
+                {t('upload.states.imageCount', { current: images.length, max: MAX_IMAGES })}
                 {' '}
-                <span className="text-[var(--omni-text-muted)]">({readyCount} gotowych)</span>
+                <span className="text-[var(--omni-text-muted)]">{t('upload.states.readyCount', { ready: readyCount })}</span>
               </span>
               {images.length < MAX_IMAGES && !isAnalyzing && (
                 <div {...getRootProps()} className="cursor-pointer">
@@ -702,7 +706,7 @@ export default function UploadPage() {
                     className="flex items-center gap-1.5 text-sm text-[var(--omni-accent)] hover:underline font-medium"
                   >
                     <Plus className="w-4 h-4" />
-                    Dodaj więcej
+                    {t('upload.actions.addMore')}
                   </button>
                 </div>
               )}
@@ -735,7 +739,7 @@ export default function UploadPage() {
               <div className="flex items-center justify-between mb-4">
                 <h3 className="font-semibold text-[var(--omni-text)] flex items-center gap-2">
                   <ImageIcon className="w-5 h-5" />
-                  Podgląd — zdjęcie {activeIdx + 1}
+                  {t('upload.states.previewIndex', { index: activeIdx + 1 })}
                 </h3>
                 <button
                   onClick={() => removeImage(activeIdx)}
@@ -764,7 +768,7 @@ export default function UploadPage() {
             <div className="space-y-3">
               {!allReady && (
                 <p className="text-sm text-amber-600 bg-amber-50 rounded-xl p-3 border border-amber-100">
-                  {images.length - readyCount} zdjęcie(a) jeszcze nie przetworzone. Dokończ przycinanie lub usuń nieprzetworzone.
+                  {t('upload.states.unprocessed', { remaining: images.length - readyCount })}
                 </p>
               )}
               <button
@@ -775,11 +779,11 @@ export default function UploadPage() {
                 {isAnalyzing ? (
                   <div className="flex items-center justify-center gap-2">
                     <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                    <span>Przesyłanie i analizowanie...</span>
+                    <span>{t('upload.states.uploadingAndAnalyzing')}</span>
                   </div>
                 ) : (
                   <div className="flex items-center justify-center gap-2">
-                    <span>Analizuj {readyCount} zdjęci{readyCount === 1 ? 'e' : 'a'}</span>
+                    <span>{t('upload.actions.analyzeImages', { count: readyCount, suffix: readyCount === 1 ? 'e' : 'a' })}</span>
                     <ArrowRight className="w-5 h-5" />
                   </div>
                 )}
@@ -791,19 +795,19 @@ export default function UploadPage() {
 
       {/* Tips */}
       <div className="omni-card p-4 lg:p-6 bg-[var(--omni-lavender)]/30 border-none">
-        <h4 className="font-semibold text-[var(--omni-text)] mb-3">Wskazówki dla lepszych wyników:</h4>
+        <h4 className="font-semibold text-[var(--omni-text)] mb-3">{t('upload.tips.title')}</h4>
         <ul className="space-y-2 text-sm text-[var(--omni-text-muted)]">
           <li className="flex items-start gap-2">
             <Check className="w-4 h-4 text-green-500 mt-0.5 flex-shrink-0" />
-            <span className="leading-snug">Upewnij się, że tekst jest czytelny i dobrze oświetlony</span>
+            <span className="leading-snug">{t('upload.tips.readable')}</span>
           </li>
           <li className="flex items-start gap-2">
             <Check className="w-4 h-4 text-green-500 mt-0.5 flex-shrink-0" />
-            <span className="leading-snug">Unikaj zdjęć pod kątem — rób je poziomo z góry</span>
+            <span className="leading-snug">{t('upload.tips.angle')}</span>
           </li>
           <li className="flex items-start gap-2">
             <Check className="w-4 h-4 text-green-500 mt-0.5 flex-shrink-0" />
-            <span className="leading-snug">Możesz dodać kilka stron jednocześnie — AI połączy je w jedną lekcję</span>
+            <span className="leading-snug">{t('upload.tips.multiplePages')}</span>
           </li>
         </ul>
       </div>
@@ -815,13 +819,13 @@ export default function UploadPage() {
             <ShieldCheck className="w-6 h-6 text-blue-600" />
           </div>
           <div className="flex-1">
-            <h4 className="font-semibold text-blue-900 mb-1">Zanim prześlesz materiał</h4>
+            <h4 className="font-semibold text-blue-900 mb-1">{t('upload.safety.title')}</h4>
             <div className="text-sm text-blue-800/80 space-y-2 leading-relaxed">
               <p>
-                Nie dodawaj dokumentów z PESEL-em, adresem, danymi zdrowotnymi, zdjęciami osób ani materiałów, do których nie masz prawa.
+                {t('upload.safety.line1')}
               </p>
               <p>
-                Wysyłaj tylko notatki i pliki potrzebne do nauki. Jeśli nie masz pewności, zapytaj rodzica lub nauczyciela.
+                {t('upload.safety.line2')}
               </p>
             </div>
           </div>

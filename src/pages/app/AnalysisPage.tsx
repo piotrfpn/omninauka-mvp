@@ -4,6 +4,7 @@ import type { AnalysisResult, KeyConcept } from '../../types';
 import { getDemoAnalysis } from '../../mock/data';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../lib/auth-context';
+import { useTranslation } from 'react-i18next';
 
 import {
   BookOpen,
@@ -22,6 +23,7 @@ import { AnalysisSkeleton } from '../../components/ui/page-skeletons';
 import { ConceptDetailSheet } from '../../components/lessons/concept-detail-sheet';
 
 export default function AnalysisPage() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const { isDemoMode } = useAuth();
   const [analysis, setAnalysis] = useState<AnalysisResult | null>(null);
@@ -125,20 +127,20 @@ export default function AnalysisPage() {
           }
 
           if (!rawResponse.ok || (backendPayload.includes("error") && !rawResponse.ok)) {
-            let errorMsg = "Wystąpił problem z serwerem analizy AI. Spróbuj ponownie lub skontaktuj się ze wsparciem.";
+            let errorMsg = t('analysis.backendErrors.generic');
             
             if (rawResponse.status === 422 || backendPayload.includes("Nie wykryto") || backendPayload.includes("no text")) {
-               errorMsg = "Nie udało się odczytać tekstu ze zdjęcia. Spróbuj zrobić zdjęcie bliżej, przy lepszym świetle i tak, aby tekst był wyraźny.";
+               errorMsg = t('analysis.backendErrors.unreadableText');
             } else if (rawResponse.status === 401 || rawResponse.status === 403 || backendPayload.includes("Unauthorized") || backendPayload.includes("validation failed")) {
-               errorMsg = "Uwierzytelnienie sesji wygasło. Odśwież stronę i w razie potrzeby zaloguj się ponownie.";
+               errorMsg = t('analysis.backendErrors.unauthorized');
             } else if (rawResponse.status === 404 || backendPayload.includes("Session not found")) {
-               errorMsg = "Sesja analizy wygasła lub nie została poprawnie zapisana. Prześlij notatkę ponownie.";
+               errorMsg = t('analysis.backendErrors.sessionNotFound');
             } else if (backendPayload.includes("Failed to download image")) {
-               errorMsg = "Błąd uprawnień do wczytania obrazu. Spróbuj powtórzyć wgranie pliku.";
+               errorMsg = t('analysis.backendErrors.downloadFailed');
             } else if (backendPayload.includes("interpretacji tekstu") || backendPayload.includes("OpenAI")) {
-               errorMsg = "Model AI miał problem ze zrozumieniem tych notatek. Spróbuj wyraźniejszego ujęcia.";
+               errorMsg = t('analysis.backendErrors.aiUnderstanding');
             } else if (rawResponse.status >= 500) {
-               errorMsg = "Wystąpił tymczasowy błąd serwera. Spróbuj za chwilę.";
+               errorMsg = t('analysis.backendErrors.serverError');
             }
 
             // Developer diagnostic logging kept strictly inside the console
@@ -171,7 +173,7 @@ export default function AnalysisPage() {
         setIsLoading(false);
       } catch (err: any) {
         console.error("Failed to resolve active DB session:", err);
-        setAnalysisError(err?.message || "Wystąpił nieoczekiwany błąd sieci.");
+        setAnalysisError(err?.message || t('analysis.error.network'));
         setIsLoading(false);
       }
     };
@@ -219,12 +221,12 @@ export default function AnalysisPage() {
 
   const getCategoryLabel = (category: KeyConcept['category']) => {
     switch (category) {
-      case 'definition': return 'Definicja';
-      case 'date': return 'Data';
-      case 'formula': return 'Wzór';
-      case 'person': return 'Osoba';
-      case 'event': return 'Wydarzenie';
-      default: return 'Pojęcie';
+      case 'definition': return t('analysis.categories.definition');
+      case 'date': return t('analysis.categories.date');
+      case 'formula': return t('analysis.categories.formula');
+      case 'person': return t('analysis.categories.person');
+      case 'event': return t('analysis.categories.event');
+      default: return t('analysis.categories.concept');
     }
   };
 
@@ -236,10 +238,10 @@ export default function AnalysisPage() {
   if (analysisError) {
     return (
       <div className="text-center py-12 mt-12 bg-red-50/50 dark:bg-red-950/20 rounded-2xl border border-red-100 dark:border-red-900 mx-auto max-w-lg p-8">
-        <h2 className="text-xl font-semibold text-red-600 dark:text-red-400 mb-2">Błąd analizy</h2>
+        <h2 className="text-xl font-semibold text-red-600 dark:text-red-400 mb-2">{t('analysis.error.title')}</h2>
         <p className="text-red-800/80 dark:text-red-200/80 mb-6">{analysisError}</p>
         <Link to="/app/upload" className="omni-btn-primary inline-flex">
-          Spróbuj ponownie z innym zdjęciem
+          {t('analysis.error.retry')}
         </Link>
       </div>
     );
@@ -248,9 +250,9 @@ export default function AnalysisPage() {
   if (!analysis) {
     return (
       <div className="text-center py-12">
-        <p className="text-[var(--omni-text-muted)]">Nie znaleziono analizy</p>
+        <p className="text-[var(--omni-text-muted)]">{t('analysis.empty.title')}</p>
         <Link to="/app/upload" className="omni-btn-primary mt-4 inline-flex">
-          Wróć do uploadu
+          {t('analysis.empty.back')}
         </Link>
       </div>
     );
@@ -266,11 +268,11 @@ export default function AnalysisPage() {
               {analysis.subject}
             </span>
             <span className="text-sm text-[var(--omni-text-muted)]">
-              Pewność: {Math.round(analysis.confidence * 100)}%
+              {t('analysis.header.confidence')} {Math.round(analysis.confidence * 100)}%
             </span>
             {isDemoMode && (
               <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full font-medium">
-                Tryb Demo
+                {t('analysis.header.demo')}
               </span>
             )}
           </div>
@@ -282,7 +284,7 @@ export default function AnalysisPage() {
           <div className="flex flex-col gap-1">
             {!lessonTitle && !isLoading && !analysisError && (
               <p className="text-[10px] text-orange-500 font-medium animate-pulse flex items-center gap-1">
-                <Sparkles className="w-3 h-3" /> Nazwij tę lekcję, aby łatwiej ją znaleźć w przyszłości
+                <Sparkles className="w-3 h-3" /> {t('analysis.header.namePrompt')}
               </p>
             )}
             <LessonTitleEditor
@@ -301,10 +303,10 @@ export default function AnalysisPage() {
                 <div 
                   className="flex flex-col items-center justify-center text-center p-2 cursor-pointer w-full h-full"
                   onClick={() => window.open(uploadedImage, '_blank')}
-                  title="Kliknij, aby pobrać lub otworzyć dokument"
+                  title={t('analysis.gallery.openDoc')}
                 >
                   <FileText className="w-8 h-8 lg:w-12 lg:h-12 text-indigo-500 mb-1 lg:mb-2" />
-                  <span className="text-[10px] lg:text-xs font-medium text-gray-600 leading-tight">Dokument<br/>dodany</span>
+                  <span className="text-[10px] lg:text-xs font-medium text-gray-600 leading-tight" dangerouslySetInnerHTML={{ __html: t('analysis.gallery.docAdded') }} />
                 </div>
               ) : (
                 <img
@@ -312,7 +314,7 @@ export default function AnalysisPage() {
                   alt="Analyzed"
                   className="w-full h-full object-cover cursor-zoom-in"
                   onClick={() => window.open(uploadedImage, '_blank')}
-                  title="Kliknij, aby otworzyć w pełnym rozmiarze"
+                  title={t('analysis.gallery.openImage')}
                 />
               )}
             </div>
@@ -341,7 +343,7 @@ export default function AnalysisPage() {
             
             {sessionImages.length > 1 && (
               <p className="text-[10px] text-[var(--omni-text-muted)] text-center">
-                Strona {activeImageIdx + 1} z {sessionImages.length}
+                {t('analysis.gallery.page', { current: activeImageIdx + 1, total: sessionImages.length })}
               </p>
             )}
           </div>
@@ -352,7 +354,7 @@ export default function AnalysisPage() {
       <div className="space-y-4">
         <h3 className="font-semibold text-[var(--omni-text)] flex items-center gap-2">
           <Sparkles className="w-5 h-5 text-[var(--omni-accent)]" />
-          Rozpocznij naukę
+          {t('analysis.actions.title')}
         </h3>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {/* Primary Action: AI Lesson */}
@@ -365,10 +367,10 @@ export default function AnalysisPage() {
             </div>
             <div className="flex-1">
               <h4 className="font-bold text-white mb-0.5">
-                Lekcja z AI (Sokratyczna)
+                {t('analysis.actions.lesson.title')}
               </h4>
               <p className="text-xs text-indigo-100 line-clamp-1">
-                Rozmawiaj i zrozum materiał przez dialog
+                {t('analysis.actions.lesson.desc')}
               </p>
             </div>
             <ArrowRight className="w-5 h-5 text-white/50 group-hover:translate-x-1 transition-transform" />
@@ -384,10 +386,10 @@ export default function AnalysisPage() {
             </div>
             <div className="flex-1">
               <h4 className="font-semibold text-[var(--omni-text)] text-sm">
-                Rozwiąż quiz
+                {t('analysis.actions.quiz.title')}
               </h4>
               <p className="text-[10px] text-[var(--omni-text-muted)]">
-                {analysis.quizQuestions.length} pytań sprawdzających
+                {t('analysis.actions.quiz.desc', { count: analysis.quizQuestions.length })}
               </p>
             </div>
             <ArrowRight className="w-4 h-4 text-[var(--omni-text-muted)] group-hover:translate-x-1 transition-transform" />
@@ -403,10 +405,10 @@ export default function AnalysisPage() {
             </div>
             <div className="flex-1">
               <h4 className="font-semibold text-[var(--omni-text)] text-sm">
-                Ucz się fiszek
+                {t('analysis.actions.flashcards.title')}
               </h4>
               <p className="text-[10px] text-[var(--omni-text-muted)]">
-                {analysis.flashcards.length} pojęć do opanowania
+                {t('analysis.actions.flashcards.desc', { count: analysis.flashcards.length })}
               </p>
             </div>
             <ArrowRight className="w-4 h-4 text-[var(--omni-text-muted)] group-hover:translate-x-1 transition-transform" />
@@ -418,7 +420,7 @@ export default function AnalysisPage() {
       <div className="omni-card p-4 lg:p-6 bg-[var(--omni-mint)]/30">
         <h3 className="font-semibold text-[var(--omni-text)] mb-2 flex items-center gap-2">
           <Lightbulb className="w-5 h-5 text-amber-500" />
-          Podsumowanie lekcji
+          {t('analysis.summary.title')}
         </h3>
         <p className="text-sm text-[var(--omni-text-muted)] leading-relaxed">{analysis.summary}</p>
       </div>
@@ -427,9 +429,9 @@ export default function AnalysisPage() {
       <div>
         <div className="flex items-center justify-between mb-4">
           <h3 className="font-semibold text-[var(--omni-text)]">
-            Kluczowe pojęcia ({analysis.keyConcepts.length})
+            {t('analysis.concepts.title', { count: analysis.keyConcepts.length })}
           </h3>
-          <span className="text-[10px] text-[var(--omni-text-muted)] uppercase tracking-wider font-bold">Kliknij pojęcie, by je zgłębić</span>
+          <span className="text-[10px] text-[var(--omni-text-muted)] uppercase tracking-wider font-bold">{t('analysis.concepts.hint')}</span>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
           {analysis.keyConcepts.map((concept) => {
@@ -474,19 +476,19 @@ export default function AnalysisPage() {
             <p className="text-xl font-bold text-foreground">
               {analysis.keyConcepts.length}
             </p>
-            <p className="text-[9px] text-muted-foreground uppercase tracking-wider">Pojęć</p>
+            <p className="text-[9px] text-muted-foreground uppercase tracking-wider">{t('analysis.stats.concepts')}</p>
           </div>
           <div className="text-center p-2 border-x border-border">
             <p className="text-xl font-bold text-foreground">
               {analysis.flashcards.length}
             </p>
-            <p className="text-[9px] text-muted-foreground uppercase tracking-wider">Fiszek</p>
+            <p className="text-[9px] text-muted-foreground uppercase tracking-wider">{t('analysis.stats.flashcards')}</p>
           </div>
           <div className="text-center p-2">
             <p className="text-xl font-bold text-foreground">
               {analysis.quizQuestions.length}
             </p>
-            <p className="text-[9px] text-muted-foreground uppercase tracking-wider">Pytań</p>
+            <p className="text-[9px] text-muted-foreground uppercase tracking-wider">{t('analysis.stats.questions')}</p>
           </div>
         </div>
       </div>

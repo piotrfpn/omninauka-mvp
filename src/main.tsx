@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client';
 import { BrowserRouter } from 'react-router-dom';
 import './index.css';
 import App from './App';
+import './i18n';
 
 // Theme initialization - prevent white flash
 const savedTheme = localStorage.getItem('omninauka-theme');

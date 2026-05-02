@@ -18,31 +18,33 @@ import {
   ShieldCheck,
 } from 'lucide-react';
 import OmniNaukaLogo from '../brand/OmniNaukaLogo';
+import { useTranslation } from 'react-i18next';
 
 interface AppShellProps {
   children: React.ReactNode;
 }
 
-const navItems = [
-  { label: 'Dashboard', href: '/app/dashboard', icon: LayoutDashboard },
-  { label: 'Upload', href: '/app/upload', icon: Upload },
-  { label: 'Fiszki', href: '/app/flashcards', icon: BookOpen },
-  { label: 'Quiz', href: '/app/quiz', icon: HelpCircle },
-  { label: 'Lekcja AI', href: '/app/lesson', icon: MessageCircle },
-  { label: 'Wyniki', href: '/app/results', icon: BarChart3 },
-  { label: 'Historia', href: '/app/history', icon: History },
-];
-
-const bottomNavItems = [
-  { label: 'Profil', href: '/app/profile', icon: User },
-  { label: 'Ustawienia', href: '/app/settings', icon: Settings },
-];
-
 export function AppShell({ children }: AppShellProps) {
+  const { t } = useTranslation();
   const { user, logout } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
+  const navItems = [
+    { label: t('appShell.nav.dashboard', 'Dashboard'), href: '/app/dashboard', icon: LayoutDashboard },
+    { label: t('appShell.nav.upload', 'Upload'), href: '/app/upload', icon: Upload },
+    { label: t('appShell.nav.flashcards', 'Fiszki'), href: '/app/flashcards', icon: BookOpen },
+    { label: t('appShell.nav.quiz', 'Quiz'), href: '/app/quiz', icon: HelpCircle },
+    { label: t('appShell.nav.lesson', 'Lekcja AI'), href: '/app/lesson', icon: MessageCircle },
+    { label: t('appShell.nav.results', 'Wyniki'), href: '/app/results', icon: BarChart3 },
+    { label: t('appShell.nav.history', 'Historia'), href: '/app/history', icon: History },
+  ];
+
+  const bottomNavItems = [
+    { label: t('appShell.nav.profile', 'Profil'), href: '/app/profile', icon: User },
+    { label: t('appShell.nav.settings', 'Ustawienia'), href: '/app/settings', icon: Settings },
+  ];
 
   const handleLogout = () => {
     logout();
@@ -66,15 +68,15 @@ export function AppShell({ children }: AppShellProps) {
   let baseNavItems = [];
   if (isParent) {
     baseNavItems = [
-      { label: 'Panel rodzica', href: '/app/parent', icon: ShieldCheck as any }
+      { label: t('appShell.nav.parentPanel', 'Panel rodzica'), href: '/app/parent', icon: ShieldCheck as any }
     ];
   } else {
     baseNavItems = [...navItems];
   }
 
   const dynamicNavItems = baseNavItems.map(item => {
-    // Only apply to learning modules
-    if (activeId && ['Fiszki', 'Quiz', 'Lekcja AI'].includes(item.label)) {
+    // Only apply to learning modules based on href
+    if (activeId && ['/app/flashcards', '/app/quiz', '/app/lesson'].includes(item.href)) {
       return { ...item, href: `${item.href}/${activeId}` };
     }
     return item;
@@ -145,16 +147,16 @@ export function AppShell({ children }: AppShellProps) {
             </div>
             <div className="flex-1 min-w-0">
               <p className="font-medium text-foreground truncate">
-                {user?.name || 'Użytkownik'}
+                {user?.name || t('appShell.user', 'Użytkownik')}
               </p>
               <p className="text-xs text-[var(--omni-text-muted)] truncate">
-                {user?.plan === 'premium' ? 'Premium' : 'Darmowy'}
+                {user?.plan === 'premium' ? t('appShell.plan.premium', 'Premium') : t('appShell.plan.free', 'Darmowy')}
               </p>
             </div>
             <button
               onClick={handleLogout}
               className="p-2 text-[var(--omni-text-muted)] hover:text-red-500 transition-colors"
-              title="Wyloguj"
+              title={t('appShell.logout', 'Wyloguj')}
             >
               <LogOut className="w-5 h-5" />
             </button>
@@ -223,7 +225,7 @@ export function AppShell({ children }: AppShellProps) {
                   className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-red-500 hover:bg-red-50"
                 >
                   <LogOut className="w-5 h-5" />
-                  <span className="font-medium">Wyloguj</span>
+                  <span className="font-medium">{t('appShell.logout', 'Wyloguj')}</span>
                 </button>
               </div>
             </nav>

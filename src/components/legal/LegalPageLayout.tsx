@@ -1,7 +1,8 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowLeft, AlertTriangle } from 'lucide-react';
+import { ArrowLeft, AlertTriangle, Info } from 'lucide-react';
 import OmniNaukaLogo from '../brand/OmniNaukaLogo';
+import { useTranslation } from 'react-i18next';
 
 interface LegalPageLayoutProps {
   title: string;
@@ -16,6 +17,8 @@ export default function LegalPageLayout({
   isDraft = true, 
   children 
 }: LegalPageLayoutProps) {
+  const { t, i18n } = useTranslation();
+
   // Ensure the page starts at the top
   React.useEffect(() => {
     window.scrollTo(0, 0);
@@ -32,7 +35,7 @@ export default function LegalPageLayout({
           to="/login" 
           className="px-4 py-2 text-[var(--omni-text)] font-medium hover:text-[var(--omni-accent)] transition-colors text-sm"
         >
-          Zaloguj się
+          {t('auth.login', 'Zaloguj się')}
         </Link>
       </nav>
 
@@ -45,8 +48,18 @@ export default function LegalPageLayout({
             className="inline-flex items-center gap-2 text-[var(--omni-text-muted)] hover:text-[var(--omni-text)] mb-8 transition-colors text-sm"
           >
             <ArrowLeft className="w-4 h-4" />
-            Wróć na stronę główną
+            {t('legal.backHome', 'Wróć na stronę główną')}
           </Link>
+
+          {/* Binding Notice for non-PL languages */}
+          {i18n.language !== 'pl' && (
+            <div className="mb-6 p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-900/30 rounded-xl flex items-start gap-3">
+              <Info className="w-5 h-5 text-blue-600 dark:text-blue-500 mt-0.5 flex-shrink-0" />
+              <p className="text-sm text-blue-800 dark:text-blue-200 font-medium">
+                {t('legal.bindingNotice', 'This translation is provided for convenience only. The Polish version is the legally binding version.')}
+              </p>
+            </div>
+          )}
 
           {/* Draft Notice */}
           {isDraft && (
@@ -91,14 +104,14 @@ export default function LegalPageLayout({
             <OmniNaukaLogo size={32} />
           </div>
           <div className="flex flex-wrap justify-center gap-x-8 gap-y-4 mb-8 text-xs font-medium uppercase tracking-wider">
-            <Link to="/regulamin" className="hover:text-white transition-colors">Regulamin</Link>
-            <Link to="/polityka-prywatnosci" className="hover:text-white transition-colors">Prywatność</Link>
-            <Link to="/cookies" className="hover:text-white transition-colors">Cookies</Link>
-            <Link to="/ai-disclaimer" className="hover:text-white transition-colors">AI Disclaimer</Link>
-            <Link to="/polityka-zglaszania-naruszen" className="hover:text-white transition-colors">Zgłaszanie naruszeń</Link>
-            <Link to="/kontakt" className="hover:text-white transition-colors">Kontakt</Link>
+            <Link to="/regulamin" className="hover:text-white transition-colors">{t('home.footer.legal.terms', 'Regulamin')}</Link>
+            <Link to="/polityka-prywatnosci" className="hover:text-white transition-colors">{t('home.footer.legal.privacy', 'Prywatność')}</Link>
+            <Link to="/cookies" className="hover:text-white transition-colors">{t('legal.cookies.title', 'Cookies')}</Link>
+            <Link to="/ai-disclaimer" className="hover:text-white transition-colors">{t('legal.aiDisclaimer.title', 'AI Disclaimer')}</Link>
+            <Link to="/polityka-zglaszania-naruszen" className="hover:text-white transition-colors">{t('home.footer.legal.reports', 'Zgłaszanie naruszeń')}</Link>
+            <Link to="/kontakt" className="hover:text-white transition-colors">{t('contact.title', 'Kontakt')}</Link>
           </div>
-          <p className="text-sm">© 2026 OmniNauka. Wszelkie prawa zastrzeżone.</p>
+          <p className="text-sm">{t('home.footer.copyright', '© 2026 OmniNauka. Wszelkie prawa zastrzeżone.')}</p>
         </div>
       </footer>
     </div>

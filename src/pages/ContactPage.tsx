@@ -1,8 +1,11 @@
 import { Link } from 'react-router-dom';
 import { Mail, Phone, MapPin, ArrowLeft } from 'lucide-react';
 import OmniNaukaLogo from '../components/brand/OmniNaukaLogo';
+import { useTranslation } from 'react-i18next';
 
 export default function ContactPage() {
+  const { t } = useTranslation();
+
   return (
     <div className="min-h-screen bg-[var(--omni-bg)] flex flex-col">
       {/* Navigation */}
@@ -14,7 +17,7 @@ export default function ContactPage() {
           to="/login" 
           className="px-4 py-2 text-[var(--omni-text)] font-medium hover:text-[var(--omni-accent)] transition-colors"
         >
-          Zaloguj się
+          {t('home.nav.login', 'Zaloguj się')}
         </Link>
       </nav>
 
@@ -27,12 +30,12 @@ export default function ContactPage() {
                 className="inline-flex items-center gap-2 text-[var(--omni-text-muted)] hover:text-[var(--omni-text)] mb-8 transition-colors"
               >
                 <ArrowLeft className="w-4 h-4" />
-                Wróć na stronę główną
+                {t('contact.backHome', 'Wróć na stronę główną')}
               </Link>
               
-              <h1 className="omni-heading-2 text-[var(--omni-text)] mb-6">Kontakt</h1>
+              <h1 className="omni-heading-2 text-[var(--omni-text)] mb-6">{t('contact.title', 'Kontakt')}</h1>
               <p className="text-[var(--omni-text-muted)] text-lg mb-8 leading-relaxed">
-                W sprawach współpracy, testów beta lub pytań dotyczących OmniNauka prosimy o kontakt mailowy lub telefoniczny.
+                {t('contact.description', 'W sprawach współpracy, testów beta lub pytań dotyczących OmniNauka prosimy o kontakt mailowy lub telefoniczny.')}
               </p>
             </div>
 
@@ -59,7 +62,7 @@ export default function ContactPage() {
                       <Mail className="w-5 h-5 text-[var(--omni-text)]" />
                     </div>
                     <div>
-                      <p className="text-xs text-[var(--omni-text-muted)] uppercase tracking-wider font-bold">E-mail</p>
+                      <p className="text-xs text-[var(--omni-text-muted)] uppercase tracking-wider font-bold">{t('contact.emailLabel', 'E-mail')}</p>
                       <a 
                         href="mailto:piotr.fiszer@pfconsulting.pl" 
                         className="text-[var(--omni-text)] hover:text-[var(--omni-accent)] font-medium transition-colors"
@@ -74,7 +77,7 @@ export default function ContactPage() {
                       <Phone className="w-5 h-5 text-[var(--omni-text)]" />
                     </div>
                     <div>
-                      <p className="text-xs text-[var(--omni-text-muted)] uppercase tracking-wider font-bold">Telefon</p>
+                      <p className="text-xs text-[var(--omni-text-muted)] uppercase tracking-wider font-bold">{t('contact.phoneLabel', 'Telefon')}</p>
                       <a 
                         href="tel:+48604904150" 
                         className="text-[var(--omni-text)] hover:text-[var(--omni-accent)] font-medium transition-colors"
@@ -94,15 +97,16 @@ export default function ContactPage() {
       <footer className="px-6 py-12 bg-[#0B1220] text-white/50 text-center text-sm border-t border-white/5">
         <div className="max-w-4xl mx-auto">
           <div className="flex flex-wrap justify-center gap-x-6 gap-y-3 mb-6 text-xs uppercase tracking-wider font-medium">
-            <Link to="/regulamin" className="hover:text-white transition-colors">Regulamin</Link>
-            <Link to="/polityka-prywatnosci" className="hover:text-white transition-colors">Prywatność</Link>
-            <Link to="/cookies" className="hover:text-white transition-colors">Cookies</Link>
-            <Link to="/ai-disclaimer" className="hover:text-white transition-colors">AI Disclaimer</Link>
-            <Link to="/polityka-zglaszania-naruszen" className="hover:text-white transition-colors">Zgłaszanie naruszeń</Link>
+            <Link to="/regulamin" className="hover:text-white transition-colors">{t('home.footer.legal.terms', 'Regulamin')}</Link>
+            <Link to="/polityka-prywatnosci" className="hover:text-white transition-colors">{t('home.footer.legal.privacy', 'Polityka prywatności')}</Link>
+            <Link to="/cookies" className="hover:text-white transition-colors">{t('legal.cookies.title', 'Cookies')}</Link>
+            <Link to="/ai-disclaimer" className="hover:text-white transition-colors">{t('legal.aiDisclaimer.title', 'AI Disclaimer')}</Link>
+            <Link to="/polityka-zglaszania-naruszen" className="hover:text-white transition-colors">{t('home.footer.legal.reports', 'Zgłaszanie naruszeń')}</Link>
           </div>
-          <p>© 2026 OmniNauka. Wszelkie prawa zastrzeżone.</p>
+          <p>{t('home.footer.copyright', '© 2026 OmniNauka. Wszelkie prawa zastrzeżone.')}</p>
         </div>
       </footer>
     </div>
   );
 }
+

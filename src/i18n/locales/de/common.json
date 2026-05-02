@@ -1,0 +1,859 @@
+{
+  "auth": {
+    "email": "E-Mail",
+    "password": "Passwort",
+    "backToHome": "← Zurück zur Startseite",
+    "login": {
+      "title": "Willkommen zurück",
+      "subtitle": "Melden Sie sich an, um weiterzulernen",
+      "parent": {
+        "title": "Eltern-Dashboard — Login",
+        "desc": "Melden Sie sich unten als Elternteil oder Erziehungsberechtigter an, um den Fortschritt Ihres Kindes zu überprüfen."
+      },
+      "forgot": "Passwort vergessen?",
+      "submit": "Anmelden",
+      "demo": "Demo-Modus - ohne Login eintreten",
+      "noAccount": "Kein Konto?",
+      "register": "Registrieren",
+      "error": {
+        "invalid": "Ungültige E-Mail oder Passwort",
+        "generic": "Beim Anmelden ist ein Fehler aufgetreten"
+      }
+    },
+    "register": {
+      "title": "Konto erstellen",
+      "subtitle": "Lernen Sie intelligenter mit OmniNauka",
+      "name": "Vorname",
+      "namePlaceholder": "Ihr Name",
+      "role": "Wer bist du?",
+      "roleStudent": "Ich bin Schüler/Student",
+      "roleParent": "Ich bin Elternteil / Erziehungsberechtigter",
+      "age": "Alter",
+      "agePlaceholder": "Altersgruppe wählen",
+      "ageUnder13": "Unter 13 Jahre",
+      "age13to15": "13 – 15 Jahre",
+      "age16to17": "16 – 17 Jahre",
+      "age18plus": "18+ Jahre",
+      "passwordMin": "Mindestens 6 Zeichen",
+      "submit": "Konto erstellen",
+      "hasAccount": "Haben Sie bereits ein Konto?",
+      "login": "Anmelden",
+      "error": {
+        "noRole": "Bitte wählen Sie eine Rolle",
+        "noAge": "Bitte wählen Sie eine Altersgruppe",
+        "passLength": "Das Passwort muss mindestens 6 Zeichen lang sein",
+        "failed": "Konto konnte nicht erstellt werden.",
+        "generic": "Bei der Registrierung ist ein Fehler aufgetreten"
+      },
+      "success": {
+        "verify": "Konto erstellt. Überprüfen Sie Ihre E-Mail und bestätigen Sie die Adresse.",
+        "consent": "Konto erstellt! Da du 13-15 Jahre alt bist, benötigen wir die Zustimmung deiner Eltern.",
+        "toLogin": "Zur Anmeldung"
+      },
+      "ageBlock": {
+        "title": "Wir brauchen die Hilfe der Eltern",
+        "desc": "Aufgrund von Sicherheitsbestimmungen (DSGVO) können Personen unter 13 Jahren kein eigenes Konto erstellen.",
+        "whatNow": "Was nun?",
+        "instruction": "Bitte einen Elternteil oder Erziehungsberechtigten, ein Konto zu erstellen und dein Schülerprofil hinzuzufügen.",
+        "back": "Zurück zum Formular"
+      }
+    },
+    "forgot": {
+      "title": "Passwort zurücksetzen",
+      "subtitle": "Geben Sie Ihre E-Mail-Adresse ein und wir senden Ihnen einen Link",
+      "submit": "Link senden",
+      "backToLogin": "Zurück zur Anmeldung",
+      "successTitle": "Überprüfen Sie Ihre E-Mails",
+      "successDesc1": "Wenn ein Konto mit der Adresse",
+      "successDesc2": "existiert, haben wir einen Link gesendet.",
+      "toastSuccess": "Link gesendet"
+    },
+    "reset": {
+      "title": "Neues Passwort festlegen",
+      "subtitle": "Wählen Sie ein sicheres Passwort",
+      "newPassword": "Neues Passwort",
+      "newPasswordPlaceholder": "Min. 8 Zeichen",
+      "confirmPassword": "Passwort bestätigen",
+      "confirmPasswordPlaceholder": "••••••••",
+      "submit": "Passwort ändern",
+      "error": {
+        "length": "Mindestens 8 Zeichen erforderlich",
+        "mismatch": "Passwörter stimmen nicht überein",
+        "generic": "Fehler beim Ändern des Passworts"
+      },
+      "toastSuccess": "Passwort wurde geändert",
+      "expired": {
+        "title": "Sitzung abgelaufen",
+        "desc": "Der Link ist ungültig oder wurde bereits verwendet.",
+        "submit": "Neuen Link senden"
+      },
+      "success": {
+        "title": "Passwort geändert!",
+        "desc": "Ihr neues Passwort wurde festgelegt.",
+        "submit": "Jetzt anmelden"
+      }
+    },
+    "pending": {
+      "title": "Wir benötigen die Zustimmung der Eltern",
+      "desc1": "Hallo,",
+      "desc2": "! Da du unter 16 Jahre alt bist, benötigen wir die Bestätigung deiner Eltern (DSGVO).",
+      "emailLabel": "E-Mail der Eltern",
+      "emailPlaceholder": "eltern@email.de",
+      "emailHelp": "Wir senden einen sicheren Link an diese Adresse.",
+      "submit": "Zustimmungsanfrage senden",
+      "wait": "Warten",
+      "waitSuffix": "s...",
+      "successTitle": "Anfrage gesendet!",
+      "successDesc1": "Bitte deine Eltern, ihre E-Mails zu überprüfen (",
+      "successDesc2": ") und auf den Link zu klicken.",
+      "successNote": "Sobald die Eltern zustimmen, wird dein Konto entsperrt.",
+      "otherEmail": "Eine andere E-Mail-Adresse verwenden",
+      "otherEmailWait": "Andere Adresse verwenden in",
+      "resend": "Erneut an dieselbe Adresse senden",
+      "logout": "Abmelden und später zurückkehren",
+      "terms": "Bedingungen lesen",
+      "error": {
+        "wait": "Bitte warten Sie einen Moment.",
+        "config": "E-Mail-Konfiguration ist noch nicht bereit.",
+        "notPending": "Ihr Konto wartet nicht mehr auf Zustimmung.",
+        "invalidData": "Fehler beim Senden. Überprüfen Sie die Daten.",
+        "network": "Keine Verbindung. Überprüfen Sie das Internet.",
+        "auth": "Autorisierungsfehler. Bitte erneut anmelden.",
+        "generic": "Fehler beim Senden. Später erneut versuchen.",
+        "technical": "Technischer Fehler."
+      }
+    },
+    "parentConsent": {
+      "loading": "Anfrage wird überprüft...",
+      "invalid": {
+        "title": "Ungültiger oder abgelaufener Link",
+        "desc": "Dieser Link ist nicht mehr aktiv.",
+        "back": "Zurück zur Startseite"
+      },
+      "success": {
+        "title": "Zustimmung genehmigt!",
+        "desc": "Danke. Ihr Kind kann nun OmniNauka nutzen.",
+        "goToApp": "Zu OmniNauka gehen"
+      },
+      "form": {
+        "title": "Zustimmung der Eltern",
+        "forUser": "Zustimmung für:",
+        "submit": "Ich bestätige und entsperre das Konto",
+        "errorChecked": "Sie müssen alle obigen Erklärungen ankreuzen."
+      },
+      "footer": {
+        "terms": "Bedingungen",
+        "privacy": "Datenschutz",
+        "contact": "Kontakt"
+      }
+    }
+  },
+  "home": {
+    "howItWorks": {
+      "title": "Wie es funktioniert?",
+      "scan": {
+        "title": "Notizen scannen",
+        "description": "Lade ein Foto deiner Notizen oder einer Lehrbuchseite hoch."
+      },
+      "ai": {
+        "title": "KI analysiert",
+        "description": "Künstliche Intelligenz extrahiert Schlüsselkonzepte und erstellt Material."
+      },
+      "learn": {
+        "title": "Effektiv lernen",
+        "description": "Karteikarten, Quizze und Lektionen, die auf deine Materialien zugeschnitten sind."
+      },
+      "chat": {
+        "title": "Mit KI chatten",
+        "description": "Stelle Fragen und lerne durch Dialog mit dem KI-Tutor."
+      },
+      "progress": {
+        "title": "Fortschritt verfolgen",
+        "description": "Überwache deine Ergebnisse und identifiziere Schwachstellen."
+      }
+    },
+    "pricing": {
+      "title": "Plan wählen",
+      "period": "/ Monat",
+      "free": {
+        "title": "Kostenlos",
+        "price": "0 PLN",
+        "feat1": "2 KI-Lektionen täglich",
+        "feat2": "Text-KI-Tutor",
+        "feat3": "Quizze mit Erklärungen",
+        "feat4": "Lernverlauf",
+        "feat5": "Nächste KI-Lektion: 1,99 PLN",
+        "cta": "Kostenlos starten"
+      },
+      "premium": {
+        "title": "Premium",
+        "price": "29 PLN",
+        "badge": "Am beliebtesten",
+        "feat1": "Mehr KI-Lektionen jeden Tag",
+        "feat2": "Erweiterter KI-Tutor",
+        "feat3": "Fehlerüberprüfungen",
+        "feat4": "Tests mit Fehlerberichten",
+        "feat5": "Prioritäts-KI",
+        "cta": "7 Tage testen"
+      },
+      "premiumPlus": {
+        "title": "Premium+",
+        "price": "49 PLN",
+        "badge": "Prüfungen",
+        "feat1": "Alles in Premium",
+        "feat2": "Achtklässler-Prüfungsvorbereitung",
+        "feat3": "Matura-Prüfungsvorbereitung",
+        "feat4": "Aufgaben im Prüfungsstil",
+        "feat5": "Probeprüfungen und Fehlerberichte",
+        "cta": "7 Tage testen"
+      },
+      "family": {
+        "title": "Familie",
+        "price": "59 PLN",
+        "feat1": "Bis zu 3 Schülerkonten",
+        "feat2": "Alles in Premium",
+        "feat3": "Fortschrittsberichte",
+        "feat4": "Gemeinsamer Lernverlauf",
+        "feat5": "Elternpanel — demnächst",
+        "cta": "7 Tage testen"
+      },
+      "extra": {
+        "info": "1 KI-Lektion = bis zu 5 Fotos oder 1 PDF/DOCX-Dokument.",
+        "title": "Zusätzliche KI-Lektionen",
+        "pack1": "5 KI-Lektionen",
+        "price1": "7,99 PLN",
+        "pack2": "10 KI-Lektionen",
+        "price2": "14,99 PLN",
+        "pack3": "25 KI-Lektionen",
+        "price3": "29,99 PLN",
+        "note": "Zusätzliche Lektionspakete werden nach Einführung der Zahlungen verfügbar sein."
+      }
+    },
+    "faq": {
+      "title": "Häufig gestellte Fragen",
+      "q1": {
+        "q": "Was ist eine KI-Lektion?",
+        "a": "Eine KI-Lektion ist eine Analyse des vom Schüler hinzugefügten Materials. Dies können bis zu 5 Fotos von Notizen oder 1 PDF/DOCX-Dokument sein. Nach dem Hinzufügen des Materials hilft OmniNauka, das Thema zu verstehen, führt ein Gespräch mit dem KI-Tutor und kann ein Quiz vorbereiten."
+      },
+      "q2": {
+        "q": "Wie unterscheidet sich ein Quiz von einem Test?",
+        "a": "Ein Quiz mit Erklärungen ist ein kurzes Training nach einer Lektion. Es hilft, das grundlegende Verständnis des Themas zu überprüfen, und zeigt, warum eine Antwort richtig oder falsch ist. Ein Test mit Fehlerbericht ist ein größerer Bereitschaftstest für einen Wissenstest oder eine Prüfung. Am Ende erhält der Schüler ein Ergebnis und Informationen darüber, welche Themen wiederholt werden sollten."
+      },
+      "q3": {
+        "q": "Was ist Premium+?",
+        "a": "Premium+ ist ein Plan für Schüler, die sich auf wichtige Prüfungen vorbereiten, wie die Achtklässlerprüfung oder das Abitur. Er umfasst Aufgaben im Prüfungsstil, Probeprüfungen und Fehlerberichte."
+      },
+      "q4": {
+        "q": "Wird mich OmniNauka auf die Achtklässlerprüfung und das Abitur vorbereiten?",
+        "a": "Ja, wir planen einen Prüfungsmodus für die Achtklässlerprüfung und das Abitur. Dies wird ein separates Modul sein, das nach der Basisversion der Anwendung entwickelt wird."
+      },
+      "q5": {
+        "q": "Ist OmniNauka ein offizielles Tool des CKE?",
+        "a": "Nein. OmniNauka ist kein offizielles Tool des CKE. Der Prüfungsmodus wird als Lernunterstützung entwickelt, mit Aufgaben im Prüfungsstil und Materialien, die von den Prüfungsanforderungen inspiriert sind."
+      },
+      "q6": {
+        "q": "Kann ich ein PDF- oder Word-Dokument hinzufügen?",
+        "a": "Ja. OmniNauka unterstützt JPG-, PNG-, WEBP-Fotos, Text-PDF-Dateien und DOCX-Dokumente. Gescannte PDFs erfordern möglicherweise das Hinzufügen von Seiten als Fotos."
+      },
+      "q7": {
+        "q": "Löst OmniNauka Aufgaben für den Schüler?",
+        "a": "Das Ziel von OmniNauka ist es nicht, fertige Antworten ohne Lernen zu liefern. Der KI-Tutor hilft, das Material zu verstehen, erklärt Fehler, stellt Fragen und führt den Schüler Schritt für Schritt."
+      },
+      "q8": {
+        "q": "Sind Zahlungen bereits aktiv?",
+        "a": "In der Beta-Phase können Zahlungen und Limits phasenweise eingeführt werden. Aktuelle Pakete zeigen das geplante Nutzungsmodell für OmniNauka."
+      }
+    },
+    "about": {
+      "title": "Über uns",
+      "p1": "OmniNauka ist ein moderner KI-Tutor für Schüler. Er hilft, Material aus Notizen, Fotos, PDFs und Word-Dokumenten zu verstehen, führt ein Gespräch mit dem KI-Tutor, erstellt Quizze und unterstützt bei Fehlerüberprüfungen.",
+      "p2": "Wir entwickeln eine Anwendung, die dem Schüler die Arbeit nicht abnimmt, sondern ihm hilft, das Thema wirklich zu verstehen.",
+      "p3": "OmniNauka wird als Mobile-First-Produkt entwickelt — einfach, schnell und bequem für Schüler, die hauptsächlich ein Telefon oder Tablet verwenden."
+    },
+    "footer": {
+      "brandDesc": "Personalisiertes Lernen für jeden Schüler",
+      "product": {
+        "title": "Produkt",
+        "features": "Funktionen",
+        "pricing": "Preise",
+        "faq": "FAQ",
+        "security": "Sicherheit"
+      },
+      "company": {
+        "title": "Unternehmen",
+        "about": "Über uns",
+        "contact": "Kontakt"
+      },
+      "legal": {
+        "title": "Rechtliches",
+        "terms": "Nutzungsbedingungen",
+        "privacy": "Datenschutzrichtlinie",
+        "reports": "Meldung von Verstößen und Entfernung von Inhalten"
+      },
+      "copyright": "© 2026 OmniNauka. Alle Rechte vorbehalten."
+    },
+    "nav": {
+      "login": "Anmelden",
+      "tryFree": "Kostenlos testen"
+    },
+    "hero": {
+      "title": "Lernen, das lebendig wird",
+      "subtitle": "Scannen Sie Ihre Notizen. OmniNauka erstellt Karteikarten und Quizze.",
+      "cta": {
+        "tryFree": "Kostenlos testen",
+        "howItWorks": "Wie es funktioniert"
+      }
+    },
+    "cta": {
+      "title": "Bereit anzufangen?",
+      "subtitle": "Schließen Sie sich Tausenden von Schülern an."
+    }
+  },
+  "contact": {
+    "backHome": "Zurück zur Startseite",
+    "title": "Kontakt",
+    "description": "Bei Fragen zur Zusammenarbeit, Beta-Tests oder allgemeinen Fragen zu OmniNauka kontaktieren Sie uns bitte per E-Mail oder Telefon.",
+    "emailLabel": "E-MAIL",
+    "phoneLabel": "TELEFON",
+    "operator": "Servicebetreiber",
+    "address": "Adresse",
+    "hours": "Arbeitszeiten",
+    "hoursDesc": "Montag - Freitag: 09:00 - 17:00",
+    "message": {
+      "label": "Nachricht senden",
+      "desc": "Der schnellste Weg zu technischem Support."
+    }
+  },
+  "legal": {
+    "bindingNotice": "Diese Übersetzung dient nur zur Information. Rechtlich bindend ist die polnische Version.",
+    "footer": {
+      "allRightsReserved": "Alle Rechte vorbehalten."
+    },
+    "cookies": {
+      "title": "Cookie- und Datenspeicherungsrichtlinie"
+    },
+    "aiDisclaimer": {
+      "title": "KI-Haftungsausschluss (AI Disclaimer)"
+    }
+  },
+  "appShell": {
+    "nav": {
+      "dashboard": "Dashboard",
+      "upload": "Upload",
+      "flashcards": "Karteikarten",
+      "quiz": "Quiz",
+      "lesson": "KI-Lektion",
+      "results": "Ergebnisse",
+      "history": "Verlauf",
+      "profile": "Profil",
+      "settings": "Einstellungen",
+      "parentPanel": "Elternpanel"
+    },
+    "user": "Benutzer",
+    "plan": {
+      "premium": "Premium",
+      "free": "Kostenlos"
+    },
+    "logout": "Abmelden"
+  },
+  "dashboard": {
+    "welcome": "Hallo",
+    "subtitle": "Bereit für deine nächste Lernsitzung?",
+    "newUpload": "Neuer Upload",
+    "stats": {
+      "sessions": "Lernsitzungen",
+      "hours": "Lernstunden",
+      "avgScore": "Durchschnitt",
+      "streak": "Streak"
+    },
+    "quickActions": {
+      "title": "Schnellaktionen",
+      "newUpload": "Neuer Upload"
+    },
+    "recentSessions": "Letzte Sitzungen",
+    "seeAll": "Alle anzeigen",
+    "processing": "Analysiere...",
+    "other": "Andere",
+    "deleteSession": "Sitzung löschen",
+    "confirmDelete": "Möchtest du diese Sitzung wirklich löschen?",
+    "error": "Fehler beim Abrufen der Daten.",
+    "images": "Fotos",
+    "empty": {
+      "title": "Du hast noch keine gespeicherten Sitzungen.",
+      "cta": "Lernen starten"
+    },
+    "subjectProgress": "Fortschritt nach Fächern",
+    "sessions": "Sitzungen"
+  },
+  "profile": {
+    "title": "Dein Profil",
+    "subtitle": "Profil- und Bildungsdaten anpassen",
+    "editData": "Daten bearbeiten",
+    "info": {
+      "plan": "Plan",
+      "joined": "Beigetreten",
+      "email": "E-Mail"
+    },
+    "activity": {
+      "title": "Kontoaktivität & Status",
+      "status": "Kontostatus",
+      "lastLogin": "Letzter Login"
+    },
+    "status": {
+      "active": "Aktiv",
+      "pending": "Warten auf Zustimmung",
+      "withdrawn": "Zustimmung zurückgezogen",
+      "suspended": "Suspendiert"
+    },
+    "educational": {
+      "title": "Bildungsdaten",
+      "notice": "Diese Daten sind optional. Sie helfen uns, OmniNauka zu verbessern. Keine sensiblen Daten angeben.",
+      "role": {
+        "label": "Wer bist du?",
+        "desc": "Deine Rolle im System",
+        "select": "Rolle wählen...",
+        "student": "Schüler",
+        "parent": "Elternteil/Vormund",
+        "teacher": "Lehrer",
+        "other": "Andere",
+        "preferNotToSay": "Keine Angabe"
+      },
+      "school": {
+        "label": "Schultyp",
+        "desc": "Welche Schule besuchst du",
+        "select": "Schultyp wählen...",
+        "primary": "Grundschule",
+        "high": "Gymnasium",
+        "technical": "Realschule/Fachoberschule",
+        "vocational1": "Berufsschule I",
+        "vocational2": "Berufsschule II",
+        "postSecondary": "Weiterführend",
+        "homeschooling": "Heimunterricht",
+        "other": "Andere",
+        "preferNotToSay": "Keine Angabe"
+      },
+      "level": {
+        "label": "Bildungsniveau",
+        "desc": "Deine aktuelle Klassenstufe",
+        "select": "Niveau wählen...",
+        "primary13": "Klassen 1-3",
+        "primary46": "Klassen 4-6",
+        "primary78": "Klassen 7-8",
+        "secondary1": "Klasse 9/10",
+        "secondary2": "Klasse 11",
+        "secondary3": "Klasse 12",
+        "secondary4": "Klasse 13",
+        "secondary5": "Abschlussklasse",
+        "other": "Andere",
+        "preferNotToSay": "Keine Angabe"
+      },
+      "postalCode": {
+        "label": "Postleitzahl",
+        "desc": "Optional",
+        "postalCodeError": "Postleitzahl sollte 5 Ziffern haben."
+      }
+    },
+    "toast": {
+      "saved": "Profildaten wurden gespeichert.",
+      "error": "Fehler beim Speichern der Daten."
+    }
+  },
+  "settings": {
+    "account": {
+      "deleted": "Konto wurde gelöscht.",
+      "deleteError": "Konto konnte nicht gelöscht werden. Bitte versuchen Sie es später erneut.",
+      "title": "Konto",
+      "delete": "Konto löschen",
+      "deleteDesc": "Diese Aktion kann nicht rückgängig gemacht werden",
+      "logout": "Abmelden",
+      "logoutDesc": "Beenden Sie Ihre Sitzung"
+    },
+    "language": {
+      "saved": "Schnittstellensprache gespeichert",
+      "title": "Sprache",
+      "interface": "Schnittstellensprache",
+      "desc": "Wählen Sie Ihre bevorzugte Sprache",
+      "save": "Änderungen speichern"
+    },
+    "notifications": {
+      "title": "Benachrichtigungen",
+      "enable": "Benachrichtigungen aktivieren",
+      "desc": "Erhalten Sie Erinnerungen an Lernsitzungen"
+    },
+    "appearance": {
+      "title": "Aussehen",
+      "dark": "Dunkelmodus",
+      "desc": "Ändern Sie das Anwendungsthema"
+    },
+    "header": {
+      "title": "Einstellungen",
+      "desc": "Passen Sie die Anwendung an Ihre Bedürfnisse an"
+    },
+    "profile": {
+      "title": "Profil",
+      "data": "Bildungs- und Profildaten",
+      "desc": "Profildaten und Bildungsinformationen bearbeiten.",
+      "goTo": "Zum Profil gehen"
+    },
+    "parent": {
+      "title": "Für Eltern / Erziehungsberechtigte",
+      "dashboard": "Eltern-Dashboard",
+      "desc": "Überprüfen Sie den Zustimmungsstatus und grundlegende Informationen über den Fortschritt des Kindes.",
+      "open": "Eltern-Dashboard öffnen"
+    },
+    "privacy": {
+      "title": "Datenschutz",
+      "desc1": "Ihre Daten sind sicher. Wir geben sie nicht an Dritte weiter. Lesen Sie unsere",
+      "desc2": "Datenschutzrichtlinie"
+    }
+  },
+  "common": {
+    "noData": "Keine Daten",
+    "today": "Heute",
+    "saveChanges": "Änderungen speichern",
+    "dateLocale": "de-DE"
+  },
+  "flashcards": {
+    "title": "Lernkarten",
+    "subtitle": "Lerne Schlüsselkonzepte",
+    "progress": "Fortschritt",
+    "cardCounter": "Karte {{current}} von {{total}}",
+    "buckets": {
+      "toReview": "Zu wiederholen",
+      "difficult": "Schwierig",
+      "mastered": "Gelernt"
+    },
+    "card": {
+      "term": "Begriff",
+      "definition": "Definition",
+      "clickToFlip": "Klicken zum Umdrehen"
+    },
+    "controls": {
+      "dontKnow": "Nicht gewusst",
+      "know": "Gewusst",
+      "prev": "Vorherige Karte",
+      "next": "Nächste Karte"
+    },
+    "difficulty": {
+      "label": "Stufe",
+      "easy": "Einfach",
+      "medium": "Mittel",
+      "hard": "Schwer"
+    },
+    "empty": {
+      "title": "Keine Lernkarten",
+      "desc": "Lade zuerst deine Notizen hoch, und die KI wird Lernkarten für dich generieren.",
+      "cta": "Notizen hochladen"
+    },
+    "completion": {
+      "title": "Glückwunsch!",
+      "desc": "Du hast alle Lernkarten durchgearbeitet. Du kennst {{known}} von {{total}} Begriffen.",
+      "repeatDifficult": "Schwierige wiederholen ({{count}})",
+      "repeatAll": "Alle wiederholen",
+      "repeatSame": "Gleiche Serie wiederholen",
+      "regenerate": "Neue Lernkarten generieren",
+      "goToQuiz": "Zum Quiz gehen",
+      "backToResults": "Zurück zu den Ergebnissen"
+    },
+    "notifications": {
+      "regenerateConfirm": "Bist du sicher, dass du neue Lernkarten generieren möchtest? Der aktuelle Satz wird durch neue Konzepte aus deinen Notizen ersetzt.",
+      "regenerating": "KI-Magie: Generiere neuen Satz...",
+      "success": "Satz erfolgreich aktualisiert!",
+      "error": "Fehler bei der Regeneration"
+    }
+  },
+  "quiz": {
+    "title": "Quiz",
+    "subtitle": "Testen Sie Ihr Wissen",
+    "empty": {
+      "title": "Keine Fragen",
+      "desc": "Lade zuerst deine Notizen hoch, und die KI wird Quizfragen für dich generieren.",
+      "cta": "Notizen hochladen"
+    },
+    "options": {
+      "true": "Wahr",
+      "false": "Falsch"
+    },
+    "feedback": {
+      "correct": "Richtige Antwort!",
+      "incorrect": "Falsche Antwort"
+    },
+    "buttons": {
+      "next": "Nächste Frage",
+      "finish": "Quiz beenden und Ergebnis sehen",
+      "repeat": "Gleiches Quiz noch einmal machen",
+      "regenerate": "Neues Quiz generieren",
+      "backToAnalysis": "Zurück zur Analyse"
+    },
+    "difficulty": {
+      "label": "Schwierigkeitsgrad",
+      "easy": "Einfach",
+      "medium": "Mittel",
+      "hard": "Schwer"
+    },
+    "completion": {
+      "title": "Quiz abgeschlossen!",
+      "score": "Dein Ergebnis: {{correct}} von {{total}} richtigen Antworten"
+    },
+    "notifications": {
+      "regenerateConfirm": "Bist du sicher, dass du ein neues Quiz generieren möchtest? Die aktuellen Fragen werden durch neue Herausforderungen aus deinen Notizen ersetzt.",
+      "regenerating": "KI-Magie: Generiere neues Quiz...",
+      "success": "Quiz erfolgreich aktualisiert!",
+      "error": "Fehler bei der Regeneration"
+    }
+  },
+  "results": {
+    "title": "Quizergebnisse",
+    "empty": {
+      "title": "Keine Ergebnisse",
+      "desc": "Mache ein Quiz, um deine Ergebnisse zu sehen.",
+      "cta": "Quiz starten"
+    },
+    "messages": {
+      "excellent": "Tolles Ergebnis! 🎉",
+      "good": "Gutes Ergebnis! 👍",
+      "improve": "Verbesserungswürdig 📚"
+    },
+    "stats": {
+      "correctFromTotal": "{{correct}} richtige von {{total}} Fragen",
+      "totalQuestions": "Gesamtfragen",
+      "correct": "Richtig",
+      "incorrect": "Falsch",
+      "time": "Zeit"
+    },
+    "recommendations": {
+      "title": "Empfehlungen",
+      "strengths": "Deine Stärken:",
+      "toImprove": "Zu verbessern:",
+      "repeatMaterial": "Material wiederholen:",
+      "repeatFlashcardsDesc": "Versuche, die Lernkarten noch einmal durchzugehen, bevor du das Quiz erneut machst.",
+      "strengthsDesc": "Du beherrschst die Grundbegriffe gut. Lerne weiter!",
+      "improveDesc": "Du hast {{count}} falsche Antworten. Sieh dir die Erklärungen zu diesen Fragen an."
+    },
+    "actions": {
+      "repeatQuiz": "Quiz wiederholen",
+      "learnFlashcards": "Lernkarten lernen",
+      "dashboard": "Dashboard"
+    }
+  },
+  "history": {
+    "title": "Lernverlauf",
+    "subtitle": "Alle deine Analysesitzungen",
+    "buttons": {
+      "newFolder": "Neuer Ordner",
+      "move": "Verschieben",
+      "create": "Erstellen",
+      "cancel": "Abbrechen",
+      "delete": "Löschen",
+      "startLearning": "Lernen starten"
+    },
+    "stats": {
+      "sessionsCount": "{{count}} Sitzungen",
+      "avgScore": "Durchschn. Ergebnis:",
+      "studyTime": "Lernzeit",
+      "avgPerSession": "Durchschn/Sitzung",
+      "subjects": "Fächer"
+    },
+    "explorer": {
+      "allLessons": "Alle Lektionen",
+      "folder": "Ordner:",
+      "showAll": "Alle zeigen (Root)",
+      "current": "Aktuell"
+    },
+    "search": {
+      "placeholderFolder": "In diesem Ordner suchen...",
+      "placeholderAll": "In allen Lektionen suchen...",
+      "sortBy": "Sortieren nach:",
+      "dateDesc": "Datum (neueste)",
+      "dateAsc": "Datum (älteste)",
+      "titleAsc": "Name (A-Z)",
+      "titleDesc": "Name (Z-A)"
+    },
+    "groups": {
+      "today": "Heute",
+      "yesterday": "Gestern",
+      "last7Days": "Letzte 7 Tage",
+      "older": "Ältere",
+      "allSessions": "Alle Sitzungen"
+    },
+    "modals": {
+      "deleteSession": {
+        "title": "Sitzung löschen?",
+        "message": "Die Sitzung wird von deinem Konto gelöscht. Dieser Vorgang kann nicht rückgängig gemacht werden."
+      },
+      "deleteFolder": {
+        "title": "Ordner löschen?",
+        "message": "Der Ordner wird gelöscht. Alle enthaltenen Lektionen werden in das Hauptverzeichnis verschoben."
+      },
+      "moveSession": {
+        "title": "Lektion verschieben",
+        "subtitle": "Zielort wählen",
+        "root": "Alle Lektionen (Root)"
+      },
+      "createFolder": {
+        "title": "Neuer Ordner",
+        "placeholder": "Ordnername..."
+      }
+    },
+    "empty": {
+      "title": "Kein Verlauf",
+      "desc": "Du hast noch keine analysierten Sitzungen oder Ordner.",
+      "noFolders": "Keine Ordner"
+    },
+    "items": {
+      "sessions": "Sitzungen",
+      "noSubject": "Kein Fach",
+      "generatingTitle": "Titel wird generiert...",
+      "flashcards": "Lernkarten",
+      "questions": "Fragen",
+      "completed": "Abgeschlossen",
+      "deleteSession": "Sitzung löschen",
+      "moveLesson": "Lektion verschieben"
+    },
+    "searchEmpty": {
+      "title": "Keine Ergebnisse",
+      "desc": "Wir konnten keine Sitzungen finden, die deiner Suche entsprechen.",
+      "clear": "Suche löschen"
+    },
+    "folderEmpty": {
+      "title": "Leerer Ordner",
+      "desc": "Dieser Ordner enthält noch keine Lektionen."
+    },
+    "toasts": {
+      "folderCreated": "Ordner erstellt",
+      "folderDeleted": "Ordner gelöscht",
+      "sessionMoved": "Sitzung verschoben",
+      "demoError": "Demomodus: Ordner kann nicht erstellt werden"
+    },
+    "error": "Lernverlauf konnte nicht geladen werden:"
+  },
+  "analysis": {
+    "error": {
+      "title": "Analysefehler",
+      "retry": "Mit einem anderen Foto erneut versuchen",
+      "network": "Ein unerwarteter Netzwerkfehler ist aufgetreten."
+    },
+    "empty": {
+      "title": "Analyse nicht gefunden",
+      "back": "Zurück zum Upload"
+    },
+    "header": {
+      "confidence": "Sicherheit:",
+      "demo": "Demo-Modus",
+      "namePrompt": "Benenne diese Lektion, um sie später leichter zu finden"
+    },
+    "gallery": {
+      "openDoc": "Klicken zum Herunterladen oder Öffnen",
+      "docAdded": "Dokument<br/>hinzugefügt",
+      "openImage": "Klicken für Vollbild",
+      "page": "Seite {{current}} von {{total}}"
+    },
+    "actions": {
+      "title": "Lernen beginnen",
+      "lesson": {
+        "title": "KI-Lektion (Sokratisch)",
+        "desc": "Sprich und verstehe den Stoff im Dialog"
+      },
+      "quiz": {
+        "title": "Quiz machen",
+        "desc": "{{count}} Wissensfragen"
+      },
+      "flashcards": {
+        "title": "Lernkarten lernen",
+        "desc": "{{count}} Konzepte zu meistern"
+      }
+    },
+    "summary": {
+      "title": "Lektionszusammenfassung"
+    },
+    "concepts": {
+      "title": "Schlüsselkonzepte ({{count}})",
+      "hint": "Klicke auf ein Konzept, um es zu erkunden"
+    },
+    "categories": {
+      "definition": "Definition",
+      "date": "Datum",
+      "formula": "Formel",
+      "person": "Person",
+      "event": "Ereignis",
+      "concept": "Konzept"
+    },
+    "stats": {
+      "concepts": "Konzepte",
+      "flashcards": "Lernkarten",
+      "questions": "Fragen"
+    },
+    "backendErrors": {
+      "generic": "Ein Problem mit dem KI-Analyse-Server ist aufgetreten. Bitte versuche es erneut oder kontaktiere den Support.",
+      "unreadableText": "Text auf dem Foto konnte nicht gelesen werden. Versuche ein näheres Bild bei besserem Licht.",
+      "unauthorized": "Sitzungsauthentifizierung abgelaufen. Lade die Seite neu und melde dich bei Bedarf erneut an.",
+      "sessionNotFound": "Die Analysesitzung ist abgelaufen oder wurde nicht korrekt gespeichert. Bitte Notiz erneut hochladen.",
+      "downloadFailed": "Berechtigungsfehler beim Laden des Bildes. Versuche, die Datei erneut hochzuladen.",
+      "aiUnderstanding": "Das KI-Modell hatte Probleme, diese Notizen zu verstehen. Versuche eine klarere Aufnahme.",
+      "serverError": "Ein temporärer Serverfehler ist aufgetreten. Bitte versuche es später noch einmal."
+    }
+  },
+  "upload": {
+    "title": "Materialien hochladen",
+    "subtitle": "Fügen Sie bis zu {{maxImages}} Fotos von Notizen oder 1 Textdokument (PDF/DOCX) hinzu. Die KI bereitet in wenigen Sekunden eine Lektion vor.",
+    "demoMode": "Demo-Modus — Hochgeladene Datei wird nur lokal verarbeitet.",
+    "cameraCta": "Foto von Notizen machen",
+    "or": "oder",
+    "chooseFiles": "Dateien vom Gerät auswählen",
+    "dropHere": "Dateien hier ablegen...",
+    "supportedFormats": "JPG, PNG, WEBP, Text-PDF oder DOCX",
+    "limitInfo": "max 5 Fotos oder 1 Dokument · max 10MB",
+    "cropPanel": {
+      "title": "Foto zuschneiden",
+      "zoom": "Zoom:",
+      "processing": "Verarbeitung...",
+      "confirm": "Zuschnitt bestätigen",
+      "skip": "Zuschnitt überspringen"
+    },
+    "tips": {
+      "title": "Tipps für bessere Ergebnisse:",
+      "readable": "Stellen Sie sicher, dass der Text gut lesbar und gut beleuchtet ist",
+      "angle": "Vermeiden Sie Fotos aus einem Winkel — nehmen Sie sie horizontal von oben auf",
+      "multiplePages": "Sie können mehrere Seiten auf einmal hinzufügen — die KI wird sie zu einer Lektion zusammenfassen"
+    },
+    "safety": {
+      "title": "Bevor Sie hochladen",
+      "line1": "Laden Sie keine Dokumente mit ID-Nummern, Adressen, Gesundheitsdaten, Fotos von Personen oder Materialien hoch, an denen Sie keine Rechte besitzen.",
+      "line2": "Senden Sie nur Notizen und Dateien, die zum Lernen benötigt werden. Wenn Sie sich nicht sicher sind, fragen Sie einen Elternteil oder Lehrer."
+    },
+    "actions": {
+      "submit": "Material hochladen",
+      "analyzeDoc": "Dokument analysieren",
+      "analyzeImages": "Analysieren Sie {{count}} Foto(s)",
+      "remove": "Entfernen",
+      "addMore": "Mehr hinzufügen",
+      "retry": "Erneut versuchen"
+    },
+    "states": {
+      "extractingDoc": "Text aus Dokument extrahieren...",
+      "justAMoment": "Das dauert nur einen Moment.",
+      "selectedDoc": "Ausgewähltes Dokument",
+      "readSize": "{{size}} KB Text gelesen",
+      "uploadingAndAnalyzing": "Hochladen und analysieren...",
+      "imageCount": "{{current}} von {{max}} Fotos",
+      "readyCount": "({{ready}} fertig)",
+      "previewIndex": "Vorschau — Foto {{index}}",
+      "unprocessed": "{{remaining}} Foto(s) noch nicht verarbeitet. Zuschnitt beenden oder unverarbeitete entfernen."
+    },
+    "errors": {
+      "pdfScan": "Dieses PDF sieht aus wie ein Scan. Derzeit unterstützen wir nur Text-PDFs. Versuchen Sie, ein Foto der Seite zu machen oder eine DOCX-Datei hochzuladen.",
+      "docRead": "Fehler beim Lesen des Dokuments. Überprüfen Sie die Datei und versuchen Sie es erneut.",
+      "mixedTypes": "Sie können Dokumente und Fotos nicht in derselben Sitzung hinzufügen.",
+      "imagesExist": "Sie haben bereits Fotos hinzugefügt. Sie können kein Dokument hinzufügen.",
+      "oneDocOnly": "Sie können immer nur 1 Dokument gleichzeitig hinzufügen.",
+      "docTooLarge": "Dokument ist zu groß (max 10MB)",
+      "docExists": "Sie haben bereits ein Dokument hinzugefügt. Sie können keine Fotos hinzufügen.",
+      "imageTooLarge": "Eines der Fotos ist zu groß (max 10MB)",
+      "compressionError": "Fehler bei der Fotokompression. Versuchen Sie es erneut.",
+      "docSaveError": "Fehler beim Speichern des Dokuments. Versuchen Sie es erneut.",
+      "imageSaveError": "Fehler beim Speichern der Bilder. Versuchen Sie es erneut.",
+      "uploadFailed": "Upload-Fehler",
+      "generic": "Fehler"
+    }
+  }
+}

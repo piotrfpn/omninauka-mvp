@@ -1,7 +1,8 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '../../lib/auth-context';
 import { useNavigate, Link } from 'react-router-dom';
 import { Bell, Moon, Globe, Shield, Trash2, LogOut, AlertTriangle, Loader2 } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { supabase } from '../../lib/supabase';
 import {
   Dialog,
@@ -18,11 +19,22 @@ import { toast } from "sonner";
 export default function SettingsPage() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const { t, i18n } = useTranslation();
   const [notifications, setNotifications] = useState(true);
   const [darkMode, setDarkMode] = useState(() => {
     return document.documentElement.classList.contains('dark');
   });
-  const [language, setLanguage] = useState('pl');
+  const [selectedLang, setSelectedLang] = useState(i18n.resolvedLanguage || i18n.language || 'pl');
+  
+  useEffect(() => {
+    const handleLanguageChanged = (lng: string) => {
+      setSelectedLang(lng);
+    };
+    i18n.on("languageChanged", handleLanguageChanged);
+    return () => {
+      i18n.off("languageChanged", handleLanguageChanged);
+    };
+  }, [i18n]);
   // Deletion state
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [deleteConfirmText, setDeleteConfirmText] = useState('');
@@ -53,26 +65,32 @@ export default function SettingsPage() {
       
       if (error) throw error;
       
-      toast.success("Konto zostało usunięte.");
+      toast.success(t('settings.account.deleted', "Konto zostało usunięte."));
       logout();
       navigate('/');
     } catch (err: any) {
       console.error('Account deletion failed:', err);
-      toast.error(err.message || "Nie udało się usunąć konta. Spróbuj ponownie później.");
+      toast.error(err.message || t('settings.account.deleteError', "Nie udało się usunąć konta. Spróbuj ponownie później."));
     } finally {
       setIsDeleting(false);
       setIsDeleteDialogOpen(false);
     }
   };
 
+  const handleSaveLanguage = async () => {
+    await i18n.changeLanguage(selectedLang);
+    localStorage.setItem("i18nextLng", selectedLang);
+    toast.success(t('settings.language.saved', 'Język interfejsu został zapisany'));
+  };
+
   const settingsGroups = [
     {
-      title: 'Powiadomienia',
+      title: t('settings.notifications.title', 'Powiadomienia'),
       items: [
         {
           icon: Bell,
-          label: 'Włącz powiadomienia',
-          description: 'Otrzymuj przypomnienia o sesjach nauki',
+          label: t('settings.notifications.enable', 'Włącz powiadomienia'),
+          description: t('settings.notifications.desc', 'Otrzymuj przypomnienia o sesjach nauki'),
           type: 'toggle' as const,
           value: notifications,
           onChange: setNotifications,
@@ -80,12 +98,12 @@ export default function SettingsPage() {
       ],
     },
     {
-      title: 'Wygląd',
+      title: t('settings.appearance.title', 'Wygląd'),
       items: [
         {
           icon: Moon,
-          label: 'Tryb ciemny',
-          description: 'Zmień motyw aplikacji',
+          label: t('settings.appearance.dark', 'Tryb ciemny'),
+          description: t('settings.appearance.desc', 'Zmień motyw aplikacji'),
           type: 'toggle' as const,
           value: darkMode,
           onChange: toggleDarkMode,
@@ -93,19 +111,25 @@ export default function SettingsPage() {
       ],
     },
     {
-      title: 'Język',
+      title: t('settings.language.title', 'Język'),
+      hasSaveButton: true,
+      onSave: handleSaveLanguage,
       items: [
         {
           icon: Globe,
-          label: 'Język interfejsu',
-          description: 'Wybierz preferowany język',
+          label: t('settings.language.interface', 'Język interfejsu'),
+          description: t('settings.language.desc', 'Wybierz preferowany język'),
           type: 'select' as const,
-          value: language,
+          value: selectedLang,
           options: [
             { value: 'pl', label: 'Polski' },
             { value: 'en', label: 'English' },
+            { value: 'uk', label: 'Українська' },
+            { value: 'de', label: 'Deutsch' },
+            { value: 'es', label: 'Español' },
+            { value: 'it', label: 'Italiano' },
           ],
-          onChange: setLanguage,
+          onChange: setSelectedLang,
         },
       ],
     },
@@ -117,10 +141,10 @@ export default function SettingsPage() {
       {/* Header */}
       <div>
         <h1 className="omni-heading-3 text-[var(--omni-text)] mb-2">
-          Ustawienia
+          {t('settings.header.title', 'Ustawienia')}
         </h1>
         <p className="text-[var(--omni-text-muted)]">
-          Dostosuj aplikację do swoich potrzeb
+          {t('settings.header.desc', 'Dostosuj aplikację do swoich potrzeb')}
         </p>
       </div>
 
@@ -182,22 +206,32 @@ export default function SettingsPage() {
               </div>
             ))}
           </div>
+          {group.hasSaveButton && (
+            <div className="mt-6 flex justify-end">
+              <button
+                onClick={group.onSave}
+                className="omni-btn-primary px-6 py-2"
+              >
+                {t('settings.language.save', 'Zapisz zmiany')}
+              </button>
+            </div>
+          )}
         </div>
       ))}
 
       {/* Profile Link */}
       <div className="omni-card p-6">
-        <h3 className="font-semibold text-[var(--omni-text)] mb-4">Profil</h3>
+        <h3 className="font-semibold text-[var(--omni-text)] mb-4">{t('settings.profile.title', 'Profil')}</h3>
         <div className="flex items-center justify-between">
           <div>
-            <p className="font-medium text-[var(--omni-text)]">Dane edukacyjne i profilowe</p>
-            <p className="text-sm text-[var(--omni-text-muted)]">Edytuj dane profilu i informacje edukacyjne.</p>
+            <p className="font-medium text-[var(--omni-text)]">{t('settings.profile.data', 'Dane edukacyjne i profilowe')}</p>
+            <p className="text-sm text-[var(--omni-text-muted)]">{t('settings.profile.desc', 'Edytuj dane profilu i informacje edukacyjne.')}</p>
           </div>
           <button 
             onClick={() => navigate('/app/profile')}
             className="omni-btn-secondary px-6 py-2"
           >
-            Przejdź do profilu
+            {t('settings.profile.goTo', 'Przejdź do profilu')}
           </button>
         </div>
       </div>
@@ -205,17 +239,17 @@ export default function SettingsPage() {
       {/* Parent Dashboard Link */}
       {(user?.userRole === 'parent' || user?.userRole === 'guardian') && (
         <div className="omni-card p-6">
-          <h3 className="font-semibold text-[var(--omni-text)] mb-4">Dla rodzica / opiekuna</h3>
+          <h3 className="font-semibold text-[var(--omni-text)] mb-4">{t('settings.parent.title', 'Dla rodzica / opiekuna')}</h3>
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
-              <p className="font-medium text-[var(--omni-text)]">Panel rodzica</p>
-              <p className="text-sm text-[var(--omni-text-muted)]">Sprawdź status zgody i podstawowe informacje o postępach dziecka.</p>
+              <p className="font-medium text-[var(--omni-text)]">{t('settings.parent.dashboard', 'Panel rodzica')}</p>
+              <p className="text-sm text-[var(--omni-text-muted)]">{t('settings.parent.desc', 'Sprawdź status zgody i podstawowe informacje o postępach dziecka.')}</p>
             </div>
             <button 
               onClick={() => navigate('/app/parent')}
               className="omni-btn-secondary px-6 py-2 whitespace-nowrap"
             >
-              Otwórz Panel Rodzica
+              {t('settings.parent.open', 'Otwórz Panel Rodzica')}
             </button>
           </div>
         </div>
@@ -224,7 +258,7 @@ export default function SettingsPage() {
       {/* Account Actions */}
       <div className="omni-card p-6">
         <h3 className="font-semibold text-[var(--omni-text)] mb-4">
-          Konto
+          {t('settings.account.title', 'Konto')}
         </h3>
         <div className="space-y-3">
           <button 
@@ -235,9 +269,9 @@ export default function SettingsPage() {
               <Trash2 className="w-5 h-5 text-red-500" />
             </div>
             <div className="flex-1 text-left">
-              <p className="font-medium text-red-500">Usuń konto</p>
+              <p className="font-medium text-red-500">{t('settings.account.delete', 'Usuń konto')}</p>
               <p className="text-sm text-muted-foreground">
-                Tej akcji nie można cofnąć
+                {t('settings.account.deleteDesc', 'Tej akcji nie można cofnąć')}
               </p>
             </div>
           </button>
@@ -250,9 +284,9 @@ export default function SettingsPage() {
               <LogOut className="w-5 h-5 text-foreground" />
             </div>
             <div className="flex-1 text-left">
-              <p className="font-medium text-foreground">Wyloguj się</p>
+              <p className="font-medium text-foreground">{t('settings.account.logout', 'Wyloguj się')}</p>
               <p className="text-sm text-muted-foreground">
-                Zakończ sesję
+                {t('settings.account.logoutDesc', 'Zakończ sesję')}
               </p>
             </div>
           </button>
@@ -263,13 +297,12 @@ export default function SettingsPage() {
       <div className="omni-card p-6">
         <h3 className="font-semibold text-[var(--omni-text)] mb-4 flex items-center gap-2">
           <Shield className="w-5 h-5" />
-          Prywatność
+          {t('settings.privacy.title', 'Prywatność')}
         </h3>
         <p className="text-sm text-[var(--omni-text-muted)] mb-4">
-          Twoje dane są bezpieczne. Nie udostępniamy ich osobom trzecim.
-          Przeczytaj naszą{' '}
+          {t('settings.privacy.desc1', 'Twoje dane są bezpieczne. Nie udostępniamy ich osobom trzecim. Przeczytaj naszą')}{' '}
           <Link to="/polityka-prywatnosci" className="text-[var(--omni-accent)] hover:underline">
-            Politykę prywatności
+            {t('settings.privacy.desc2', 'Politykę prywatności')}
           </Link>
           .
         </p>

@@ -1,8 +1,10 @@
 import LegalPageLayout from '../../components/legal/LegalPageLayout';
+import { useTranslation } from 'react-i18next';
 
 export default function PrivacyPage() {
+  const { t } = useTranslation();
   return (
-    <LegalPageLayout title="Polityka Prywatności i RODO" lastUpdated="26.04.2026">
+    <LegalPageLayout title={t('home.footer.legal.privacy', 'Polityka prywatności')} lastUpdated="26.04.2026">
       <section>
         <h2>1. Administrator Danych Osobowych</h2>
         <p>Administratorem Twoich danych osobowych jest:</p>

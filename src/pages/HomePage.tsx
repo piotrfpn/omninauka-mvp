@@ -3,8 +3,11 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../lib/auth-context';
 import { Scan, Brain, BookOpen, MessageCircle, BarChart3, ArrowRight, Check } from 'lucide-react';
 import OmniNaukaLogo from '../components/brand/OmniNaukaLogo';
+import { useTranslation } from 'react-i18next';
+import { LanguageSwitcher } from '../components/LanguageSwitcher';
 
 export default function HomePage() {
+  const { t } = useTranslation();
   const { isAuthenticated } = useAuth();
   const navigate = useNavigate();
 
@@ -18,124 +21,124 @@ export default function HomePage() {
   const features = [
     {
       icon: Scan,
-      title: 'Zeskanuj notatki',
-      description: 'Wgraj zdjęcie swoich notatek lub strony z podręcznika.',
+      title: t('home.howItWorks.scan.title', 'Zeskanuj notatki'),
+      description: t('home.howItWorks.scan.description', 'Wgraj zdjęcie swoich notatek lub strony z podręcznika.'),
     },
     {
       icon: Brain,
-      title: 'AI analizuje',
-      description: 'Sztuczna inteligencja wyciąga kluczowe pojęcia i tworzy materiał.',
+      title: t('home.howItWorks.ai.title', 'AI analizuje'),
+      description: t('home.howItWorks.ai.description', 'Sztuczna inteligencja wyciąga kluczowe pojęcia i tworzy materiał.'),
     },
     {
       icon: BookOpen,
-      title: 'Ucz się efektywnie',
-      description: 'Fiszki, quizy i lekcje dostosowane do Twoich materiałów.',
+      title: t('home.howItWorks.learn.title', 'Ucz się efektywnie'),
+      description: t('home.howItWorks.learn.description', 'Fiszki, quizy i lekcje dostosowane do Twoich materiałów.'),
     },
     {
       icon: MessageCircle,
-      title: 'Rozmawiaj z AI',
-      description: 'Zadawaj pytania i ucz się przez dialog z korepetytorem AI.',
+      title: t('home.howItWorks.chat.title', 'Rozmawiaj z AI'),
+      description: t('home.howItWorks.chat.description', 'Zadawaj pytania i ucz się przez dialog z korepetytorem AI.'),
     },
     {
       icon: BarChart3,
-      title: 'Śledź postępy',
-      description: 'Monitoruj swoje wyniki i identyfikuj słabe punkty.',
+      title: t('home.howItWorks.progress.title', 'Śledź postępy'),
+      description: t('home.howItWorks.progress.description', 'Monitoruj swoje wyniki i identyfikuj słabe punkty.'),
     },
   ];
 
   const pricingPlans = [
     {
-      name: 'Darmowy',
-      price: '0 zł',
-      period: '/ miesiąc',
+      name: t('home.pricing.free.title', 'Darmowy'),
+      price: t('home.pricing.free.price', '0 zł'),
+      period: t('home.pricing.period', '/ miesiąc'),
       features: [
-        '2 lekcje AI dziennie',
-        'AI Tutor tekstowy',
-        'Quizy z wyjaśnieniami',
-        'Historia nauki',
-        'Kolejna lekcja AI: 1,99 zł'
+        t('home.pricing.free.feat1', '2 lekcje AI dziennie'),
+        t('home.pricing.free.feat2', 'AI Tutor tekstowy'),
+        t('home.pricing.free.feat3', 'Quizy z wyjaśnieniami'),
+        t('home.pricing.free.feat4', 'Historia nauki'),
+        t('home.pricing.free.feat5', 'Kolejna lekcja AI: 1,99 zł')
       ],
-      cta: 'Zacznij za darmo',
+      cta: t('home.pricing.free.cta', 'Zacznij za darmo'),
       primary: false,
     },
     {
-      name: 'Premium',
-      price: '29 zł',
-      period: '/ miesiąc',
-      badge: 'Najpopularniejszy',
+      name: t('home.pricing.premium.title', 'Premium'),
+      price: t('home.pricing.premium.price', '29 zł'),
+      period: t('home.pricing.period', '/ miesiąc'),
+      badge: t('home.pricing.premium.badge', 'Najpopularniejszy'),
       features: [
-        'Więcej lekcji AI każdego dnia',
-        'Zaawansowany AI Tutor',
-        'Powtórki błędów',
-        'Sprawdziany z raportem błędów',
-        'Priorytetowe AI'
+        t('home.pricing.premium.feat1', 'Więcej lekcji AI każdego dnia'),
+        t('home.pricing.premium.feat2', 'Zaawansowany AI Tutor'),
+        t('home.pricing.premium.feat3', 'Powtórki błędów'),
+        t('home.pricing.premium.feat4', 'Sprawdziany z raportem błędów'),
+        t('home.pricing.premium.feat5', 'Priorytetowe AI')
       ],
-      cta: 'Wypróbuj 7 dni',
+      cta: t('home.pricing.premium.cta', 'Wypróbuj 7 dni'),
       primary: true,
     },
     {
-      name: 'Premium+',
-      price: '49 zł',
-      period: '/ miesiąc',
-      badge: 'Egzaminy',
+      name: t('home.pricing.premiumPlus.title', 'Premium+'),
+      price: t('home.pricing.premiumPlus.price', '49 zł'),
+      period: t('home.pricing.period', '/ miesiąc'),
+      badge: t('home.pricing.premiumPlus.badge', 'Egzaminy'),
       features: [
-        'Wszystko z Premium',
-        'Przygotowanie do egzaminu ósmoklasisty',
-        'Przygotowanie do matury',
-        'Zadania w stylu egzaminacyjnym',
-        'Arkusze próbne i raport błędów'
+        t('home.pricing.premiumPlus.feat1', 'Wszystko z Premium'),
+        t('home.pricing.premiumPlus.feat2', 'Przygotowanie do egzaminu ósmoklasisty'),
+        t('home.pricing.premiumPlus.feat3', 'Przygotowanie do matury'),
+        t('home.pricing.premiumPlus.feat4', 'Zadania w stylu egzaminacyjnym'),
+        t('home.pricing.premiumPlus.feat5', 'Arkusze próbne i raport błędów')
       ],
-      cta: 'Wypróbuj 7 dni',
+      cta: t('home.pricing.premiumPlus.cta', 'Wypróbuj 7 dni'),
       primary: false,
     },
     {
-      name: 'Rodzinny',
-      price: '59 zł',
-      period: '/ miesiąc',
+      name: t('home.pricing.family.title', 'Rodzinny'),
+      price: t('home.pricing.family.price', '59 zł'),
+      period: t('home.pricing.period', '/ miesiąc'),
       features: [
-        'Do 3 kont uczniowskich',
-        'Wszystko z Premium',
-        'Raporty postępów',
-        'Wspólna historia nauki',
-        'Panel rodzica — wkrótce'
+        t('home.pricing.family.feat1', 'Do 3 kont uczniowskich'),
+        t('home.pricing.family.feat2', 'Wszystko z Premium'),
+        t('home.pricing.family.feat3', 'Raporty postępów'),
+        t('home.pricing.family.feat4', 'Wspólna historia nauki'),
+        t('home.pricing.family.feat5', 'Panel rodzica — wkrótce')
       ],
-      cta: 'Wypróbuj 7 dni',
+      cta: t('home.pricing.family.cta', 'Wypróbuj 7 dni'),
       primary: false,
     },
   ];
 
   const faqItems = [
     {
-      question: "Czym jest lekcja AI?",
-      answer: "Lekcja AI to jedna analiza materiału dodanego przez ucznia. Może to być do 5 zdjęć notatek albo 1 dokument PDF/DOCX. Po dodaniu materiału OmniNauka pomaga zrozumieć temat, prowadzi rozmowę z AI Tutorem i może przygotować quiz."
+      question: t('home.faq.q1.q', 'Czym jest lekcja AI?'),
+      answer: t('home.faq.q1.a', 'Lekcja AI to jedna analiza materiału dodanego przez ucznia. Może to być do 5 zdjęć notatek albo 1 dokument PDF/DOCX. Po dodaniu materiału OmniNauka pomaga zrozumieć temat, prowadzi rozmowę z AI Tutorem i może przygotować quiz.')
     },
     {
-      question: "Czym różni się quiz od sprawdzianu?",
-      answer: "Quiz z wyjaśnieniami to krótki trening po lekcji. Pomaga sprawdzić podstawowe zrozumienie tematu i pokazuje, dlaczego odpowiedź jest dobra lub błędna. Sprawdzian z raportem błędów to większy test gotowości do kartkówki lub sprawdzianu. Na końcu uczeń otrzymuje wynik oraz informację, które zagadnienia warto powtórzyć."
+      question: t('home.faq.q2.q', 'Czym różni się quiz od sprawdzianu?'),
+      answer: t('home.faq.q2.a', 'Quiz z wyjaśnieniami to krótki trening po lekcji. Pomaga sprawdzić podstawowe zrozumienie tematu i pokazuje, dlaczego odpowiedź jest dobra lub błędna. Sprawdzian z raportem błędów to większy test gotowości do kartkówki lub sprawdzianu. Na końcu uczeń otrzymuje wynik oraz informację, które zagadnienia warto powtórzyć.')
     },
     {
-      question: "Czym jest Premium+?",
-      answer: "Premium+ to plan dla uczniów przygotowujących się do ważniejszych egzaminów, takich jak egzamin ósmoklasisty lub matura. Obejmuje zadania w stylu egzaminacyjnym, arkusze próbne i raport błędów."
+      question: t('home.faq.q3.q', 'Czym jest Premium+?'),
+      answer: t('home.faq.q3.a', 'Premium+ to plan dla uczniów przygotowujących się do ważniejszych egzaminów, takich jak egzamin ósmoklasisty lub matura. Obejmuje zadania w stylu egzaminacyjnym, arkusze próbne i raport błędów.')
     },
     {
-      question: "Czy OmniNauka przygotuje do egzaminu ósmoklasisty i matury?",
-      answer: "Tak, planujemy tryb egzaminacyjny dla egzaminu ósmoklasisty i matury. Będzie to osobny moduł rozwijany po podstawowej wersji aplikacji."
+      question: t('home.faq.q4.q', 'Czy OmniNauka przygotuje do egzaminu ósmoklasisty i matury?'),
+      answer: t('home.faq.q4.a', 'Tak, planujemy tryb egzaminacyjny dla egzaminu ósmoklasisty i matury. Będzie to osobny moduł rozwijany po podstawowej wersji aplikacji.')
     },
     {
-      question: "Czy OmniNauka jest oficjalnym narzędziem CKE?",
-      answer: "Nie. OmniNauka nie jest oficjalnym narzędziem CKE. Tryb egzaminacyjny będzie tworzony jako wsparcie nauki, z zadaniami w stylu egzaminacyjnym i materiałami inspirowanymi wymaganiami egzaminacyjnymi."
+      question: t('home.faq.q5.q', 'Czy OmniNauka jest oficjalnym narzędziem CKE?'),
+      answer: t('home.faq.q5.a', 'Nie. OmniNauka nie jest oficjalnym narzędziem CKE. Tryb egzaminacyjny będzie tworzony jako wsparcie nauki, z zadaniami w stylu egzaminacyjnym i materiałami inspirowanymi wymaganiami egzaminacyjnymi.')
     },
     {
-      question: "Czy mogę dodać PDF albo dokument Word?",
-      answer: "Tak. OmniNauka obsługuje zdjęcia JPG, PNG, WEBP, tekstowe pliki PDF oraz dokumenty DOCX. Skanowane PDF-y mogą wymagać dodania stron jako zdjęcia."
+      question: t('home.faq.q6.q', 'Czy mogę dodać PDF albo dokument Word?'),
+      answer: t('home.faq.q6.a', 'Tak. OmniNauka obsługuje zdjęcia JPG, PNG, WEBP, tekstowe pliki PDF oraz dokumenty DOCX. Skanowane PDF-y mogą wymagać dodania stron jako zdjęcia.')
     },
     {
-      question: "Czy OmniNauka rozwiązuje zadania za ucznia?",
-      answer: "Celem OmniNauka nie jest podawanie gotowych odpowiedzi bez nauki. AI Tutor pomaga zrozumieć materiał, tłumaczy błędy, zadaje pytania i prowadzi ucznia krok po kroku."
+      question: t('home.faq.q7.q', 'Czy OmniNauka rozwiązuje zadania za ucznia?'),
+      answer: t('home.faq.q7.a', 'Celem OmniNauka nie jest podawanie gotowych odpowiedzi bez nauki. AI Tutor pomaga zrozumieć materiał, tłumaczy błędy, zadaje pytania i prowadzi ucznia krok po kroku.')
     },
     {
-      question: "Czy płatności są już aktywne?",
-      answer: "Na etapie wersji beta płatności i limity mogą być uruchamiane etapowo. Obecne pakiety pokazują planowany model korzystania z OmniNauka."
+      question: t('home.faq.q8.q', 'Czy płatności są już aktywne?'),
+      answer: t('home.faq.q8.a', 'Na etapie wersji beta płatności i limity mogą być uruchamiane etapowo. Obecne pakiety pokazują planowany model korzystania z OmniNauka.')
     }
   ];
 
@@ -147,17 +150,18 @@ export default function HomePage() {
           <OmniNaukaLogo size={40} />
         </Link>
         <div className="flex items-center gap-4">
+          <LanguageSwitcher />
           <Link
             to="/login"
             className="px-4 py-2 text-[var(--omni-text)] font-medium hover:text-[var(--omni-accent)] transition-colors"
           >
-            Zaloguj się
+            {t('home.nav.login')}
           </Link>
           <Link 
             to="/register" 
             className="hidden sm:inline-flex items-center justify-center px-5 py-2.5 bg-[#2EE6A6] text-[#0B1220] font-bold rounded-xl text-sm hover:shadow-lg hover:shadow-[#2EE6A6]/10 transition-all active:scale-[0.98]"
           >
-            Wypróbuj za darmo
+            {t('home.nav.tryFree')}
           </Link>
         </div>
       </nav>
@@ -166,25 +170,24 @@ export default function HomePage() {
       <section className="px-6 pt-10 pb-16 lg:py-24">
         <div className="max-w-6xl mx-auto text-center">
           <h1 className="omni-heading-1 text-[var(--omni-text)] mb-6">
-            Nauka, która ożywa
+            {t('home.hero.title')}
           </h1>
           <p className="omni-body text-[var(--omni-text-muted)] max-w-2xl mx-auto mb-8 text-lg">
-            Zeskanuj notatki. OmniNauka stworzy fiszki, quizy i głosowe powtórki
-            dopasowane do Twoich materiałów.
+            {t('home.hero.subtitle')}
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4 w-full sm:w-auto">
             <Link 
               to="/register" 
               className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-8 py-4 bg-[#2EE6A6] text-[#0B1220] font-bold rounded-xl hover:shadow-xl hover:shadow-[#2EE6A6]/20 transition-all active:scale-[0.98]"
             >
-              Wypróbuj za darmo
+              {t('home.hero.cta.tryFree')}
               <ArrowRight className="w-5 h-5" />
             </Link>
             <Link 
               to="#jak-to-dziala" 
               className="w-full sm:w-auto inline-flex items-center justify-center px-8 py-4 text-[var(--omni-text-muted)] font-medium hover:text-[var(--omni-text)] transition-colors"
             >
-              Zobacz jak działa
+              {t('home.hero.cta.howItWorks')}
             </Link>
           </div>
         </div>
@@ -194,7 +197,7 @@ export default function HomePage() {
       <section id="jak-to-dziala" className="px-6 py-16 lg:py-24">
         <div className="max-w-6xl mx-auto">
           <h2 className="omni-heading-2 text-[var(--omni-text)] text-center mb-12">
-            Jak to działa?
+            {t('home.howItWorks.title', 'Jak to działa?')}
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {features.map((feature, index) => (
@@ -221,7 +224,7 @@ export default function HomePage() {
       <section id="cennik" className="px-6 py-16 lg:py-24">
         <div className="max-w-6xl mx-auto">
           <h2 className="omni-heading-2 text-[var(--omni-text)] text-center mb-12">
-            Wybierz plan
+            {t('home.pricing.title', 'Wybierz plan')}
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             {pricingPlans.map((plan, index) => (
@@ -273,27 +276,27 @@ export default function HomePage() {
             ))}
           </div>
           <p className="text-center text-sm text-[var(--omni-text-muted)] mt-8">
-            1 lekcja AI = do 5 zdjęć albo 1 dokument PDF/DOCX.
+            {t('home.pricing.extra.info', '1 lekcja AI = do 5 zdjęć albo 1 dokument PDF/DOCX.')}
           </p>
           
           <div className="mt-12 max-w-sm mx-auto bg-white/50 border border-gray-100 rounded-2xl p-6 text-center">
-            <h3 className="font-semibold text-[var(--omni-text)] mb-4">Dodatkowe lekcje AI</h3>
+            <h3 className="font-semibold text-[var(--omni-text)] mb-4">{t('home.pricing.extra.title', 'Dodatkowe lekcje AI')}</h3>
             <div className="space-y-2 text-[var(--omni-text-muted)] text-sm mb-4">
               <div className="flex justify-between items-center px-4">
-                <span>5 lekcji AI</span>
-                <span className="font-medium text-[var(--omni-text)]">7,99 zł</span>
+                <span>{t('home.pricing.extra.pack1', '5 lekcji AI')}</span>
+                <span className="font-medium text-[var(--omni-text)]">{t('home.pricing.extra.price1', '7,99 zł')}</span>
               </div>
               <div className="flex justify-between items-center px-4">
-                <span>10 lekcji AI</span>
-                <span className="font-medium text-[var(--omni-text)]">14,99 zł</span>
+                <span>{t('home.pricing.extra.pack2', '10 lekcji AI')}</span>
+                <span className="font-medium text-[var(--omni-text)]">{t('home.pricing.extra.price2', '14,99 zł')}</span>
               </div>
               <div className="flex justify-between items-center px-4">
-                <span>25 lekcji AI</span>
-                <span className="font-medium text-[var(--omni-text)]">29,99 zł</span>
+                <span>{t('home.pricing.extra.pack3', '25 lekcji AI')}</span>
+                <span className="font-medium text-[var(--omni-text)]">{t('home.pricing.extra.price3', '29,99 zł')}</span>
               </div>
             </div>
             <p className="text-xs text-[var(--omni-text-muted-light)] border-t border-gray-100 pt-4">
-              Pakiety dodatkowych lekcji będą dostępne po uruchomieniu płatności.
+              {t('home.pricing.extra.note', 'Pakiety dodatkowych lekcji będą dostępne po uruchomieniu płatności.')}
             </p>
           </div>
         </div>
@@ -303,7 +306,7 @@ export default function HomePage() {
       <section id="faq" className="px-6 py-16 lg:py-24 bg-white/30">
         <div className="max-w-4xl mx-auto">
           <h2 className="omni-heading-2 text-[var(--omni-text)] text-center mb-12">
-            Najczęściej zadawane pytania
+            {t('home.faq.title', 'Najczęściej zadawane pytania')}
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {faqItems.map((item, index) => (
@@ -324,16 +327,16 @@ export default function HomePage() {
       <section id="o-nas" className="px-6 py-16 lg:py-24">
         <div className="max-w-4xl mx-auto">
           <div className="omni-card p-8 lg:p-12 bg-white/50 border border-gray-100">
-            <h2 className="omni-heading-3 text-[var(--omni-text)] mb-6 text-center">O nas</h2>
+            <h2 className="omni-heading-3 text-[var(--omni-text)] mb-6 text-center">{t('home.about.title', 'O nas')}</h2>
             <div className="space-y-4 text-[var(--omni-text-muted)] leading-relaxed">
               <p>
-                OmniNauka to nowoczesny korepetytor AI dla uczniów. Pomaga zrozumieć materiał z notatek, zdjęć, PDF-ów i dokumentów Word, prowadzi rozmowę z AI Tutorem, tworzy quizy i wspiera powtórki błędów.
+                {t('home.about.p1', 'OmniNauka to nowoczesny korepetytor AI dla uczniów. Pomaga zrozumieć materiał z notatek, zdjęć, PDF-ów i dokumentów Word, prowadzi rozmowę z AI Tutorem, tworzy quizy i wspiera powtórki błędów.')}
               </p>
               <p>
-                Tworzymy aplikację, która nie wyręcza ucznia, ale pomaga mu naprawdę zrozumieć temat.
+                {t('home.about.p2', 'Tworzymy aplikację, która nie wyręcza ucznia, ale pomaga mu naprawdę zrozumieć temat.')}
               </p>
               <p className="pt-4 border-t border-gray-100 text-sm italic">
-                OmniNauka jest rozwijana jako produkt mobile-first — prosty, szybki i wygodny dla uczniów korzystających głównie z telefonu lub tabletu.
+                {t('home.about.p3', 'OmniNauka jest rozwijana jako produkt mobile-first — prosty, szybki i wygodny dla uczniów korzystających głównie z telefonu lub tabletu.')}
               </p>
             </div>
           </div>
@@ -344,16 +347,16 @@ export default function HomePage() {
       <section className="px-6 py-16 lg:py-24">
         <div className="max-w-4xl mx-auto text-center bg-[var(--omni-bg-dark)] rounded-3xl p-8 lg:p-12">
           <h2 className="omni-heading-2 text-white mb-4">
-            Gotowy, by zacząć?
+            {t('home.cta.title')}
           </h2>
           <p className="text-[var(--omni-text-muted-light)] mb-8 text-lg">
-            Dołącz do tysięcy uczniów, którzy uczą się mądrzej, nie ciężej.
+            {t('home.cta.subtitle')}
           </p>
           <Link 
             to="/register" 
             className="inline-flex items-center justify-center gap-2 px-8 py-4 bg-[#2EE6A6] text-[#0B1220] font-bold rounded-xl hover:shadow-xl hover:shadow-[#2EE6A6]/20 transition-all active:scale-[0.98]"
           >
-            Wypróbuj za darmo
+            {t('home.hero.cta.tryFree')}
             <ArrowRight className="w-5 h-5" />
           </Link>
         </div>
@@ -370,41 +373,40 @@ export default function HomePage() {
                 <OmniNaukaLogo size={32} className="!text-white" />
               </div>
               <p className="text-[#94A3B8] text-sm leading-relaxed max-w-[200px]">
-                Personalizowana nauka dla każdego ucznia
+                {t('home.footer.brandDesc', 'Personalizowana nauka dla każdego ucznia')}
               </p>
             </div>
 
             {/* Product Column */}
             <div>
-              <h4 className="font-bold text-white mb-6 uppercase tracking-wider text-sm">Produkt</h4>
+              <h4 className="font-bold text-white mb-6 uppercase tracking-wider text-sm">{t('home.footer.product.title', 'Produkt')}</h4>
               <ul className="space-y-4">
-                <li><a href="#jak-to-dziala" className="text-[#94A3B8] hover:text-[#2EE6A6] transition-colors text-sm">Funkcje</a></li>
-                <li><a href="#cennik" className="text-[#94A3B8] hover:text-[#2EE6A6] transition-colors text-sm">Cennik</a></li>
-                <li><a href="#faq" className="text-[#94A3B8] hover:text-[#2EE6A6] transition-colors text-sm">FAQ</a></li>
+                <li><a href="#jak-to-dziala" className="text-[#94A3B8] hover:text-[#2EE6A6] transition-colors text-sm">{t('home.footer.product.features', 'Funkcje')}</a></li>
+                <li><a href="#cennik" className="text-[#94A3B8] hover:text-[#2EE6A6] transition-colors text-sm">{t('home.footer.product.pricing', 'Cennik')}</a></li>
+                <li><a href="#faq" className="text-[#94A3B8] hover:text-[#2EE6A6] transition-colors text-sm">{t('home.footer.product.faq', 'FAQ')}</a></li>
                 <li><Link to="/ai-disclaimer" className="text-[#94A3B8] hover:text-[#2EE6A6] transition-colors text-sm">AI Disclaimer</Link></li>
                 <li><Link to="/cookies" className="text-[#94A3B8] hover:text-[#2EE6A6] transition-colors text-sm">Cookies</Link></li>
-                <li><a href="#" className="text-[#94A3B8] hover:text-[#2EE6A6] transition-colors text-sm">Bezpieczeństwo</a></li>
-
+                <li><a href="#" className="text-[#94A3B8] hover:text-[#2EE6A6] transition-colors text-sm">{t('home.footer.product.security', 'Bezpieczeństwo')}</a></li>
               </ul>
             </div>
 
             {/* Company Column */}
             <div>
-              <h4 className="font-bold text-white mb-6 uppercase tracking-wider text-sm">Firma</h4>
+              <h4 className="font-bold text-white mb-6 uppercase tracking-wider text-sm">{t('home.footer.company.title', 'Firma')}</h4>
               <ul className="space-y-4">
-                <li><a href="#o-nas" className="text-[#94A3B8] hover:text-[#2EE6A6] transition-colors text-sm">O nas</a></li>
+                <li><a href="#o-nas" className="text-[#94A3B8] hover:text-[#2EE6A6] transition-colors text-sm">{t('home.footer.company.about', 'O nas')}</a></li>
                 <li><a href="#" className="text-[#94A3B8] hover:text-[#2EE6A6] transition-colors text-sm">Blog</a></li>
-                <li><Link to="/kontakt" className="text-[#94A3B8] hover:text-[#2EE6A6] transition-colors text-sm">Kontakt</Link></li>
+                <li><Link to="/kontakt" className="text-[#94A3B8] hover:text-[#2EE6A6] transition-colors text-sm">{t('home.footer.company.contact', 'Kontakt')}</Link></li>
               </ul>
             </div>
 
             <div>
-              <h4 className="font-bold text-white mb-6 uppercase tracking-wider text-sm">Prawne</h4>
+              <h4 className="font-bold text-white mb-6 uppercase tracking-wider text-sm">{t('home.footer.legal.title', 'Prawne')}</h4>
               <ul className="space-y-4">
-                <li><Link to="/regulamin" className="text-[#94A3B8] hover:text-[#2EE6A6] transition-colors text-sm">Regulamin</Link></li>
-                <li><Link to="/polityka-prywatnosci" className="text-[#94A3B8] hover:text-[#2EE6A6] transition-colors text-sm">Polityka prywatności</Link></li>
+                <li><Link to="/regulamin" className="text-[#94A3B8] hover:text-[#2EE6A6] transition-colors text-sm">{t('home.footer.legal.terms', 'Regulamin')}</Link></li>
+                <li><Link to="/polityka-prywatnosci" className="text-[#94A3B8] hover:text-[#2EE6A6] transition-colors text-sm">{t('home.footer.legal.privacy', 'Polityka prywatności')}</Link></li>
                 <li><Link to="/polityka-prywatnosci#rodo" className="text-[#94A3B8] hover:text-[#2EE6A6] transition-colors text-sm">RODO</Link></li>
-                <li><Link to="/polityka-zglaszania-naruszen" className="text-[#94A3B8] hover:text-[#2EE6A6] transition-colors text-sm">Zgłaszanie naruszeń i usuwanie treści</Link></li>
+                <li><Link to="/polityka-zglaszania-naruszen" className="text-[#94A3B8] hover:text-[#2EE6A6] transition-colors text-sm">{t('home.footer.legal.reports', 'Zgłaszanie naruszeń i usuwanie treści')}</Link></li>
               </ul>
             </div>
 
@@ -412,7 +414,7 @@ export default function HomePage() {
 
           <div className="pt-8 border-t border-white/5 flex flex-col md:flex-row items-center justify-between gap-4">
             <p className="text-[#94A3B8] text-xs">
-              © 2026 OmniNauka. Wszelkie prawa zastrzeżone.
+              {t('home.footer.copyright', '© 2026 OmniNauka. Wszelkie prawa zastrzeżone.')}
             </p>
             <div className="flex items-center gap-6">
               {/* Optional: Add social icons here if needed in future */}

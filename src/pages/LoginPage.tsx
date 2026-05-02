@@ -3,8 +3,11 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../lib/auth-context';
 import { Eye, EyeOff, Mail, Lock, ArrowRight, Sparkles, ShieldCheck } from 'lucide-react';
 import OmniNaukaLogo from '../components/brand/OmniNaukaLogo';
+import { useTranslation } from 'react-i18next';
+import { LanguageSwitcher } from '../components/LanguageSwitcher';
 
 export default function LoginPage() {
+  const { t } = useTranslation();
   const { login, loginAsDemo, isAuthenticated, user } = useAuth();
   const navigate = useNavigate();
   const [email, setEmail] = useState('');
@@ -32,10 +35,10 @@ export default function LoginPage() {
     try {
       const success = await login(email, password);
       if (!success) {
-        setError('Nieprawidłowy email lub hasło');
+        setError(t('auth.login.error.invalid'));
       }
     } catch {
-      setError('Wystąpił błąd podczas logowania');
+      setError(t('auth.login.error.generic'));
     } finally {
       setIsLoading(false);
     }
@@ -47,7 +50,10 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[var(--omni-bg)] flex items-center justify-center px-6 py-12">
+    <div className="min-h-screen bg-[var(--omni-bg)] flex items-center justify-center px-6 py-12 relative">
+      <div className="absolute top-4 right-4">
+        <LanguageSwitcher />
+      </div>
       <div className="w-full max-w-md">
         {/* Logo */}
         <div className="text-center mb-8">
@@ -55,10 +61,10 @@ export default function LoginPage() {
             <OmniNaukaLogo size={48} />
           </Link>
           <h1 className="omni-heading-3 text-[var(--omni-text)] mb-2">
-            Witaj z powrotem
+            {t('auth.login.title')}
           </h1>
           <p className="text-[var(--omni-text-muted)]">
-            Zaloguj się, by kontynuować naukę
+            {t('auth.login.subtitle')}
           </p>
         </div>
 
@@ -66,9 +72,9 @@ export default function LoginPage() {
         <div className="mb-6 p-4 bg-[var(--omni-lavender)] rounded-xl flex items-start gap-4">
           <ShieldCheck className="w-6 h-6 text-[var(--omni-primary)] shrink-0" />
           <div className="text-left">
-            <h3 className="font-semibold text-[var(--omni-text)] text-sm">Panel Rodzica — logowanie</h3>
+            <h3 className="font-semibold text-[var(--omni-text)] text-sm">{t('auth.login.parent.title')}</h3>
             <p className="text-xs text-[var(--omni-text-muted)] mt-1">
-              Zaloguj się jako rodzic lub opiekun (poniżej), aby sprawdzić postępy dziecka. Użyj danych podanych przy rejestracji.
+              {t('auth.login.parent.desc')}
             </p>
           </div>
         </div>
@@ -78,7 +84,7 @@ export default function LoginPage() {
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
               <label className="block text-sm font-medium text-[var(--omni-text)] mb-2">
-                Email
+                {t('auth.email')}
               </label>
               <div className="relative">
                 <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
@@ -95,7 +101,7 @@ export default function LoginPage() {
 
             <div>
               <label className="block text-sm font-medium text-[var(--omni-text)] mb-2">
-                Hasło
+                {t('auth.password')}
               </label>
               <div className="relative">
                 <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
@@ -124,7 +130,7 @@ export default function LoginPage() {
                   to="/forgot-password"
                   className="text-sm text-[var(--omni-accent)] hover:underline"
                 >
-                  Zapomniałem hasła?
+                  {t('auth.login.forgot')}
                 </Link>
               </div>
             </div>
@@ -144,7 +150,7 @@ export default function LoginPage() {
                 <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
               ) : (
                 <>
-                  Zaloguj się
+                  {t('auth.login.submit')}
                   <ArrowRight className="w-5 h-5" />
                 </>
               )}
@@ -159,18 +165,18 @@ export default function LoginPage() {
                        transition-all duration-200 hover:shadow-lg"
             >
               <Sparkles className="w-5 h-5" />
-              Tryb demo - wejdź bez logowania
+              {t('auth.login.demo')}
             </button>
           </div>
 
           <div className="mt-6 text-center">
             <p className="text-[var(--omni-text-muted)] text-sm">
-              Nie masz konta?{' '}
+              {t('auth.login.noAccount')}{' '}
               <Link
                 to="/register"
                 className="text-[var(--omni-accent)] font-medium hover:underline"
               >
-                Zarejestruj się
+                {t('auth.login.register')}
               </Link>
             </p>
           </div>
@@ -182,7 +188,7 @@ export default function LoginPage() {
             to="/"
             className="text-[var(--omni-text-muted)] text-sm hover:text-[var(--omni-text)]"
           >
-            ← Wróć na stronę główną
+            {t('auth.backToHome')}
           </Link>
         </div>
       </div>

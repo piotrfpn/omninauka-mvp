@@ -19,8 +19,10 @@ import {
 } from 'lucide-react';
 import { LessonTitleEditor } from '../../components/lessons/lesson-title-editor';
 import { DashboardSkeleton } from '../../components/ui/page-skeletons';
+import { useTranslation } from 'react-i18next';
 
 export default function DashboardPage() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const { user, isDemoMode } = useAuth();
   
@@ -65,7 +67,7 @@ export default function DashboardPage() {
           .from('study_sessions')
           .select('*')
           .eq('user_id', user.id)
-          .is('deleted_at', null)          // Sprint 1: filter soft-deleted
+          .is('deleted_at', null)
           .order('created_at', { ascending: false });
 
         if (dbError) throw dbError;
@@ -100,14 +102,14 @@ export default function DashboardPage() {
 
         // Aggregate actual data logically
         const groupedSubjects = allSessions.reduce((acc, sess) => {
-          const sub = sess.subject || 'W trakcie analizy';
+          const sub = sess.subject || t('dashboard.processing', 'W trakcie analizy');
           if (!acc[sub]) acc[sub] = { count: 0 };
           acc[sub].count += 1;
           return acc;
         }, {} as Record<string, { count: number }>);
 
         const progressMap = Object.entries(groupedSubjects).map(([subject, info]: [string, any]) => {
-          const subjectSessions = allSessions.filter(s => (s.subject || 'W trakcie analizy') === subject);
+          const subjectSessions = allSessions.filter(s => (s.subject || t('dashboard.processing', 'W trakcie analizy')) === subject);
           const quizScores = subjectSessions
             .filter(s => s.quiz_result?.percentage !== undefined)
             .map(s => s.quiz_result.percentage);
@@ -134,19 +136,19 @@ export default function DashboardPage() {
 
       } catch (err: any) {
         console.error("Dashboard DB fetch error:", err);
-        setError("Nie udało się pobrać danych z chmury.");
+        setError(t('dashboard.error', 'Nie udało się pobrać danych z chmury.'));
       } finally {
         setIsLoading(false);
       }
     };
 
     fetchDashboard();
-  }, [user]);
+  }, [user, t]);
 
   const handleDeleteSession = async (e: React.MouseEvent, sessionId: string) => {
     e.stopPropagation();
     if (isDemoMode) return;
-    if (!window.confirm('Czy na pewno chcesz usunąć tę sesję?')) return;
+    if (!window.confirm(t('dashboard.confirmDelete', 'Czy na pewno chcesz usunąć tę sesję?'))) return;
 
     setDeletingId(sessionId);
     try {
@@ -172,22 +174,22 @@ export default function DashboardPage() {
   };
 
   const quickActions = [
-    { label: 'Nowy upload', href: '/app/upload', icon: Upload, color: 'bg-[var(--omni-lavender)]' },
-    { label: 'Fiszki', href: '/app/flashcards', icon: BookOpen, color: 'bg-[var(--omni-mint)]' },
-    { label: 'Quiz', href: '/app/quiz', icon: HelpCircle, color: 'bg-[var(--omni-blush)]' },
-    { label: 'Lekcja AI', href: '/app/lesson', icon: MessageCircle, color: 'bg-[var(--omni-sky)]' }
+    { label: t('dashboard.quickActions.newUpload', 'Nowy upload'), href: '/app/upload', icon: Upload, color: 'bg-[var(--omni-lavender)]' },
+    { label: t('appShell.nav.flashcards', 'Fiszki'), href: '/app/flashcards', icon: BookOpen, color: 'bg-[var(--omni-mint)]' },
+    { label: t('appShell.nav.quiz', 'Quiz'), href: '/app/quiz', icon: HelpCircle, color: 'bg-[var(--omni-blush)]' },
+    { label: t('appShell.nav.lesson', 'Lekcja AI'), href: '/app/lesson', icon: MessageCircle, color: 'bg-[var(--omni-sky)]' }
   ];
 
   const statCards = [
-    { label: 'Sesje nauki', value: computedStats.totalSessions, icon: Calendar, color: 'text-[var(--omni-accent)]' },
-    { label: 'Godziny nauki', value: Math.round(computedStats.totalTimeMinutes / 60), icon: Clock, color: 'text-blue-500' },
+    { label: t('dashboard.stats.sessions', 'Sesje nauki'), value: computedStats.totalSessions, icon: Calendar, color: 'text-[var(--omni-accent)]' },
+    { label: t('dashboard.stats.hours', 'Godziny nauki'), value: Math.round(computedStats.totalTimeMinutes / 60), icon: Clock, color: 'text-blue-500' },
     { 
-      label: 'Średni wynik quizów', 
+      label: t('dashboard.stats.avgScore', 'Średni wynik quizów'), 
       value: computedStats.averageScore !== null ? `${computedStats.averageScore}%` : '—', 
       icon: TrendingUp, 
       color: 'text-green-500' 
     },
-    { label: 'Streak', value: computedStats.currentStreak, icon: Flame, color: 'text-orange-500' }
+    { label: t('dashboard.stats.streak', 'Streak'), value: computedStats.currentStreak, icon: Flame, color: 'text-orange-500' }
   ];
 
   if (isLoading) {
@@ -208,14 +210,14 @@ export default function DashboardPage() {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="omni-heading-3 text-[var(--omni-text)] mb-1">
-            Cześć, {user?.name || 'Użytkownik'}! 👋
+            {t('dashboard.welcome', 'Cześć')}, {user?.name?.split(' ')[0] || t('appShell.user', 'Użytkownik')}! 👋
           </h1>
           <p className="text-[var(--omni-text-muted)]">
-            Gotowy na kolejną sesję nauki?
+            {t('dashboard.subtitle', 'Gotowy na kolejną sesję nauki?')}
           </p>
         </div>
         <Link to="/app/upload" className="omni-btn-primary self-start">
-          <Upload className="w-5 h-5" /> Nowy upload
+          <Upload className="w-5 h-5" /> {t('dashboard.newUpload', 'Nowy upload')}
         </Link>
       </div>
 
@@ -234,7 +236,9 @@ export default function DashboardPage() {
 
       {/* Quick Actions */}
       <div>
-        <h2 className="font-semibold text-lg text-[var(--omni-text)] mb-3">Szybkie akcje</h2>
+        <h2 className="font-semibold text-lg text-[var(--omni-text)] mb-3">
+          {t('dashboard.quickActions.title', 'Szybkie akcje')}
+        </h2>
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
           {quickActions.map((action, index) => (
             <Link
@@ -254,9 +258,11 @@ export default function DashboardPage() {
       {/* Recent Sessions List */}
       <div>
         <div className="flex items-center justify-between mb-4">
-          <h2 className="font-semibold text-lg text-[var(--omni-text)]">Ostatnie sesje</h2>
+          <h2 className="font-semibold text-lg text-[var(--omni-text)]">
+            {t('dashboard.recentSessions', 'Ostatnie sesje')}
+          </h2>
           <Link to="/app/history" className="text-sm text-[var(--omni-accent)] hover:underline flex items-center gap-1">
-            Zobacz wszystkie <ArrowRight className="w-4 h-4" />
+            {t('dashboard.seeAll', 'Zobacz wszystkie')} <ArrowRight className="w-4 h-4" />
           </Link>
         </div>
 
@@ -264,7 +270,7 @@ export default function DashboardPage() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {Object.entries(
               sessions.reduce((acc, sess) => {
-                const sub = sess.subject || (sess.analysis && sess.analysis.subject) || 'Inne';
+                const sub = sess.subject || (sess.analysis && sess.analysis.subject) || t('dashboard.other', 'Inne');
                 if (!acc[sub]) acc[sub] = [];
                 acc[sub].push(sess);
                 return acc;
@@ -300,7 +306,7 @@ export default function DashboardPage() {
                             className="mb-0.5"
                           />
                           <p className="text-xs text-[var(--omni-text-muted)] truncate">
-                             {session.topic || (session.analysis && session.analysis.topic) || 'Przetwarzanie...'}
+                             {session.topic || (session.analysis && session.analysis.topic) || t('dashboard.processing', 'Przetwarzanie...')}
                           </p>
                         </div>
                       </div>
@@ -321,7 +327,7 @@ export default function DashboardPage() {
                             onClick={e => handleDeleteSession(e, session.id)}
                             disabled={deletingId === session.id}
                             className="p-2.5 rounded-xl text-red-400 hover:text-red-600 hover:bg-red-50 active:scale-95 transition-all disabled:opacity-50 opacity-0 group-hover:opacity-100"
-                            title="Usuń sesję"
+                            title={t('dashboard.deleteSession', 'Usuń sesję')}
                           >
                             {deletingId === session.id
                               ? <div className="w-4 h-4 border-2 border-red-400/30 border-t-red-400 rounded-full animate-spin" />
@@ -338,9 +344,11 @@ export default function DashboardPage() {
           </div>
         ) : (
           <div className="omni-card p-8 text-center bg-slate-50 border-dashed border-2">
-            <p className="text-[var(--omni-text-muted)] mb-4">Nie masz jeszcze żadnych zapisanych sesji.</p>
+            <p className="text-[var(--omni-text-muted)] mb-4">
+              {t('dashboard.empty.title', 'Nie masz jeszcze żadnych zapisanych sesji.')}
+            </p>
             <Link to="/app/upload" className="omni-btn-primary mx-auto w-fit">
-              <Upload className="w-5 h-5" /> Rozpocznij naukę
+              <Upload className="w-5 h-5" /> {t('dashboard.empty.cta', 'Rozpocznij naukę')}
             </Link>
           </div>
         )}
@@ -349,7 +357,9 @@ export default function DashboardPage() {
       {/* Subject Progress */}
       {computedStats.subjectProgress.length > 0 && (
         <div>
-          <h2 className="font-semibold text-lg text-[var(--omni-text)] mb-4">Postępy w przedmiotach</h2>
+          <h2 className="font-semibold text-lg text-[var(--omni-text)] mb-4">
+            {t('dashboard.subjectProgress', 'Postępy w przedmiotach')}
+          </h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {computedStats.subjectProgress.map((subject, index) => (
               <div key={index} className="omni-card p-4">
@@ -366,7 +376,7 @@ export default function DashboardPage() {
                   />
                 </div>
                 <p className="text-xs text-[var(--omni-text-muted)] mt-2">
-                  {subject.totalSessions} sesji • ok. {Math.round(subject.totalTimeMinutes / 60)}h
+                  {subject.totalSessions} {t('dashboard.sessions', 'sesji')} • ok. {Math.round(subject.totalTimeMinutes / 60)}h
                 </p>
               </div>
             ))}

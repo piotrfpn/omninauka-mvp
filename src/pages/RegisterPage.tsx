@@ -3,8 +3,11 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../lib/auth-context';
 import { Eye, EyeOff, Mail, Lock, User, ArrowRight } from 'lucide-react';
 import OmniNaukaLogo from '../components/brand/OmniNaukaLogo';
+import { useTranslation } from 'react-i18next';
+import { LanguageSwitcher } from '../components/LanguageSwitcher';
 
 export default function RegisterPage() {
+  const { t } = useTranslation();
   const { register, isAuthenticated, user } = useAuth();
   const navigate = useNavigate();
   const [name, setName] = useState('');
@@ -35,7 +38,7 @@ export default function RegisterPage() {
     setIsLoading(true);
 
     if (!userRole) {
-      setError('Proszę wybrać rolę (Uczeń lub Rodzic/Opiekun)');
+      setError(t('auth.register.error.noRole'));
       setIsLoading(false);
       return;
     }
@@ -47,13 +50,13 @@ export default function RegisterPage() {
     }
 
     if (userRole === 'student' && !ageBand) {
-      setError('Proszę wybrać grupę wiekową');
+      setError(t('auth.register.error.noAge'));
       setIsLoading(false);
       return;
     }
 
     if (password.length < 6) {
-      setError('Hasło musi mieć co najmniej 6 znaków');
+      setError(t('auth.register.error.passLength'));
       setIsLoading(false);
       return;
     }
@@ -62,18 +65,18 @@ export default function RegisterPage() {
       const result = await register(email, password, name, userRole === 'parent' ? 'parent' : ageBand, userRole);
       
       if (!result.success) {
-        setError(result.message || 'Nie udało się utworzyć konta.');
+        setError(result.message || t('auth.register.error.failed'));
       } else if (result.requireEmailVerification) {
-        setSuccessMessage('Konto zostało utworzone. Sprawdź email i potwierdź adres, aby się zalogować.');
+        setSuccessMessage(t('auth.register.success.verify'));
         setPassword('');
       } else if (ageBand === '13_15') {
-        setSuccessMessage('Konto utworzone! Ponieważ masz 13-15 lat, potrzebujemy jeszcze zgody Twojego rodzica lub opiekuna. Możesz się teraz zalogować, aby wysłać link do zgody.');
+        setSuccessMessage(t('auth.register.success.consent'));
         setPassword('');
       } else {
         // Automatically logged in
       }
     } catch (err: any) {
-      setError(err?.message || 'Wystąpił błąd podczas rejestracji');
+      setError(err?.message || t('auth.register.error.generic'));
     } finally {
       setIsLoading(false);
     }
@@ -81,25 +84,28 @@ export default function RegisterPage() {
 
   if (showAgeBlock) {
     return (
-      <div className="min-h-screen bg-[var(--omni-bg)] flex items-center justify-center px-6 py-12">
+      <div className="min-h-screen bg-[var(--omni-bg)] flex items-center justify-center px-6 py-12 relative">
+        <div className="absolute top-4 right-4">
+          <LanguageSwitcher />
+        </div>
         <div className="w-full max-w-md text-center">
           <div className="omni-card p-8 flex flex-col items-center gap-6">
             <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center text-blue-600">
               <User className="w-8 h-8" />
             </div>
-            <h2 className="omni-heading-3">Potrzebujemy pomocy rodzica</h2>
+            <h2 className="omni-heading-3">{t('auth.register.ageBlock.title')}</h2>
             <p className="text-[var(--omni-text-muted)]">
-              Ze względu na przepisy bezpieczeństwa (RODO), osoby poniżej 13 roku życia nie mogą samodzielnie zakładać konta.
+              {t('auth.register.ageBlock.desc')}
             </p>
             <div className="p-4 bg-blue-50 rounded-lg border border-blue-100 text-sm text-blue-800 text-left">
-              <p className="font-semibold mb-2">Co teraz?</p>
-              <p>Poproś rodzica lub opiekuna, aby założył konto i dodał Twój profil ucznia. Dzięki temu będziesz mógł bezpiecznie korzystać z OmniNauka.</p>
+              <p className="font-semibold mb-2">{t('auth.register.ageBlock.whatNow')}</p>
+              <p>{t('auth.register.ageBlock.instruction')}</p>
             </div>
             <button 
               onClick={() => setShowAgeBlock(false)}
               className="w-full omni-btn-secondary"
             >
-              Wróć do formularza
+              {t('auth.register.ageBlock.back')}
             </button>
           </div>
         </div>
@@ -108,7 +114,10 @@ export default function RegisterPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[var(--omni-bg)] flex items-center justify-center px-6 py-12">
+    <div className="min-h-screen bg-[var(--omni-bg)] flex items-center justify-center px-6 py-12 relative">
+      <div className="absolute top-4 right-4">
+        <LanguageSwitcher />
+      </div>
       <div className="w-full max-w-md">
         {/* Logo */}
         <div className="text-center mb-8">
@@ -116,10 +125,10 @@ export default function RegisterPage() {
             <OmniNaukaLogo size={48} />
           </Link>
           <h1 className="omni-heading-3 text-[var(--omni-text)] mb-2">
-            Utwórz konto
+            {t('auth.register.title')}
           </h1>
           <p className="text-[var(--omni-text-muted)]">
-            Zacznij uczyć się mądrzej z OmniNauką
+            {t('auth.register.subtitle')}
           </p>
         </div>
 
@@ -128,7 +137,7 @@ export default function RegisterPage() {
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
               <label className="block text-sm font-medium text-[var(--omni-text)] mb-2">
-                Imię
+                {t('auth.register.name')}
               </label>
               <div className="relative">
                 <User className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
@@ -136,7 +145,7 @@ export default function RegisterPage() {
                   type="text"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  placeholder="Twoje imię"
+                  placeholder={t('auth.register.namePlaceholder')}
                   className="omni-input pl-12"
                   required
                 />
@@ -145,7 +154,7 @@ export default function RegisterPage() {
 
             <div>
               <label className="block text-sm font-medium text-[var(--omni-text)] mb-2">
-                Kim jesteś?
+                {t('auth.register.role')}
               </label>
               <div className="grid grid-cols-2 gap-4">
                 <button
@@ -154,7 +163,7 @@ export default function RegisterPage() {
                   className={`p-4 border rounded-xl flex flex-col items-center justify-center gap-2 transition-all ${userRole === 'student' ? 'border-[var(--omni-primary)] bg-[var(--omni-primary)]/5 text-[var(--omni-primary)]' : 'border-border hover:border-gray-300 text-[var(--omni-text-muted)]'}`}
                 >
                   <User className="w-6 h-6" />
-                  <span className="font-medium text-sm">Jestem uczniem</span>
+                  <span className="font-medium text-sm">{t('auth.register.roleStudent')}</span>
                 </button>
                 <button
                   type="button"
@@ -162,7 +171,7 @@ export default function RegisterPage() {
                   className={`p-4 border rounded-xl flex flex-col items-center justify-center gap-2 transition-all ${userRole === 'parent' ? 'border-[var(--omni-primary)] bg-[var(--omni-primary)]/5 text-[var(--omni-primary)]' : 'border-border hover:border-gray-300 text-[var(--omni-text-muted)]'}`}
                 >
                   <User className="w-6 h-6" />
-                  <span className="font-medium text-sm">Jestem rodzicem / opiekunem</span>
+                  <span className="font-medium text-sm">{t('auth.register.roleParent')}</span>
                 </button>
               </div>
             </div>
@@ -170,7 +179,7 @@ export default function RegisterPage() {
             {userRole === 'student' && (
               <div className="animate-in fade-in slide-in-from-top-2 duration-300">
                 <label className="block text-sm font-medium text-[var(--omni-text)] mb-2">
-                  Wiek
+                  {t('auth.register.age')}
                 </label>
                 <select
                   value={ageBand}
@@ -178,18 +187,18 @@ export default function RegisterPage() {
                   className="omni-input"
                   required
                 >
-                  <option value="" disabled>Wybierz grupę wiekową</option>
-                  <option value="under_13">Mniej niż 13 lat</option>
-                  <option value="13_15">13 – 15 lat</option>
-                  <option value="16_17">16 – 17 lat</option>
-                  <option value="18_plus">18+ lat</option>
+                  <option value="" disabled>{t('auth.register.agePlaceholder')}</option>
+                  <option value="under_13">{t('auth.register.ageUnder13')}</option>
+                  <option value="13_15">{t('auth.register.age13to15')}</option>
+                  <option value="16_17">{t('auth.register.age16to17')}</option>
+                  <option value="18_plus">{t('auth.register.age18plus')}</option>
                 </select>
               </div>
             )}
 
             <div>
               <label className="block text-sm font-medium text-[var(--omni-text)] mb-2">
-                Email
+                {t('auth.email')}
               </label>
               <div className="relative">
                 <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
@@ -206,7 +215,7 @@ export default function RegisterPage() {
 
             <div>
               <label className="block text-sm font-medium text-[var(--omni-text)] mb-2">
-                Hasło
+                {t('auth.password')}
               </label>
               <div className="relative">
                 <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
@@ -231,7 +240,7 @@ export default function RegisterPage() {
                 </button>
               </div>
               <p className="text-xs text-[var(--omni-text-muted)] mt-1">
-                Minimum 6 znaków
+                {t('auth.register.passwordMin')}
               </p>
             </div>
 
@@ -245,7 +254,7 @@ export default function RegisterPage() {
               <div className="p-4 bg-green-50 border border-green-200 text-green-700 rounded-lg text-sm flex flex-col gap-3 animate-in fade-in zoom-in duration-300">
                 <p className="font-semibold text-base leading-snug">{successMessage}</p>
                 <Link to="/login" className="inline-flex items-center text-green-800 hover:text-green-900 font-medium">
-                  Przejdź do logowania <ArrowRight className="ml-1 w-4 h-4" />
+                  {t('auth.register.success.toLogin')} <ArrowRight className="ml-1 w-4 h-4" />
                 </Link>
               </div>
             )}
@@ -260,7 +269,7 @@ export default function RegisterPage() {
                   <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                 ) : (
                   <>
-                    Utwórz konto
+                    {t('auth.register.submit')}
                     <ArrowRight className="w-5 h-5" />
                   </>
                 )}
@@ -270,12 +279,12 @@ export default function RegisterPage() {
 
           <div className="mt-6 text-center">
             <p className="text-[var(--omni-text-muted)] text-sm">
-              Masz już konto?{' '}
+              {t('auth.register.hasAccount')}{' '}
               <Link
                 to="/login"
                 className="text-[var(--omni-accent)] font-medium hover:underline"
               >
-                Zaloguj się
+                {t('auth.register.login')}
               </Link>
             </p>
           </div>
@@ -287,7 +296,7 @@ export default function RegisterPage() {
             to="/"
             className="text-[var(--omni-text-muted)] text-sm hover:text-[var(--omni-text)]"
           >
-            ← Wróć na stronę główną
+            {t('auth.backToHome')}
           </Link>
         </div>
       </div>

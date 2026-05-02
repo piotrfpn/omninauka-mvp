@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import type { QuizAnswer } from '../../types';
 import { Trophy, Target, TrendingUp, Clock, ArrowRight, BookOpen, RotateCw } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 interface QuizResults {
   totalQuestions: number;
@@ -11,6 +12,7 @@ interface QuizResults {
 
 export default function ResultsPage() {
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const [results, setResults] = useState<QuizResults | null>(null);
   const [topic, setTopic] = useState('');
 
@@ -43,16 +45,16 @@ export default function ResultsPage() {
           <Trophy className="w-8 h-8 text-[var(--omni-text)]" />
         </div>
         <h2 className="omni-heading-3 text-[var(--omni-text)] mb-2">
-          Brak wyników
+          {t('results.empty.title')}
         </h2>
         <p className="text-[var(--omni-text-muted)] mb-6 text-center max-w-md">
-          Rozwiąż quiz, aby zobaczyć swoje wyniki.
+          {t('results.empty.desc')}
         </p>
         <button
           onClick={() => navigate('/app/quiz')}
           className="omni-btn-primary"
         >
-          Rozpocznij quiz
+          {t('results.empty.cta')}
         </button>
       </div>
     );
@@ -68,9 +70,9 @@ export default function ResultsPage() {
   };
 
   const getScoreMessage = () => {
-    if (score >= 80) return 'Świetny wynik! 🎉';
-    if (score >= 60) return 'Dobry wynik! 👍';
-    return 'Wymaga poprawy 📚';
+    if (score >= 80) return t('results.messages.excellent');
+    if (score >= 60) return t('results.messages.good');
+    return t('results.messages.improve');
   };
 
   return (
@@ -78,7 +80,7 @@ export default function ResultsPage() {
       {/* Header */}
       <div>
         <h1 className="omni-heading-3 text-[var(--omni-text)] mb-2">
-          Wyniki quizu
+          {t('results.title')}
         </h1>
         <p className="text-[var(--omni-text-muted)]">
           {topic}
@@ -97,7 +99,7 @@ export default function ResultsPage() {
           {getScoreMessage()}
         </p>
         <p className="text-sm text-[var(--omni-text-muted)]">
-          {results.correctAnswers} poprawnych z {results.totalQuestions} pytań
+          {t('results.stats.correctFromTotal', { correct: results.correctAnswers, total: results.totalQuestions })}
         </p>
       </div>
 
@@ -108,14 +110,14 @@ export default function ResultsPage() {
           <p className="text-2xl font-bold text-[var(--omni-text)]">
             {results.totalQuestions}
           </p>
-          <p className="text-sm text-[var(--omni-text-muted)]">Wszystkich pytań</p>
+          <p className="text-sm text-[var(--omni-text-muted)]">{t('results.stats.totalQuestions')}</p>
         </div>
         <div className="omni-card p-4 text-center">
           <TrendingUp className="w-6 h-6 text-green-500 mx-auto mb-2" />
           <p className="text-2xl font-bold text-green-500">
             {results.correctAnswers}
           </p>
-          <p className="text-sm text-[var(--omni-text-muted)]">Poprawnych</p>
+          <p className="text-sm text-[var(--omni-text-muted)]">{t('results.stats.correct')}</p>
         </div>
         <div className="omni-card p-4 text-center">
           <div className="w-6 h-6 rounded-full bg-red-100 flex items-center justify-center mx-auto mb-2">
@@ -124,14 +126,14 @@ export default function ResultsPage() {
           <p className="text-2xl font-bold text-red-500">
             {incorrectAnswers}
           </p>
-          <p className="text-sm text-[var(--omni-text-muted)]">Błędnych</p>
+          <p className="text-sm text-[var(--omni-text-muted)]">{t('results.stats.incorrect')}</p>
         </div>
         <div className="omni-card p-4 text-center">
           <Clock className="w-6 h-6 text-blue-500 mx-auto mb-2" />
           <p className="text-2xl font-bold text-[var(--omni-text)]">
             ~{Math.round(results.answers.reduce((acc, a) => acc + a.timeSpentSeconds, 0) / 60)}m
           </p>
-          <p className="text-sm text-[var(--omni-text-muted)]">Czas</p>
+          <p className="text-sm text-[var(--omni-text-muted)]">{t('results.stats.time')}</p>
         </div>
       </div>
 
@@ -139,28 +141,25 @@ export default function ResultsPage() {
       <div className="omni-card p-6">
         <h3 className="font-semibold text-[var(--omni-text)] mb-4 flex items-center gap-2">
           <BookOpen className="w-5 h-5" />
-          Rekomendacje
+          {t('results.recommendations.title')}
         </h3>
         <div className="space-y-3">
           {score < 80 && (
             <div className="p-4 bg-yellow-50 rounded-xl">
               <p className="text-yellow-700">
-                <strong>Powtórz materiał:</strong> Spróbuj przejść przez fiszki 
-                jeszcze raz, zanim podejdziesz do quizu ponownie.
+                <strong>{t('results.recommendations.repeatMaterial')}</strong> {t('results.recommendations.repeatFlashcardsDesc')}
               </p>
             </div>
           )}
           <div className="p-4 bg-[var(--omni-lavender)]/30 rounded-xl">
             <p className="text-[var(--omni-text)]">
-              <strong>Twoje mocne strony:</strong> Dobrze radzisz sobie z 
-              podstawowymi pojęciami. Kontynuuj naukę!
+              <strong>{t('results.recommendations.strengths')}</strong> {t('results.recommendations.strengthsDesc')}
             </p>
           </div>
           {incorrectAnswers > 0 && (
             <div className="p-4 bg-red-50 rounded-xl">
               <p className="text-red-700">
-                <strong>Do poprawy:</strong> Masz {incorrectAnswers} błędnych 
-                odpowiedzi. Przejrzyj wyjaśnienia do tych pytań.
+                <strong>{t('results.recommendations.toImprove')}</strong> {t('results.recommendations.improveDesc', { count: incorrectAnswers })}
               </p>
             </div>
           )}
@@ -174,14 +173,14 @@ export default function ResultsPage() {
           className="flex-1 omni-btn-primary"
         >
           <RotateCw className="w-5 h-5" />
-          Powtórz quiz
+          {t('results.actions.repeatQuiz')}
         </button>
         <Link to="/app/flashcards" className="flex-1 omni-btn-secondary">
           <BookOpen className="w-5 h-5" />
-          Ucz się fiszek
+          {t('results.actions.learnFlashcards')}
         </Link>
         <Link to="/app/dashboard" className="flex-1 omni-btn-secondary">
-          Dashboard
+          {t('results.actions.dashboard')}
           <ArrowRight className="w-5 h-5" />
         </Link>
       </div>

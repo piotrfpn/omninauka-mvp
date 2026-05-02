@@ -1,8 +1,10 @@
 import LegalPageLayout from '../../components/legal/LegalPageLayout';
+import { useTranslation } from 'react-i18next';
 
 export default function TermsPage() {
+  const { t } = useTranslation();
   return (
-    <LegalPageLayout title="Regulamin Korzystania z Aplikacji OmniNauka" lastUpdated="26.04.2026">
+    <LegalPageLayout title={t('home.footer.legal.terms', 'Regulamin')} lastUpdated="26.04.2026">
       <section>
         <p className="font-semibold mb-6">
           Wersja: REGULAMIN_v02 (Draft)<br />

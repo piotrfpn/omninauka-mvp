@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import type { FlashcardData } from '../../types';
 import { RotateCw, ChevronLeft, ChevronRight, BookOpen } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../lib/auth-context';
 
@@ -16,6 +17,7 @@ export default function FlashcardsPage() {
   const navigate = useNavigate();
   const { id: routeId } = useParams();
   const { isDemoMode } = useAuth();
+  const { t } = useTranslation();
   
   const [flashcards, setFlashcards] = useState<FlashcardData[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -112,12 +114,12 @@ export default function FlashcardsPage() {
     const sessionId = routeId || sessionStorage.getItem('currentSessionId');
     if (!sessionId) return;
 
-    if (!confirm("Czy na pewno chcesz wygenerować nowy zestaw fiszek? Obecny zestaw zostanie zastąpiony nowymi pojęciami z Twoich notatek.")) {
+    if (!confirm(t('flashcards.notifications.regenerateConfirm'))) {
       return;
     }
 
     setIsRegenerating(true);
-    setRegenerationMessage("Magia AI: Generowanie nowego zestawu...");
+    setRegenerationMessage(t('flashcards.notifications.regenerating'));
 
     try {
       const { data: { session: authSession } } = await supabase.auth.getSession();
@@ -153,11 +155,11 @@ export default function FlashcardsPage() {
       setIsFlipped(false);
       localStorage.removeItem(`flashcards-progress-${sessionId}`);
 
-      setRegenerationMessage("Zestaw zaktualizowany pomyślnie!");
+      setRegenerationMessage(t('flashcards.notifications.success'));
       setTimeout(() => setRegenerationMessage(null), 3000);
     } catch (err: any) {
       console.error("Regeneration failed:", err);
-      alert("Błąd regeneracji: " + err.message);
+      alert(t('flashcards.notifications.error') + ": " + err.message);
     } finally {
       setIsRegenerating(false);
     }
@@ -260,36 +262,41 @@ export default function FlashcardsPage() {
           <BookOpen className="w-8 h-8 text-[var(--omni-text)]" />
         </div>
         <h2 className="omni-heading-3 text-[var(--omni-text)] mb-2">
-          Brak fiszek
+          {t('flashcards.empty.title')}
         </h2>
         <p className="text-[var(--omni-text-muted)] mb-6 text-center max-w-md">
-          Najpierw prześlij swoje notatki, a AI wygeneruje fiszki do nauki.
+          {t('flashcards.empty.desc')}
         </p>
         <button
           onClick={() => navigate('/app/upload')}
           className="omni-btn-primary"
         >
-          Prześlij notatki
+          {t('flashcards.empty.cta')}
         </button>
       </div>
     );
   }
 
   if (currentIndex >= flashcards.length) {
+    const hasDifficult = flashcards.some(c => flashcardProgress[c.id]?.status === 'dont_know');
+    const gridColsClass = hasDifficult 
+      ? "grid-cols-2 md:grid-cols-3 lg:grid-cols-5" 
+      : "grid-cols-2 md:grid-cols-4";
+
     return (
-      <div className="flex flex-col items-center justify-center min-h-[60vh]">
-        <div className="omni-card p-8 text-center max-w-md">
+      <div className="flex flex-col items-center justify-center min-h-[60vh] w-full px-4">
+        <div className="omni-card p-6 md:p-8 text-center max-w-3xl w-full mx-auto shadow-sm">
           <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
             <span className="text-3xl">🎉</span>
           </div>
           <h2 className="omni-heading-3 text-[var(--omni-text)] mb-2">
-            Gratulacje!
+            {t('flashcards.completion.title')}
           </h2>
-          <p className="text-[var(--omni-text-muted)] mb-6">
-            Przerobiłeś wszystkie fiszki. Znasz {knownCards.size} z {flashcards.length} pojęć.
+          <p className="text-[var(--omni-text-muted)]">
+            {t('flashcards.completion.desc', { known: knownCards.size, total: flashcards.length })}
           </p>
-          <div className="flex flex-col sm:flex-row gap-3 justify-center">
-            {flashcards.some(c => flashcardProgress[c.id]?.status === 'dont_know') && (
+          <div className={`grid w-full max-w-2xl mx-auto mt-6 gap-3 justify-items-stretch ${gridColsClass}`}>
+            {hasDifficult && (
               <button
                 onClick={() => {
                   const difficult = flashcards.filter(c => flashcardProgress[c.id]?.status === 'dont_know');
@@ -300,9 +307,9 @@ export default function FlashcardsPage() {
                   const sessionId = routeId || sessionStorage.getItem('currentSessionId');
                   if (sessionId) localStorage.removeItem(`flashcards-progress-${sessionId}`);
                 }}
-                className="omni-btn-primary bg-orange-500 hover:bg-orange-600 border-none"
+                className="omni-btn-primary bg-orange-500 hover:bg-orange-600 border-none w-full min-h-[72px] px-3 py-3 text-center whitespace-normal break-words rounded-xl flex items-center justify-center text-sm"
               >
-                Powtórz trudne ({flashcards.filter(c => flashcardProgress[c.id]?.status === 'dont_know').length})
+                {t('flashcards.completion.repeatDifficult', { count: flashcards.filter(c => flashcardProgress[c.id]?.status === 'dont_know').length })}
               </button>
             )}
             <button
@@ -315,27 +322,50 @@ export default function FlashcardsPage() {
                   localStorage.removeItem(`flashcards-progress-${sessionId}`);
                 }
               }}
-              className="omni-btn-secondary"
+              className="omni-btn-secondary w-full min-h-[72px] px-3 py-3 text-center whitespace-normal break-words rounded-xl flex items-center justify-center text-sm"
             >
-              Powtórz {flashcards.some(c => flashcardProgress[c.id]?.status === 'dont_know') ? 'wszystkie' : 'tę samą serię'}
+              {hasDifficult 
+                ? t('flashcards.completion.repeatAll') 
+                : t('flashcards.completion.repeatSame')}
             </button>
             <button
               onClick={handleRegenerate}
               disabled={isRegenerating}
-              className="omni-btn-secondary border-2 border-[var(--omni-accent)]/20 hover:border-[var(--omni-accent)] text-[var(--omni-accent)] flex items-center justify-center gap-2"
+              className="omni-btn-secondary border-2 border-[var(--omni-accent)]/20 hover:border-[var(--omni-accent)] text-[var(--omni-accent)] w-full min-h-[72px] px-3 py-3 text-center whitespace-normal break-words rounded-xl flex items-center justify-center gap-2 text-sm"
             >
               {isRegenerating ? (
-                <div className="w-4 h-4 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin" />
+                <div className="w-4 h-4 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin flex-shrink-0" />
               ) : (
-                <RotateCw className="w-4 h-4" />
+                <RotateCw className="w-4 h-4 flex-shrink-0" />
               )}
-              Wygeneruj nowe fiszki
+              {t('flashcards.completion.regenerate')}
             </button>
             <button
-              onClick={() => navigate('/app/quiz/' + (routeId || ''))}
-              className="omni-btn-secondary"
+              onClick={() => {
+                const currentId = routeId || sessionStorage.getItem('currentSessionId');
+                if (currentId) {
+                  navigate(`/app/quiz/${currentId}`);
+                } else {
+                  navigate('/app/history');
+                }
+              }}
+              className="omni-btn-secondary w-full min-h-[72px] px-3 py-3 text-center whitespace-normal break-words rounded-xl flex items-center justify-center text-sm"
             >
-              Przejdź do quizu
+              {t('flashcards.completion.goToQuiz')}
+            </button>
+            <button
+              onClick={() => {
+                const currentId = routeId || sessionStorage.getItem('currentSessionId');
+                if (currentId) {
+                  sessionStorage.setItem('currentSessionId', currentId);
+                  navigate('/app/results');
+                } else {
+                  navigate('/app/results');
+                }
+              }}
+              className="omni-btn-secondary w-full min-h-[72px] px-3 py-3 text-center whitespace-normal break-words rounded-xl flex items-center justify-center text-sm"
+            >
+              {t('flashcards.completion.backToResults')}
             </button>
           </div>
         </div>
@@ -366,15 +396,15 @@ export default function FlashcardsPage() {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="omni-heading-3 text-[var(--omni-text)] mb-1">
-            Fiszki
+            {t('flashcards.title')}
           </h1>
           <p className="text-[var(--omni-text-muted)]">
-            Ucz się kluczowych pojęć
+            {t('flashcards.subtitle')}
           </p>
         </div>
         <div className="flex items-center gap-2">
           <span className="text-sm text-[var(--omni-text-muted)]">
-            Postęp:
+            {t('flashcards.progress')}:
           </span>
           <div className="w-32 h-2 bg-gray-100 rounded-full overflow-hidden">
             <div
@@ -392,22 +422,22 @@ export default function FlashcardsPage() {
       <div className="flex items-center justify-between bg-white dark:bg-slate-900 rounded-2xl p-3 md:p-4 shadow-sm border border-gray-100 dark:border-slate-800">
         <div className="flex flex-col items-center flex-1 border-r border-gray-100 dark:border-slate-800">
           <span className="text-xl md:text-2xl font-bold text-gray-700 dark:text-gray-200">{bucketCounts.toReview}</span>
-          <span className="text-[10px] md:text-xs text-gray-400 uppercase tracking-wider font-semibold mt-1">Do powtórki</span>
+          <span className="text-[10px] md:text-xs text-gray-400 uppercase tracking-wider font-semibold mt-1">{t('flashcards.buckets.toReview')}</span>
         </div>
         <div className="flex flex-col items-center flex-1 border-r border-gray-100 dark:border-slate-800">
           <span className="text-xl md:text-2xl font-bold text-orange-500">{bucketCounts.difficult}</span>
-          <span className="text-[10px] md:text-xs text-orange-500/70 uppercase tracking-wider font-semibold mt-1">Trudne</span>
+          <span className="text-[10px] md:text-xs text-orange-500/70 uppercase tracking-wider font-semibold mt-1">{t('flashcards.buckets.difficult')}</span>
         </div>
         <div className="flex flex-col items-center flex-1">
           <span className="text-xl md:text-2xl font-bold text-green-500">{bucketCounts.mastered}</span>
-          <span className="text-[10px] md:text-xs text-green-500/70 uppercase tracking-wider font-semibold mt-1">Opanowane</span>
+          <span className="text-[10px] md:text-xs text-green-500/70 uppercase tracking-wider font-semibold mt-1">{t('flashcards.buckets.mastered')}</span>
         </div>
       </div>
 
       {/* Progress Counter */}
       <div className="text-center">
         <span className="text-sm text-[var(--omni-text-muted)]">
-          Karta {currentIndex + 1} z {flashcards.length}
+          {t('flashcards.cardCounter', { current: currentIndex + 1, total: flashcards.length })}
         </span>
       </div>
 
@@ -432,7 +462,7 @@ export default function FlashcardsPage() {
               {/* Header Zone */}
               <div className="flex-none text-center mb-4">
                 <span className="text-[10px] md:text-xs lg:text-sm text-muted-foreground uppercase tracking-widest font-bold">
-                  Pojęcie
+                  {t('flashcards.card.term')}
                 </span>
               </div>
 
@@ -447,7 +477,7 @@ export default function FlashcardsPage() {
               <div className="flex-none flex items-center justify-center gap-2 pt-4 border-t border-border mt-auto">
                 <RotateCw className="w-3.5 h-3.5 text-muted-foreground" />
                 <span className="text-[10px] md:text-xs font-medium text-muted-foreground">
-                  Kliknij, by odwrócić
+                  {t('flashcards.card.clickToFlip')}
                 </span>
               </div>
             </div>
@@ -464,7 +494,7 @@ export default function FlashcardsPage() {
               {/* Header Zone */}
               <div className="flex-none text-center mb-4">
                 <span className="text-[10px] md:text-xs lg:text-sm text-muted-foreground uppercase tracking-widest font-bold">
-                  Definicja
+                  {t('flashcards.card.definition')}
                 </span>
               </div>
 
@@ -494,7 +524,7 @@ export default function FlashcardsPage() {
             onClick={(e) => { e.stopPropagation(); handlePrevious(); }}
             disabled={currentIndex === 0}
             className="p-5 rounded-full bg-card shadow-md border border-border disabled:opacity-30 disabled:cursor-not-allowed hover:shadow-lg active:scale-95 transition-all"
-            aria-label="Poprzednia karta"
+            aria-label={t('flashcards.controls.prev')}
           >
             <ChevronLeft className="w-7 h-7 text-[var(--omni-text)]" />
           </button>
@@ -504,13 +534,13 @@ export default function FlashcardsPage() {
               onClick={(e) => { e.stopPropagation(); handleUnknown(); }}
               className="flex-1 py-5 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 rounded-2xl font-bold shadow-sm hover:bg-red-100 dark:hover:bg-red-900/30 active:scale-[0.97] transition-all border border-red-200/50 dark:border-red-800/50"
             >
-              Nie wiem
+              {t('flashcards.controls.dontKnow')}
             </button>
             <button
               onClick={(e) => { e.stopPropagation(); handleKnown(); }}
               className="flex-1 py-5 bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400 rounded-2xl font-bold shadow-sm hover:bg-green-100 dark:hover:bg-green-900/30 active:scale-[0.97] transition-all border border-green-200/50 dark:border-green-800/50"
             >
-              Znam
+              {t('flashcards.controls.know')}
             </button>
           </div>
 
@@ -518,7 +548,7 @@ export default function FlashcardsPage() {
             onClick={(e) => { e.stopPropagation(); handleNext(); }}
             disabled={currentIndex === flashcards.length - 1}
             className="p-5 rounded-full bg-card shadow-md border border-border disabled:opacity-30 disabled:cursor-not-allowed hover:shadow-lg active:scale-95 transition-all"
-            aria-label="Następna karta"
+            aria-label={t('flashcards.controls.next')}
           >
             <ChevronRight className="w-7 h-7 text-[var(--omni-text)]" />
           </button>
@@ -537,12 +567,12 @@ export default function FlashcardsPage() {
               : 'text-orange-500'
           }`}
         >
-          Poziom:{' '}
+          {t('flashcards.difficulty.label')}:{' '}
           {currentCard.difficulty === 'easy'
-            ? 'Łatwy'
+            ? t('flashcards.difficulty.easy')
             : currentCard.difficulty === 'medium'
-            ? 'Średni'
-            : 'Trudny'}
+            ? t('flashcards.difficulty.medium')
+            : t('flashcards.difficulty.hard')}
         </span>
       </div>
     </div>

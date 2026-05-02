@@ -11,38 +11,46 @@ import {
   AlertTriangle, 
   XCircle 
 } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 export default function ProfilePage() {
+  const { t, i18n } = useTranslation();
   const { user } = useAuth();
+
+  const currentLocale = i18n.language === 'pl' ? 'pl-PL' : i18n.language;
 
   // Format date helper
   const formatDate = (date: Date | undefined) => {
-    if (!date) return 'Brak danych';
-    return new Intl.DateTimeFormat('pl-PL', {
-      day: 'numeric',
-      month: 'long',
-      year: 'numeric'
-    }).format(date);
+    if (!date) return t('common.noData', 'Brak danych');
+    try {
+      return new Intl.DateTimeFormat(currentLocale, {
+        day: 'numeric',
+        month: 'long',
+        year: 'numeric'
+      }).format(date);
+    } catch (e) {
+      return date.toLocaleDateString();
+    }
   };
 
   const formatLastSignIn = (date: Date | undefined) => {
-    if (!date) return 'Brak danych';
+    if (!date) return t('common.noData', 'Brak danych');
     const now = new Date();
     const isToday = 
       date.getDate() === now.getDate() &&
       date.getMonth() === now.getMonth() &&
       date.getFullYear() === now.getFullYear();
       
-    const timeFormatter = new Intl.DateTimeFormat('pl-PL', {
+    const timeFormatter = new Intl.DateTimeFormat(currentLocale, {
       hour: '2-digit',
       minute: '2-digit'
     });
     
     if (isToday) {
-      return `Dzisiaj, ${timeFormatter.format(date)}`;
+      return `${t('common.today', 'Dzisiaj')}, ${timeFormatter.format(date)}`;
     }
     
-    const dateFormatter = new Intl.DateTimeFormat('pl-PL', {
+    const dateFormatter = new Intl.DateTimeFormat(currentLocale, {
       day: '2-digit',
       month: '2-digit',
       year: 'numeric'
@@ -53,8 +61,8 @@ export default function ProfilePage() {
 
   // Plan formatting
   const getPlanLabel = (plan: string | undefined) => {
-    if (plan === 'premium') return 'Premium';
-    return 'Darmowy';
+    if (plan === 'premium') return t('appShell.plan.premium', 'Premium');
+    return t('appShell.plan.free', 'Darmowy');
   };
 
   // Status mapping
@@ -62,15 +70,15 @@ export default function ProfilePage() {
     switch (status) {
       case 'active':
       case 'parent_approved':
-        return { label: 'Aktywne', color: 'bg-green-100 text-green-700 border-green-200', icon: CheckCircle2 };
+        return { label: t('profile.status.active', 'Aktywne'), color: 'bg-green-100 text-green-700 border-green-200', icon: CheckCircle2 };
       case 'pending_parent_consent':
-        return { label: 'Oczekuje na zgodę rodzica', color: 'bg-yellow-100 text-yellow-700 border-yellow-200', icon: Clock };
+        return { label: t('profile.status.pending', 'Oczekuje na zgodę rodzica'), color: 'bg-yellow-100 text-yellow-700 border-yellow-200', icon: Clock };
       case 'parent_withdrawn':
-        return { label: 'Cofnięta zgoda', color: 'bg-red-100 text-red-700 border-red-200', icon: XCircle };
+        return { label: t('profile.status.withdrawn', 'Cofnięta zgoda'), color: 'bg-red-100 text-red-700 border-red-200', icon: XCircle };
       case 'suspended':
-        return { label: 'Zawieszone', color: 'bg-red-100 text-red-700 border-red-200', icon: AlertTriangle };
+        return { label: t('profile.status.suspended', 'Zawieszone'), color: 'bg-red-100 text-red-700 border-red-200', icon: AlertTriangle };
       default:
-        return { label: 'Aktywne', color: 'bg-green-100 text-green-700 border-green-200', icon: CheckCircle2 };
+        return { label: t('profile.status.active', 'Aktywne'), color: 'bg-green-100 text-green-700 border-green-200', icon: CheckCircle2 };
     }
   };
 
@@ -78,14 +86,14 @@ export default function ProfilePage() {
   const StatusIcon = statusInfo.icon;
 
   return (
-    <div className="space-y-6 max-w-4xl mx-auto">
+    <div className="space-y-6 max-w-4xl mx-auto animate-in fade-in duration-500">
       {/* Header */}
       <div>
         <h1 className="omni-heading-3 text-[var(--omni-text)] mb-2">
-          Twój profil
+          {t('profile.title', 'Twój profil')}
         </h1>
         <p className="text-[var(--omni-text-muted)]">
-          Dostosuj dane profilu i informacje edukacyjne
+          {t('profile.subtitle', 'Dostosuj dane profilu i informacje edukacyjne')}
         </p>
       </div>
 
@@ -101,11 +109,11 @@ export default function ProfilePage() {
               <UserCircle className="w-10 h-10 text-[var(--omni-primary)]" />
             )}
           </div>
-          <div>
-            <h2 className="text-2xl font-bold text-[var(--omni-text)]">
-              {user?.name || 'Użytkownik'}
+          <div className="min-w-0">
+            <h2 className="text-2xl font-bold text-[var(--omni-text)] truncate">
+              {user?.name || t('appShell.user', 'Użytkownik')}
             </h2>
-            <p className="text-[var(--omni-text-muted)]">
+            <p className="text-[var(--omni-text-muted)] truncate">
               {user?.email}
             </p>
           </div>
@@ -116,19 +124,19 @@ export default function ProfilePage() {
           }}
           className="omni-btn-secondary px-6 py-2 shrink-0"
         >
-          Edytuj dane
+          {t('profile.editData', 'Edytuj dane')}
         </button>
       </div>
 
       {/* 2. Information Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {/* Plan Card */}
-        <div className="omni-card p-6 flex items-start gap-4">
+        <div className="omni-card p-6 flex items-start gap-4 hover:border-[var(--omni-accent)] transition-colors">
           <div className="w-10 h-10 bg-[var(--omni-lavender)] rounded-lg flex items-center justify-center shrink-0">
             <Crown className="w-5 h-5 text-[var(--omni-primary)]" />
           </div>
           <div>
-            <p className="text-sm font-medium text-[var(--omni-text-muted)]">Plan</p>
+            <p className="text-sm font-medium text-[var(--omni-text-muted)]">{t('profile.info.plan', 'Plan')}</p>
             <p className="text-lg font-semibold text-[var(--omni-text)] mt-1">
               {getPlanLabel(user?.plan)}
             </p>
@@ -136,12 +144,12 @@ export default function ProfilePage() {
         </div>
 
         {/* Joined Card */}
-        <div className="omni-card p-6 flex items-start gap-4">
+        <div className="omni-card p-6 flex items-start gap-4 hover:border-[var(--omni-accent)] transition-colors">
           <div className="w-10 h-10 bg-[var(--omni-lavender)] rounded-lg flex items-center justify-center shrink-0">
             <Calendar className="w-5 h-5 text-[var(--omni-primary)]" />
           </div>
           <div>
-            <p className="text-sm font-medium text-[var(--omni-text-muted)]">Dołączył(a)</p>
+            <p className="text-sm font-medium text-[var(--omni-text-muted)]">{t('profile.info.joined', 'Dołączył(a)')}</p>
             <p className="text-lg font-semibold text-[var(--omni-text)] mt-1">
               {formatDate(user?.createdAt)}
             </p>
@@ -149,14 +157,14 @@ export default function ProfilePage() {
         </div>
 
         {/* Email Card */}
-        <div className="omni-card p-6 flex items-start gap-4">
+        <div className="omni-card p-6 flex items-start gap-4 hover:border-[var(--omni-accent)] transition-colors">
           <div className="w-10 h-10 bg-[var(--omni-lavender)] rounded-lg flex items-center justify-center shrink-0">
             <Mail className="w-5 h-5 text-[var(--omni-primary)]" />
           </div>
           <div className="min-w-0 flex-1 overflow-hidden">
-            <p className="text-sm font-medium text-[var(--omni-text-muted)]">E-mail</p>
+            <p className="text-sm font-medium text-[var(--omni-text-muted)]">{t('profile.info.email', 'E-mail')}</p>
             <p className="text-lg font-semibold text-[var(--omni-text)] mt-1 truncate" title={user?.email}>
-              {user?.email || 'Brak danych'}
+              {user?.email || t('common.noData', 'Brak danych')}
             </p>
           </div>
         </div>
@@ -166,12 +174,14 @@ export default function ProfilePage() {
       <div className="omni-card p-6">
         <div className="flex items-center gap-3 mb-6">
           <Activity className="w-5 h-5 text-[var(--omni-text-muted)]" />
-          <h3 className="font-semibold text-[var(--omni-text)]">Aktywność i status konta</h3>
+          <h3 className="font-semibold text-[var(--omni-text)]">
+            {t('profile.activity.title', 'Aktywność i status konta')}
+          </h3>
         </div>
         
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div>
-            <p className="text-sm text-[var(--omni-text-muted)] mb-2">Status konta</p>
+            <p className="text-sm text-[var(--omni-text-muted)] mb-2">{t('profile.activity.status', 'Status konta')}</p>
             <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-sm font-medium border ${statusInfo.color}`}>
               <StatusIcon className="w-4 h-4" />
               {statusInfo.label}
@@ -179,7 +189,7 @@ export default function ProfilePage() {
           </div>
           
           <div>
-            <p className="text-sm text-[var(--omni-text-muted)] mb-2">Ostatnie logowanie</p>
+            <p className="text-sm text-[var(--omni-text-muted)] mb-2">{t('profile.activity.lastLogin', 'Ostatnie logowanie')}</p>
             <p className="text-[var(--omni-text)] font-medium">
               {formatLastSignIn(user?.lastLoginAt)}
             </p>
@@ -190,13 +200,13 @@ export default function ProfilePage() {
       {/* 4. Educational Context */}
       <div id="educational-section" className="omni-card p-6 scroll-mt-24">
         <h3 className="font-semibold text-[var(--omni-text)] mb-4">
-          Dane edukacyjne
+          {t('profile.educational.title', 'Dane edukacyjne')}
         </h3>
         <EducationalProfileForm />
         
         <div className="mt-8 pt-6 border-t border-border">
           <p className="text-sm text-[var(--omni-text-muted)] text-center">
-            Te dane są opcjonalne. Pomagają dopasować naukę i rozwijać OmniNauka. Nie podawaj adresu, nazwy szkoły ani danych wrażliwych.
+            {t('profile.educational.notice', 'Te dane są opcjonalne. Pomagają dopasować naukę i rozwijać OmniNauka. Nie podawaj adresu, nazwy szkoły ani danych wrażliwych.')}
           </p>
         </div>
       </div>
