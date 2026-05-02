@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../lib/auth-context';
-import { Eye, EyeOff, Mail, Lock, User, ArrowRight } from 'lucide-react';
+import { supabase } from '../lib/supabase';
+import { Eye, EyeOff, Mail, Lock, User, ArrowRight, ShieldCheck, AlertTriangle } from 'lucide-react';
 import OmniNaukaLogo from '../components/brand/OmniNaukaLogo';
 import { useTranslation } from 'react-i18next';
 import { LanguageSwitcher } from '../components/LanguageSwitcher';
@@ -18,19 +19,22 @@ export default function RegisterPage() {
   const [successMessage, setSuccessMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [ageBand, setAgeBand] = useState('');
-  const [showAgeBlock, setShowAgeBlock] = useState(false);
   const [userRole, setUserRole] = useState<'student' | 'parent' | ''>('');
+  // Sprint 17B: under_13 link result
+  const [under13LinkResult, setUnder13LinkResult] = useState<'linked' | 'no_preapproval' | null>(null);
 
   // Redirect if already logged in
   useEffect(() => {
     if (isAuthenticated && user) {
+      // under_13 flow manages its own redirect after link check
+      if (under13LinkResult !== null) return;
       if (user.userRole === 'parent' || user.userRole === 'guardian') {
         navigate('/app/parent');
       } else {
         navigate('/app/dashboard');
       }
     }
-  }, [isAuthenticated, user, navigate]);
+  }, [isAuthenticated, user, navigate, under13LinkResult]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -39,12 +43,6 @@ export default function RegisterPage() {
 
     if (!userRole) {
       setError(t('auth.register.error.noRole'));
-      setIsLoading(false);
-      return;
-    }
-
-    if (userRole === 'student' && ageBand === 'under_13') {
-      setShowAgeBlock(true);
       setIsLoading(false);
       return;
     }
@@ -63,7 +61,7 @@ export default function RegisterPage() {
 
     try {
       const result = await register(email, password, name, userRole === 'parent' ? 'parent' : ageBand, userRole);
-      
+
       if (!result.success) {
         setError(result.message || t('auth.register.error.failed'));
       } else if (result.requireEmailVerification) {
@@ -72,9 +70,16 @@ export default function RegisterPage() {
       } else if (ageBand === '13_15') {
         setSuccessMessage(t('auth.register.success.consent'));
         setPassword('');
-      } else {
-        // Automatically logged in
+      } else if (ageBand === 'under_13') {
+        // Sprint 17B: attempt to link with parent pre-approval immediately after sign-up
+        try {
+          const { data: linkResult } = await supabase.rpc('link_child_account');
+          setUnder13LinkResult(linkResult?.linked === true ? 'linked' : 'no_preapproval');
+        } catch {
+          setUnder13LinkResult('no_preapproval');
+        }
       }
+      // 16+ / parent: redirected automatically via isAuthenticated useEffect
     } catch (err: any) {
       setError(err?.message || t('auth.register.error.generic'));
     } finally {
@@ -82,30 +87,53 @@ export default function RegisterPage() {
     }
   };
 
-  if (showAgeBlock) {
+  // ── Sprint 17B: under_13 — linked successfully ────────────────────────────
+  if (under13LinkResult === 'linked') {
     return (
       <div className="min-h-screen bg-[var(--omni-bg)] flex items-center justify-center px-6 py-12 relative">
-        <div className="absolute top-4 right-4">
-          <LanguageSwitcher />
-        </div>
-        <div className="w-full max-w-md text-center">
-          <div className="omni-card p-8 flex flex-col items-center gap-6">
-            <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center text-blue-600">
-              <User className="w-8 h-8" />
+        <div className="absolute top-4 right-4"><LanguageSwitcher /></div>
+        <div className="w-full max-w-md">
+          <div className="omni-card p-8 flex flex-col items-center gap-6 text-center animate-in fade-in zoom-in duration-500">
+            <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center text-green-600">
+              <ShieldCheck className="w-8 h-8" />
             </div>
-            <h2 className="omni-heading-3">{t('auth.register.ageBlock.title')}</h2>
+            <h2 className="omni-heading-3 text-[var(--omni-text)]">Konto zostało połączone!</h2>
             <p className="text-[var(--omni-text-muted)]">
-              {t('auth.register.ageBlock.desc')}
+              Twój rodzic dodał już ten adres e-mail. Konto ucznia zostało pomyślnie powiązane z profilem rodzica.
             </p>
-            <div className="p-4 bg-blue-50 rounded-lg border border-blue-100 text-sm text-blue-800 text-left">
-              <p className="font-semibold mb-2">{t('auth.register.ageBlock.whatNow')}</p>
-              <p>{t('auth.register.ageBlock.instruction')}</p>
+            <button onClick={() => navigate('/app/dashboard')} className="w-full omni-btn-primary">
+              Przejdź do aplikacji <ArrowRight className="w-5 h-5" />
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ── Sprint 17B: under_13 — no parent pre-approval found ──────────────────
+  if (under13LinkResult === 'no_preapproval') {
+    return (
+      <div className="min-h-screen bg-[var(--omni-bg)] flex items-center justify-center px-6 py-12 relative">
+        <div className="absolute top-4 right-4"><LanguageSwitcher /></div>
+        <div className="w-full max-w-md">
+          <div className="omni-card p-8 flex flex-col items-center gap-6 text-center">
+            <div className="w-16 h-16 bg-amber-100 rounded-full flex items-center justify-center text-amber-600">
+              <AlertTriangle className="w-8 h-8" />
             </div>
-            <button 
-              onClick={() => setShowAgeBlock(false)}
-              className="w-full omni-btn-secondary"
-            >
-              {t('auth.register.ageBlock.back')}
+            <h2 className="omni-heading-3 text-[var(--omni-text)]">Wymagana zgoda rodzica</h2>
+            <p className="text-[var(--omni-text-muted)]">
+              Poproś rodzica lub opiekuna, aby najpierw dodał ten adres e-mail w Panelu Rodzica w OmniNauka.
+            </p>
+            <div className="p-4 bg-amber-50 border border-amber-100 rounded-lg text-sm text-amber-800 text-left w-full">
+              <p className="font-semibold mb-2">Co dalej?</p>
+              <ol className="list-decimal list-inside space-y-2">
+                <li>Poproś rodzica, aby zalogował się na swoje konto w OmniNauka.</li>
+                <li>W Panelu Rodzica kliknie „Dodaj dziecko" i wpisze ten sam adres e-mail.</li>
+                <li>Zaloguj się ponownie — konto zostanie automatycznie powiązane.</li>
+              </ol>
+            </div>
+            <button onClick={() => navigate('/login')} className="w-full omni-btn-primary">
+              Przejdź do logowania
             </button>
           </div>
         </div>
@@ -193,6 +221,11 @@ export default function RegisterPage() {
                   <option value="16_17">{t('auth.register.age16to17')}</option>
                   <option value="18_plus">{t('auth.register.age18plus')}</option>
                 </select>
+                {ageBand === 'under_13' && (
+                  <p className="mt-2 text-xs text-amber-700 bg-amber-50 border border-amber-100 rounded-lg px-3 py-2">
+                    Rejestracja dla osób poniżej 13 lat wymaga, by rodzic wcześniej dodał ten adres e-mail w Panelu Rodzica.
+                  </p>
+                )}
               </div>
             )}
 

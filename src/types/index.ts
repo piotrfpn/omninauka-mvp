@@ -7,7 +7,7 @@ export interface User {
   createdAt: Date;
   plan: 'free' | 'premium' | 'family';
   ageBand?: 'under_13' | '13_15' | '16_17' | '18_plus' | 'parent';
-  accountStatus?: 'active' | 'pending_parent_consent' | 'parent_approved' | 'suspended' | 'parent_withdrawn';
+  accountStatus?: 'active' | 'pending_parent_consent' | 'parent_approved' | 'suspended' | 'parent_withdrawn' | 'pending_parent_preapproval' | 'expired_pending_preapproval';
   userRole?: string;
   schoolType?: string;
   educationLevel?: string;
@@ -187,8 +187,11 @@ export interface DashboardSummary {
 
 // Parent Dashboard Types
 export interface ParentChildData {
-  consent_id: string;
-  consent_status: 'pending' | 'approved' | 'withdrawn' | 'revoked' | 'suspended' | string;
+  child_source?: 'consent' | 'local_preapproved';
+  child_profile_id?: string | null;
+  consent_id: string | null;
+  consent_status: 'pending' | 'approved' | 'withdrawn' | 'revoked' | 'suspended'
+    | 'pending_child_registration' | 'linked' | 'active' | 'archived' | string;
   consent_created_at: string;
   consent_updated_at: string;
   consent_approved_at: string | null;
@@ -200,5 +203,7 @@ export interface ParentChildData {
   grade_level: string | null;
   profile_completed: boolean | null;
   last_login_at: string | null;
+  age_band?: string | null;
+  status_label?: string | null;
 }
 
