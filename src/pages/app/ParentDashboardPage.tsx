@@ -127,6 +127,25 @@ export default function ParentDashboardPage() {
     }
   };
 
+  const handleArchivePendingRegistration = async (id: string) => {
+    if (!window.confirm('Czy na pewno chcesz anulować oczekiwanie na rejestrację tego dziecka? Ten adres e-mail nie będzie już powiązany z Twoim Panelem Rodzica.')) {
+      return;
+    }
+
+    try {
+      const { error } = await supabase
+        .from('child_profiles')
+        .update({ status: 'archived' })
+        .eq('id', id);
+
+      if (error) throw error;
+      refresh();
+    } catch (err: any) {
+      console.error('Błąd podczas archiwizacji profilu:', err);
+      alert('Nie udało się anulować oczekiwania.');
+    }
+  };
+
   // ── loading / error states ──────────────────────────────────────────────────
 
   if (isLoading) {
@@ -332,7 +351,7 @@ export default function ParentDashboardPage() {
 
       {/* ── Children list ────────────────────────────────────────────────────── */}
       <div className="space-y-6">
-        {childrenData.length === 0 && !isAddingChild ? (
+        {childrenData.filter(c => c.consent_status !== 'archived').length === 0 && !isAddingChild ? (
           <div className="omni-card p-12 text-center">
             <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-[var(--omni-bg-muted)] mb-4">
               <UserCircle className="w-8 h-8 text-[var(--omni-text-muted)]" />
@@ -350,12 +369,15 @@ export default function ParentDashboardPage() {
             </div>
           </div>
         ) : (
-          childrenData.map((child, index) => (
-            <ChildCard
-              key={child.consent_id ?? child.child_profile_id ?? String(index)}
-              data={child}
-            />
-          ))
+          childrenData
+            .filter(c => c.consent_status !== 'archived')
+            .map((child, index) => (
+              <ChildCard
+                key={child.consent_id ?? child.child_profile_id ?? String(index)}
+                data={child}
+                onArchive={handleArchivePendingRegistration}
+              />
+            ))
         )}
       </div>
 
@@ -372,7 +394,7 @@ export default function ParentDashboardPage() {
 
 // ─── ChildCard ────────────────────────────────────────────────────────────────
 
-function ChildCard({ data }: { data: ParentChildData }) {
+function ChildCard({ data, onArchive }: { data: ParentChildData, onArchive?: (id: string) => void }) {
   const { t } = useTranslation('common');
   const isConsent = data.child_source === 'consent';
   const isLocalPreapproved = data.child_source === 'local_preapproved';
@@ -446,9 +468,19 @@ function ChildCard({ data }: { data: ParentChildData }) {
             )}
           </div>
         </div>
-        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${badgeColor}`}>
-          {statusLabel}
-        </span>
+        <div className="flex items-center gap-4">
+          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${badgeColor}`}>
+            {statusLabel}
+          </span>
+          {isLocalPreapproved && isPendingRegistration && onArchive && data.child_profile_id && (
+            <button
+              onClick={() => onArchive(data.child_profile_id!)}
+              className="text-xs text-red-600 hover:text-red-700 font-medium px-2 py-1 hover:bg-red-50 rounded transition-colors"
+            >
+              Usuń profil oczekujący
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Card body */}

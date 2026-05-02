@@ -165,8 +165,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const register = async (email: string, password: string, name: string, ageBand: string, userRole: string = 'student') => {
     setIsDemoMode(false);
     
-    // Initial status based on age band logic (matching the DB trigger)
-    const initialStatus = ageBand === '13_15' ? 'pending_parent_consent' : 'active';
+    // Initial status based on age band logic (matching the DB trigger and guard)
+    let initialStatus = 'active';
+    if (ageBand === '13_15') initialStatus = 'pending_parent_consent';
+    if (ageBand === 'under_13') initialStatus = 'pending_parent_preapproval';
 
     const { data, error } = await supabase.auth.signUp({
       email,
