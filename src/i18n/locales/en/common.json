@@ -39,8 +39,8 @@
       "hasAccount": "Already have an account?",
       "login": "Log in",
       "error": {
-        "noRole": "Please select a role (Student or Parent/Guardian)",
-        "noAge": "Please select an age group",
+        "role": "Please select a role (Student or Parent/Guardian)",
+        "age": "Please select an age group",
         "passLength": "Password must be at least 6 characters",
         "failed": "Failed to create account.",
         "generic": "An error occurred during registration"
@@ -56,6 +56,21 @@
         "whatNow": "What now?",
         "instruction": "Ask a parent or guardian to create an account and add your student profile. This will allow you to safely use OmniNauka.",
         "back": "Back to form"
+      },
+      "under13": {
+        "linked": {
+          "title": "Account linked!",
+          "desc": "Your parent has already added this email address. The student account has been successfully linked to the parent's profile."
+        },
+        "noPreapproval": {
+          "title": "Parental consent required",
+          "desc": "Ask a parent or guardian to first add this email address in the Parent Dashboard in OmniNauka. If the account is not linked to a parent or legal guardian within 72 hours, it may be deleted or marked for deletion in accordance with data minimization principles.",
+          "whatNow": "What's next?",
+          "step1": "Ask a parent to log in to their OmniNauka account.",
+          "step2": "In the Parent Dashboard, they will click 'Add Child' and enter this same email address.",
+          "step3": "Log in again — the account will be automatically linked."
+        },
+        "registerHint": "Registration for people under 13 requires a parent to first add this email address in the Parent Dashboard. If the account is not linked to a parent or legal guardian within 72 hours, it may be deleted or marked for deletion in accordance with data minimization principles."
       }
     },
     "forgot": {
@@ -101,6 +116,23 @@
       "emailPlaceholder": "parent@email.com",
       "emailHelp": "We will send a secure consent confirmation link to this address.",
       "submit": "Send consent request",
+      "under13": {
+        "title": "Parental consent required",
+        "desc": "To use OmniNauka, your parent or guardian must first add this email address in the Parent Dashboard. Until the account is linked, you cannot use OmniNauka's educational features. If the account is not linked to a parent or legal guardian within 72 hours, it may be deleted or marked for deletion in accordance with data minimization principles.",
+        "stepTitle": "What's next?",
+        "step1": "Ask your parent to log in to their OmniNauka account.",
+        "step2": "In the Parent Dashboard, they will click 'Add Child' and enter your email address.",
+        "step3": "Log in again — the account will be automatically linked.",
+        "footerHint": "Log in again after your parent adds your email address.",
+        "successTitle": "Account linked!",
+        "successSubtitle": "Your parent has already added this email address. The student account has been successfully linked to the parent's profile.",
+        "goToApp": "Go to application",
+        "blockedTitle": "Parental consent required",
+        "blockedSubtitle": "Ask a parent or guardian to first add this email address in the Parent Dashboard in OmniNauka.",
+        "nextStepsTitle": "What's next?",
+        "cleanupRule": "If the account is not linked to a parent or legal guardian within 72 hours, it may be deleted or marked for deletion in accordance with data minimization principles.",
+        "goToLogin": "Go to login"
+      },
       "wait": "Wait",
       "waitSuffix": "s...",
       "successTitle": "Request sent!",
@@ -288,6 +320,8 @@
         "title": "Legal",
         "terms": "Terms of Service",
         "privacy": "Privacy Policy",
+        "cookies": "Cookie Policy",
+        "aiDisclaimer": "AI Disclaimer",
         "reports": "Reporting Violations and Content Removal"
       },
       "copyright": "© 2026 OmniNauka. All rights reserved."
@@ -499,7 +533,14 @@
       "title": "For parent / guardian",
       "dashboard": "Parent Dashboard",
       "desc": "Check consent status and basic information about child progress.",
-      "open": "Open Parent Dashboard"
+      "open": "Open Parent Dashboard",
+      "addChild": {
+        "emailHint": "The child will only be able to register an account with this email address. If they try to register with a different address, the account will not be automatically linked to your panel.",
+        "cleanupHint": "Accounts for children <13 without a parental link may be marked for deletion after 72 hours."
+      },
+      "childCard": {
+        "pendingRegistration": "The child can register an account using the email address you provided. After registration, the profile will be automatically linked. If the account is not linked to a parent or legal guardian within 72 hours, it may be deleted or marked for deletion in accordance with data minimization principles."
+      }
     },
     "privacy": {
       "title": "Privacy",
@@ -512,6 +553,72 @@
     "today": "Today",
     "saveChanges": "Save changes",
     "dateLocale": "en-US"
+  },
+  "analysis": {
+    "error": {
+      "title": "Analysis Error",
+      "retry": "Try again with another photo",
+      "network": "An unexpected network error occurred."
+    },
+    "empty": {
+      "title": "Analysis not found",
+      "back": "Back to upload"
+    },
+    "header": {
+      "confidence": "Confidence:",
+      "demo": "Demo Mode",
+      "namePrompt": "Name this lesson to easily find it later"
+    },
+    "gallery": {
+      "openDoc": "Click to download or open document",
+      "docAdded": "Document<br/>added",
+      "openImage": "Click to open full size",
+      "page": "Page {{current}} of {{total}}"
+    },
+    "actions": {
+      "title": "Start learning",
+      "lesson": {
+        "title": "AI Lesson (Socratic)",
+        "desc": "Talk and understand the material through dialogue"
+      },
+      "quiz": {
+        "title": "Take a quiz",
+        "desc": "{{count}} knowledge check questions"
+      },
+      "flashcards": {
+        "title": "Learn flashcards",
+        "desc": "{{count}} concepts to master"
+      }
+    },
+    "summary": {
+      "title": "Lesson Summary"
+    },
+    "concepts": {
+      "title": "Key Concepts ({{count}})",
+      "hint": "Click a concept to explore it"
+    },
+    "categories": {
+      "definition": "Definition",
+      "date": "Date",
+      "formula": "Formula",
+      "person": "Person",
+      "event": "Event",
+      "concept": "Concept"
+    },
+    "stats": {
+      "concepts": "Concepts",
+      "flashcards": "Flashcards",
+      "questions": "Questions"
+    },
+    "backendErrors": {
+      "generic": "A problem occurred with the AI analysis server. Please try again or contact support.",
+      "unreadableText": "Could not read text from the photo. Try taking a closer picture, in better light, so the text is clear.",
+      "unauthorized": "Session authentication expired. Refresh the page and log in again if needed.",
+      "sessionNotFound": "The analysis session expired or was not saved correctly. Please upload the note again.",
+      "downloadFailed": "Permission error while loading image. Try uploading the file again.",
+      "aiUnderstanding": "The AI model had trouble understanding these notes. Try a clearer shot.",
+      "serverError": "A temporary server error occurred. Please try again later."
+    }
   },
   "flashcards": {
     "title": "Flashcards",
@@ -726,72 +833,6 @@
       "demoError": "Demo mode: cannot create folder"
     },
     "error": "Failed to load study history:"
-  },
-  "analysis": {
-    "error": {
-      "title": "Analysis Error",
-      "retry": "Try again with another photo",
-      "network": "An unexpected network error occurred."
-    },
-    "empty": {
-      "title": "Analysis not found",
-      "back": "Back to upload"
-    },
-    "header": {
-      "confidence": "Confidence:",
-      "demo": "Demo Mode",
-      "namePrompt": "Name this lesson to easily find it later"
-    },
-    "gallery": {
-      "openDoc": "Click to download or open document",
-      "docAdded": "Document<br/>added",
-      "openImage": "Click to open full size",
-      "page": "Page {{current}} of {{total}}"
-    },
-    "actions": {
-      "title": "Start learning",
-      "lesson": {
-        "title": "AI Lesson (Socratic)",
-        "desc": "Talk and understand the material through dialogue"
-      },
-      "quiz": {
-        "title": "Take a quiz",
-        "desc": "{{count}} knowledge check questions"
-      },
-      "flashcards": {
-        "title": "Learn flashcards",
-        "desc": "{{count}} concepts to master"
-      }
-    },
-    "summary": {
-      "title": "Lesson Summary"
-    },
-    "concepts": {
-      "title": "Key Concepts ({{count}})",
-      "hint": "Click a concept to explore it"
-    },
-    "categories": {
-      "definition": "Definition",
-      "date": "Date",
-      "formula": "Formula",
-      "person": "Person",
-      "event": "Event",
-      "concept": "Concept"
-    },
-    "stats": {
-      "concepts": "Concepts",
-      "flashcards": "Flashcards",
-      "questions": "Questions"
-    },
-    "backendErrors": {
-      "generic": "A problem occurred with the AI analysis server. Please try again or contact support.",
-      "unreadableText": "Could not read text from the photo. Try taking a closer picture, in better light, so the text is clear.",
-      "unauthorized": "Session authentication expired. Refresh the page and log in again if needed.",
-      "sessionNotFound": "The analysis session expired or was not saved correctly. Please upload the note again.",
-      "downloadFailed": "Permission error while loading image. Try uploading the file again.",
-      "aiUnderstanding": "The AI model had trouble understanding these notes. Try a clearer shot.",
-      "serverError": "A temporary server error occurred. Please try again later."
-    }
   },
   "upload": {
     "title": "Upload materials",

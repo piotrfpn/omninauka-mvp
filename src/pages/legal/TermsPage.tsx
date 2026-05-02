@@ -115,7 +115,7 @@ export default function TermsPage() {
         <p>4. Użytkownik, który ukończył 16 lat, może korzystać z aplikacji zgodnie z Regulaminem, z zastrzeżeniem ograniczeń wynikających z przepisów prawa, w szczególności dotyczących zawierania umów płatnych przez osoby niepełnoletnie.</p>
         <p>5. Umowy dotyczące usług płatnych, subskrypcji, pakietów dodatkowych lekcji AI lub innych odpłatnych funkcji mogą być zawierane wyłącznie przez osobę pełnoletnią albo przez rodzica lub opiekuna prawnego działającego na rzecz użytkownika niepełnoletniego.</p>
         <p>6. Rodzic lub opiekun prawny odpowiada za nadzór nad korzystaniem z aplikacji przez dziecko oraz za upewnienie się, że dziecko nie przesyła do aplikacji danych wrażliwych, dokumentów tożsamości, danych osób trzecich, materiałów naruszających prawa autorskie lub innych treści, których nie powinno przesyłać.</p>
-        <p>7. Usługodawca może stosować odpowiednie środki weryfikacji wieku użytkownika oraz zgody rodzica lub opiekuna prawnego, proporcjonalne do rodzaju usługi, dostępnej technologii i ryzyka związanego z przetwarzaniem danych dzieci.</p>
+        <p>7. Usługodawca może stosować odpowiednie środki weryfikacji wieku użytkownika oraz zgody rodzica lub opiekuna prawnego, proporcjonalne do rodzaju usługi, dostępnej technologii i ryzyka związanego z przetwarzaniem danych dzieci. Konto dziecka poniżej 13 roku życia może korzystać z funkcji edukacyjnych wyłącznie po wcześniejszym dodaniu adresu e-mail dziecka przez rodzica lub opiekuna prawnego w Panelu Rodzica i powiązaniu konta z tym adresem. Konta niepowiązane z rodzicem lub opiekunem mogą zostać zablokowane, oznaczone do usunięcia lub usunięte po upływie określonego czasu, w szczególności po 72 godzinach od rozpoczęcia rejestracji bez powiązania.</p>
         <p>8. Usługodawca może odmówić świadczenia usług lub ograniczyć dostęp do wybranych funkcji, jeżeli nie uzyska wymaganej zgody rodzica lub opiekuna prawnego albo jeżeli istnieje uzasadnione podejrzenie, że konto zostało utworzone z naruszeniem zasad dotyczących wieku użytkownika.</p>
       </section>
 
@@ -390,7 +390,7 @@ export default function TermsPage() {
         <p>2. Użytkownik może złożyć wniosek o usunięcie konta lub określonych danych, zgodnie z zasadami opisanymi w Regulaminie i Polityce Prywatności.</p>
         <p>3. Usunięcie konta może skutkować utratą dostępu do historii nauki, lekcji AI, quizów, raportów, materiałów użytkownika i ustawień konta.</p>
         <p>4. Niektóre dane mogą być przechowywane przez dłuższy okres, jeżeli jest to wymagane przez przepisy prawa, obowiązki księgowe, podatkowe, rozpatrywanie reklamacji, zabezpieczenie roszczeń lub bezpieczeństwo systemu.</p>
-        <p>5. Dane mogą pozostawać przez ograniczony czas w kopiach bezpieczeństwa, zanim zostaną trwale usunięte w ramach standardowego cyklu technicznego usuwania backupów.</p>
+        <p>5. Dane mogą pozostawać przez ograniczony czas w kopiach bezpieczeństwa, zanim zostaną trwale usunięte w ramach standardowego cyklu technicznego usuwania backupów. Konta dzieci poniżej 13 roku życia, które nie zostały powiązane z kontem rodzica lub opiekuna prawnego w terminie 72 godzin od rejestracji, mogą zostać usunięte lub oznaczone do usunięcia zgodnie z zasadą minimalizacji danych.</p>
         <p>6. Szczegółowe okresy retencji danych powinny zostać określone w Polityce Prywatności.</p>
       </section>
 

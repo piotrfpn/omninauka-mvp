@@ -97,12 +97,12 @@ export default function RegisterPage() {
             <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center text-green-600">
               <ShieldCheck className="w-8 h-8" />
             </div>
-            <h2 className="omni-heading-3 text-[var(--omni-text)]">Konto zostało połączone!</h2>
+            <h2 className="omni-heading-3 text-[var(--omni-text)]">{t('pending.under13.successTitle')}</h2>
             <p className="text-[var(--omni-text-muted)]">
-              Twój rodzic dodał już ten adres e-mail. Konto ucznia zostało pomyślnie powiązane z profilem rodzica.
+              {t('pending.under13.successSubtitle')}
             </p>
             <button onClick={() => navigate('/app/dashboard')} className="w-full omni-btn-primary">
-              Przejdź do aplikacji <ArrowRight className="w-5 h-5" />
+              {t('pending.under13.goToApp')} <ArrowRight className="w-5 h-5" />
             </button>
           </div>
         </div>
@@ -120,20 +120,23 @@ export default function RegisterPage() {
             <div className="w-16 h-16 bg-amber-100 rounded-full flex items-center justify-center text-amber-600">
               <AlertTriangle className="w-8 h-8" />
             </div>
-            <h2 className="omni-heading-3 text-[var(--omni-text)]">Wymagana zgoda rodzica</h2>
+            <h2 className="omni-heading-3 text-[var(--omni-text)]">{t('pending.under13.blockedTitle')}</h2>
             <p className="text-[var(--omni-text-muted)]">
-              Poproś rodzica lub opiekuna, aby najpierw dodał ten adres e-mail w Panelu Rodzica w OmniNauka.
+              {t('pending.under13.blockedSubtitle')}
             </p>
             <div className="p-4 bg-amber-50 border border-amber-100 rounded-lg text-sm text-amber-800 text-left w-full">
-              <p className="font-semibold mb-2">Co dalej?</p>
+              <p className="font-semibold mb-2">{t('pending.under13.nextStepsTitle')}</p>
               <ol className="list-decimal list-inside space-y-2">
-                <li>Poproś rodzica, aby zalogował się na swoje konto w OmniNauka.</li>
-                <li>W Panelu Rodzica kliknie „Dodaj dziecko" i wpisze ten sam adres e-mail.</li>
-                <li>Zaloguj się ponownie — konto zostanie automatycznie powiązane.</li>
+                <li>{t('pending.under13.step1')}</li>
+                <li>{t('pending.under13.step2')}</li>
+                <li>{t('pending.under13.step3')}</li>
               </ol>
             </div>
+            <p className="text-xs text-[var(--omni-text-muted)] italic">
+              {t('pending.under13.cleanupRule')}
+            </p>
             <button onClick={() => navigate('/login')} className="w-full omni-btn-primary">
-              Przejdź do logowania
+              {t('pending.under13.goToLogin')}
             </button>
           </div>
         </div>
@@ -222,8 +225,8 @@ export default function RegisterPage() {
                   <option value="18_plus">{t('auth.register.age18plus')}</option>
                 </select>
                 {ageBand === 'under_13' && (
-                  <p className="mt-2 text-xs text-amber-700 bg-amber-50 border border-amber-100 rounded-lg px-3 py-2">
-                    Rejestracja dla osób poniżej 13 lat wymaga, by rodzic wcześniej dodał ten adres e-mail w Panelu Rodzica.
+                  <p className="mt-2 text-xs text-amber-700 bg-amber-50 border border-amber-100 rounded-lg px-3 py-2 italic">
+                    {t('auth.register.under13.registerHint')}
                   </p>
                 )}
               </div>

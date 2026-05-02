@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../lib/auth-context';
 import { useParentDashboard } from '../../lib/parent-dashboard';
 import { supabase } from '../../lib/supabase';
+import { useTranslation } from 'react-i18next';
 import {
   ShieldCheck,
   UserCircle,
@@ -46,6 +47,7 @@ const getEducationLabel = (level: string | null) => {
 export default function ParentDashboardPage() {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { t } = useTranslation('common');
   const { childrenData, isLoading, error, refresh } = useParentDashboard();
 
   // form state
@@ -227,7 +229,10 @@ export default function ParentDashboardPage() {
                 />
               </div>
               <p className="text-xs text-[var(--omni-text-muted)] mt-1">
-                Dziecko użyje tego adresu, żeby zarejestrować swoje konto OmniNauka.
+                {t('parent.addChild.emailHint')}
+              </p>
+              <p className="mt-1 text-xs text-amber-600 font-medium">
+                {t('parent.addChild.cleanupHint')}
               </p>
             </div>
 
@@ -368,6 +373,7 @@ export default function ParentDashboardPage() {
 // ─── ChildCard ────────────────────────────────────────────────────────────────
 
 function ChildCard({ data }: { data: ParentChildData }) {
+  const { t } = useTranslation('common');
   const isConsent = data.child_source === 'consent';
   const isLocalPreapproved = data.child_source === 'local_preapproved';
   const isPendingRegistration = data.consent_status === 'pending_child_registration';
@@ -468,8 +474,9 @@ function ChildCard({ data }: { data: ParentChildData }) {
               )}
               {isLocalPreapproved && isPendingRegistration && (
                 <div className="p-3 bg-amber-50 border border-amber-100 rounded-lg">
+                  <p className="text-xs font-semibold text-amber-900 mb-1">Oczekiwanie na rejestrację dziecka</p>
                   <p className="text-xs text-amber-800">
-                    Dziecko może zarejestrować konto używając adresu e-mail podanego przez Ciebie. Po rejestracji profil zostanie automatycznie powiązany.
+                    {t('parent.childCard.pendingRegistration')}
                   </p>
                 </div>
               )}
