@@ -57,7 +57,7 @@ export default function SettingsPage() {
   };
 
   const handleDeleteAccount = async () => {
-    if (deleteConfirmText !== 'USUŃ') return;
+    if (deleteConfirmText.trim().toUpperCase() !== 'USUŃ') return;
     
     setIsDeleting(true);
     try {
@@ -336,7 +336,6 @@ export default function SettingsPage() {
                 value={deleteConfirmText}
                 onChange={(e) => setDeleteConfirmText(e.target.value)}
                 autoFocus
-                className="uppercase"
                 disabled={isDeleting}
               />
             </div>
@@ -354,7 +353,7 @@ export default function SettingsPage() {
             <Button
               variant="destructive"
               onClick={handleDeleteAccount}
-              disabled={deleteConfirmText !== 'USUŃ' || isDeleting}
+              disabled={deleteConfirmText.trim().toUpperCase() !== 'USUŃ' || isDeleting}
               className="flex-1 sm:flex-none"
             >
               {isDeleting ? (
