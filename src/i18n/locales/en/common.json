@@ -529,23 +529,33 @@
       "desc": "Edit profile data and educational information.",
       "goTo": "Go to profile"
     },
-    "parent": {
-      "title": "For parent / guardian",
-      "dashboard": "Parent Dashboard",
-      "desc": "Check consent status and basic information about child progress.",
-      "open": "Open Parent Dashboard",
-      "addChild": {
-        "emailHint": "The child will only be able to register an account with this email address. If they try to register with a different address, the account will not be automatically linked to your panel.",
-        "cleanupHint": "Accounts for children <13 without a parental link may be marked for deletion after 72 hours."
-      },
-      "childCard": {
-        "pendingRegistration": "The child can register an account using the email address you provided. After registration, the profile will be automatically linked. If the account is not linked to a parent or legal guardian within 72 hours, it may be deleted or marked for deletion in accordance with data minimization principles."
-      }
-    },
     "privacy": {
       "title": "Privacy",
       "desc1": "Your data is safe. We do not share it with third parties. Read our",
       "desc2": "Privacy Policy"
+    }
+  },
+  "parent": {
+    "title": "For parent / guardian",
+    "dashboard": "Parent Dashboard",
+    "desc": "Check consent status and basic information about child progress.",
+    "open": "Open Parent Dashboard",
+    "addChild": {
+      "emailHint": "The child will only be able to register an account with this email address. If they try to register with a different address, the account will not be automatically linked to your panel.",
+      "cleanupHint": "Accounts for children <13 without a parental link may be marked for deletion after 72 hours."
+    },
+    "childCard": {
+      "pendingRegistration": "We are waiting for the child to register using this email address. After registration, the account will be linked to the Parent Panel."
+    }
+  },
+  "pending": {
+    "under13": {
+      "nextStepsTitle": "What's next?",
+      "step1": "Ask your parent to log in to their Parent Dashboard.",
+      "step2": "Make sure your parent has added your email address in the \"Add Child\" section.",
+      "step3": "After your parent adds you, try to log in again or refresh this page.",
+      "cleanupRule": "Unlinked accounts may be deleted or marked for deletion in accordance with data minimization principles.",
+      "loginAgain": "You can try to log in again to check your status."
     }
   },
   "common": {

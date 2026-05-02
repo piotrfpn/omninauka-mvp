@@ -526,26 +526,35 @@
     "profile": {
       "title": "Profil",
       "data": "Dane edukacyjne i profilowe",
-      "desc": "Edytuj dane profilu i informacje edukacyjne.",
-      "goTo": "Przejdź do profilu"
+      "desc": "Edytuj dane profilu i informacje edukacyjne."
+    }
+  },
+  "parent": {
+    "title": "Dla rodzica / opiekuna",
+    "dashboard": "Panel rodzica",
+    "desc": "Sprawdź status zgody i podstawowe informacje o postępach dziecka.",
+    "open": "Otwórz Panel Rodzica",
+    "addChild": {
+      "emailHint": "Dziecko będzie mogło zarejestrować konto tylko tym adresem e-mail. Jeśli spróbuje zarejestrować się innym adresem, konto nie zostanie automatycznie powiązane z Twoim panelem.",
+      "cleanupHint": "Konta dzieci <13 bez powiązania z rodzicem mogą zostać oznaczone do usunięcia po 72 godzinach."
     },
-    "parent": {
-      "title": "Dla rodzica / opiekuna",
-      "dashboard": "Panel rodzica",
-      "desc": "Sprawdź status zgody i podstawowe informacje o postępach dziecka.",
-      "open": "Otwórz Panel Rodzica",
-      "addChild": {
-        "emailHint": "Dziecko będzie mogło zarejestrować konto tylko tym adresem e-mail. Jeśli spróbuje zarejestrować się innym adresem, konto nie zostanie automatycznie powiązane z Twoim panelem.",
-        "cleanupHint": "Konta dzieci <13 bez powiązania z rodzicem mogą zostać oznaczone do usunięcia po 72 godzinach."
-      },
-      "childCard": {
-        "pendingRegistration": "Dziecko może zarejestrować konto używając adresu e-mail podanego przez Ciebie. Po rejestracji profil zostanie automatycznie powiązany. Jeżeli konto nie zostanie powiązane z rodzicem lub opiekunem w ciągu 72 godzin, może zostać usunięte lub oznaczone do usunięcia zgodnie z zasadą minimalizacji danych."
-      }
-    },
-    "privacy": {
-      "title": "Prywatność",
-      "desc1": "Twoje dane są bezpieczne. Nie udostępniamy ich osobom trzecim. Przeczytaj naszą",
-      "desc2": "Politykę prywatności"
+    "childCard": {
+      "pendingRegistration": "Oczekujemy na rejestrację dziecka tym adresem e-mail. Po rejestracji konto zostanie automatycznie połączone z Panelem Rodzica."
+    }
+  },
+  "privacy": {
+    "title": "Prywatność",
+    "desc1": "Twoje dane są bezpieczne. Nie udostępniamy ich osobom trzecim. Przeczytaj naszą",
+    "desc2": "Politykę prywatności"
+  },
+  "pending": {
+    "under13": {
+      "nextStepsTitle": "Co dalej?",
+      "step1": "Poproś rodzica, aby zalogował się do swojego Panelu Rodzica.",
+      "step2": "Upewnij się, że rodzic dodał Twój adres e-mail w sekcji „Dodaj dziecko”.",
+      "step3": "Po dodaniu przez rodzica, spróbuj zalogować się ponownie lub odśwież tę stronę.",
+      "cleanupRule": "Konta niepowiązane z rodzicem mogą zostać usunięte lub oznaczone do usunięcia w celu minimalizacji danych.",
+      "loginAgain": "Możesz spróbować zalogować się ponownie, aby sprawdzić status."
     }
   },
   "common": {
