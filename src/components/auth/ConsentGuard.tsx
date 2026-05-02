@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import type { ReactNode } from 'react';
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '../../lib/auth-context';
@@ -23,6 +24,7 @@ interface ConsentGuardProps {
  */
 export function ConsentGuard({ children, requireApproval = true }: ConsentGuardProps) {
   const { user, isLoading, refreshUser } = useAuth();
+  const { t } = useTranslation('common');
 
   // State for retroactive link attempt (under_13 who logs in after parent adds their email)
   const [isLinking, setIsLinking] = useState(false);
@@ -95,15 +97,18 @@ export function ConsentGuard({ children, requireApproval = true }: ConsentGuardP
               Aby korzystać z OmniNauka, Twój rodzic lub opiekun musi najpierw dodać ten adres e-mail w Panelu Rodzica.
             </p>
             <div className="p-4 bg-amber-50 border border-amber-100 rounded-xl text-sm text-amber-800 text-left w-full">
-              <p className="font-semibold mb-2">Co dalej?</p>
+              <p className="font-semibold mb-2">{t('pending.under13.nextStepsTitle')}</p>
               <ol className="list-decimal list-inside space-y-2">
-                <li>Poproś rodzica, żeby zalogował się na swoje konto w OmniNauka.</li>
-                <li>W Panelu Rodzica kliknie „Dodaj dziecko" i wpisze Twój adres e-mail.</li>
-                <li>Zaloguj się ponownie — konto zostanie automatycznie powiązane.</li>
+                <li>{t('pending.under13.step1')}</li>
+                <li>{t('pending.under13.step2')}</li>
+                <li>{t('pending.under13.step3')}</li>
               </ol>
             </div>
-            <p className="text-xs text-[var(--omni-text-muted)]">
-              Zaloguj się ponownie po tym, jak rodzic doda Twój adres e-mail.
+            <p className="text-xs text-[var(--omni-text-muted)] italic">
+              {t('pending.under13.cleanupRule')}
+            </p>
+            <p className="text-xs text-[var(--omni-text-muted)] mt-2">
+              {t('pending.under13.loginAgain')}
             </p>
           </div>
         </div>
