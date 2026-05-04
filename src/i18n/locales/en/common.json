@@ -906,5 +906,13 @@
       "uploadFailed": "Upload error",
       "generic": "Error"
     }
+  },
+  "paymentSuccess": {
+    "title": "Thank you for your purchase!",
+    "desc1": "Your plan will be activated manually within 24 hours, usually much faster.",
+    "desc2": "If the payment was made with a different email address than your OmniNauka account, please contact us so we can assign the payment to the correct account.",
+    "mvpNote": "This is a temporary MVP process. Full automatic plan activation will be implemented in the next stage.",
+    "backToDashboard": "Back to dashboard",
+    "goToSettings": "Go to settings"
   }
 }

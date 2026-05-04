@@ -905,5 +905,13 @@
       "uploadFailed": "Błąd przesyłania",
       "generic": "Błąd"
     }
+  },
+  "paymentSuccess": {
+    "title": "Dziękujemy za zakup!",
+    "desc1": "Twój plan zostanie aktywowany ręcznie w ciągu 24 godzin, zwykle znacznie szybciej.",
+    "desc2": "Jeżeli płatność została wykonana innym adresem e-mail niż konto w OmniNauka, skontaktuj się z nami, abyśmy mogli przypisać płatność do właściwego konta.",
+    "mvpNote": "To tymczasowy proces MVP. Pełna automatyczna aktywacja planu zostanie wdrożona w kolejnym etapie.",
+    "backToDashboard": "Wróć do dashboardu",
+    "goToSettings": "Przejdź do ustawień"
   }
 }

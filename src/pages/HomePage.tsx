@@ -73,23 +73,9 @@ export default function HomePage() {
         t('home.pricing.premium.feat4', 'Sprawdziany z raportem błędów'),
         t('home.pricing.premium.feat5', 'Priorytetowe AI')
       ],
-      cta: t('home.pricing.premium.cta', 'Wypróbuj 7 dni'),
+      cta: t('home.pricing.premium.cta', 'Wybierz Premium'),
       primary: true,
-    },
-    {
-      name: t('home.pricing.premiumPlus.title', 'Premium+'),
-      price: t('home.pricing.premiumPlus.price', '49 zł'),
-      period: t('home.pricing.period', '/ miesiąc'),
-      badge: t('home.pricing.premiumPlus.badge', 'Egzaminy'),
-      features: [
-        t('home.pricing.premiumPlus.feat1', 'Wszystko z Premium'),
-        t('home.pricing.premiumPlus.feat2', 'Przygotowanie do egzaminu ósmoklasisty'),
-        t('home.pricing.premiumPlus.feat3', 'Przygotowanie do matury'),
-        t('home.pricing.premiumPlus.feat4', 'Zadania w stylu egzaminacyjnym'),
-        t('home.pricing.premiumPlus.feat5', 'Arkusze próbne i raport błędów')
-      ],
-      cta: t('home.pricing.premiumPlus.cta', 'Wypróbuj 7 dni'),
-      primary: false,
+      link: import.meta.env.VITE_STRIPE_PREMIUM_PAYMENT_LINK,
     },
     {
       name: t('home.pricing.family.title', 'Rodzinny'),
@@ -102,8 +88,9 @@ export default function HomePage() {
         t('home.pricing.family.feat4', 'Wspólna historia nauki'),
         t('home.pricing.family.feat5', 'Panel rodzica — wkrótce')
       ],
-      cta: t('home.pricing.family.cta', 'Wypróbuj 7 dni'),
+      cta: t('home.pricing.family.cta', 'Wybierz plan rodzinny'),
       primary: false,
+      link: import.meta.env.VITE_STRIPE_FAMILY_PAYMENT_LINK,
     },
   ];
 
@@ -226,7 +213,7 @@ export default function HomePage() {
           <h2 className="omni-heading-2 text-[var(--omni-text)] text-center mb-12">
             {t('home.pricing.title', 'Wybierz plan')}
           </h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-5xl mx-auto">
             {pricingPlans.map((plan, index) => (
               <div
                 key={index}
@@ -261,16 +248,32 @@ export default function HomePage() {
                   ))}
                 </ul>
                 <div className="mt-auto flex justify-center">
-                  <Link
-                    to="/register"
-                    className={`w-full inline-flex items-center justify-center whitespace-nowrap px-4 py-3 rounded-xl transition-all ${
-                      plan.primary
-                        ? 'bg-[#2EE6A6] text-[#0B1220] font-bold hover:shadow-lg'
-                        : 'bg-gray-100 text-[var(--omni-text)] font-semibold hover:bg-gray-200'
-                    }`}
-                  >
-                    {plan.cta}
-                  </Link>
+                  {plan.name === t('home.pricing.free.title', 'Darmowy') ? (
+                    <Link
+                      to="/register"
+                      className="w-full inline-flex items-center justify-center whitespace-nowrap px-4 py-3 rounded-xl transition-all bg-gray-100 text-[var(--omni-text)] font-semibold hover:bg-gray-200"
+                    >
+                      {plan.cta}
+                    </Link>
+                  ) : plan.link ? (
+                    <a
+                      href={plan.link}
+                      className={`w-full inline-flex items-center justify-center whitespace-nowrap px-4 py-3 rounded-xl transition-all ${
+                        plan.primary
+                          ? 'bg-[#2EE6A6] text-[#0B1220] font-bold hover:shadow-lg'
+                          : 'bg-gray-100 text-[var(--omni-text)] font-semibold hover:bg-gray-200'
+                      }`}
+                    >
+                      {plan.cta}
+                    </a>
+                  ) : (
+                    <button
+                      disabled
+                      className="w-full inline-flex items-center justify-center whitespace-nowrap px-4 py-3 rounded-xl transition-all bg-gray-100 text-[var(--omni-text-muted)] font-semibold opacity-60 cursor-not-allowed"
+                    >
+                      {plan.name === t('home.pricing.family.title', 'Rodzinny') ? t('home.pricing.comingSoon', 'Wkrótce') : t('home.pricing.notAvailable', 'Płatności będą dostępne wkrótce.')}
+                    </button>
+                  )}
                 </div>
               </div>
             ))}
