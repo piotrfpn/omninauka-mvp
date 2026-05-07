@@ -187,14 +187,14 @@
       },
       "premium": {
         "title": "Premium",
-        "price": "29 PLN",
+        "price": "29,99 PLN",
         "badge": "Más Popular",
         "feat1": "Más lecciones de IA cada día",
         "feat2": "Tutor de IA avanzado",
         "feat3": "Revisiones de errores",
         "feat4": "Pruebas con informes de errores",
         "feat5": "IA prioritaria",
-        "cta": "Prueba 7 días"
+        "cta": "Elegir Premium"
       },
       "premiumPlus": {
         "title": "Premium+",
@@ -209,13 +209,13 @@
       },
       "family": {
         "title": "Familiar",
-        "price": "59 PLN",
+        "price": "59,99 PLN",
         "feat1": "Hasta 3 cuentas de estudiantes",
         "feat2": "Todo en Premium",
         "feat3": "Informes de progreso",
         "feat4": "Historial de aprendizaje compartido",
         "feat5": "Panel para padres — próximamente",
-        "cta": "Prueba 7 días"
+        "cta": "Elegir Familiar"
       },
       "extra": {
         "info": "1 lección de IA = hasta 5 fotos o 1 documento PDF/DOCX.",

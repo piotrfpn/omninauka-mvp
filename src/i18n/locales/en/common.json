@@ -207,6 +207,7 @@
     "pricing": {
       "title": "Choose a plan",
       "period": "/ month",
+      "ariaPeriod": "per month",
       "free": {
         "title": "Free",
         "price": "0 PLN",
@@ -219,14 +220,14 @@
       },
       "premium": {
         "title": "Premium",
-        "price": "29 PLN",
+        "price": "PLN 29.99",
         "badge": "Most Popular",
         "feat1": "More AI lessons every day",
         "feat2": "Advanced AI Tutor",
         "feat3": "Error reviews",
         "feat4": "Tests with error reports",
         "feat5": "Priority AI",
-        "cta": "Try 7 days"
+        "cta": "Choose Premium"
       },
       "premiumPlus": {
         "title": "Premium+",
@@ -241,13 +242,13 @@
       },
       "family": {
         "title": "Family",
-        "price": "59 PLN",
+        "price": "PLN 59.99",
         "feat1": "Up to 3 student accounts",
         "feat2": "Everything in Premium",
         "feat3": "Progress reports",
         "feat4": "Shared learning history",
         "feat5": "Parent panel — coming soon",
-        "cta": "Try 7 days"
+        "cta": "Choose Family"
       },
       "extra": {
         "info": "1 AI lesson = up to 5 photos or 1 PDF/DOCX document.",

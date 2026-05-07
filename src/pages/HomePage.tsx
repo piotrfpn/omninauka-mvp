@@ -63,7 +63,7 @@ export default function HomePage() {
     },
     {
       name: t('home.pricing.premium.title', 'Premium'),
-      price: t('home.pricing.premium.price', '29 zł'),
+      price: t('home.pricing.premium.price', '29,99 zł'),
       period: t('home.pricing.period', '/ miesiąc'),
       badge: t('home.pricing.premium.badge', 'Najpopularniejszy'),
       features: [
@@ -79,7 +79,7 @@ export default function HomePage() {
     },
     {
       name: t('home.pricing.family.title', 'Rodzinny'),
-      price: t('home.pricing.family.price', '59 zł'),
+      price: t('home.pricing.family.price', '59,99 zł'),
       period: t('home.pricing.period', '/ miesiąc'),
       features: [
         t('home.pricing.family.feat1', 'Do 3 kont uczniowskich'),
@@ -128,6 +128,21 @@ export default function HomePage() {
       answer: t('home.faq.q8.a', 'Na etapie wersji beta płatności i limity mogą być uruchamiane etapowo. Obecne pakiety pokazują planowany model korzystania z OmniNauka.')
     }
   ];
+
+  const renderPrice = (priceStr: string) => {
+    const match = priceStr.match(/^(.*?)([,.]99)(.*)$/);
+    if (match) {
+      const [, prefix, cents, suffix] = match;
+      return (
+        <>
+          {prefix}
+          <span className="text-[0.6em] align-top relative -top-1">{cents}</span>
+          {suffix}
+        </>
+      );
+    }
+    return priceStr;
+  };
 
   return (
     <div className="min-h-screen bg-[var(--omni-bg)]">
@@ -231,11 +246,20 @@ export default function HomePage() {
                     </span>
                   )}
                 </div>
-                <div className="flex items-baseline mb-4">
-                  <span className="text-4xl font-bold text-[var(--omni-text)]">
-                    {plan.price}
+                <div 
+                  className="flex items-baseline mb-4"
+                  aria-label={plan.price.match(/[,.]99/) ? `${plan.price} ${t('home.pricing.ariaPeriod', 'miesięcznie')}` : undefined}
+                >
+                  <span 
+                    className="text-4xl font-bold text-[var(--omni-text)]"
+                    aria-hidden={plan.price.match(/[,.]99/) ? "true" : undefined}
+                  >
+                    {renderPrice(plan.price)}
                   </span>
-                  <span className="text-[var(--omni-text-muted)] ml-1">
+                  <span 
+                    className="text-[var(--omni-text-muted)] ml-1"
+                    aria-hidden={plan.price.match(/[,.]99/) ? "true" : undefined}
+                  >
                     {plan.period}
                   </span>
                 </div>
@@ -282,7 +306,7 @@ export default function HomePage() {
             {t('home.pricing.extra.info', '1 lekcja AI = do 5 zdjęć albo 1 dokument PDF/DOCX.')}
           </p>
           
-          <div className="mt-12 max-w-sm mx-auto bg-white/50 border border-gray-100 rounded-2xl p-6 text-center">
+          {/* <div className="mt-12 max-w-sm mx-auto bg-white/50 border border-gray-100 rounded-2xl p-6 text-center">
             <h3 className="font-semibold text-[var(--omni-text)] mb-4">{t('home.pricing.extra.title', 'Dodatkowe lekcje AI')}</h3>
             <div className="space-y-2 text-[var(--omni-text-muted)] text-sm mb-4">
               <div className="flex justify-between items-center px-4">
@@ -301,7 +325,7 @@ export default function HomePage() {
             <p className="text-xs text-[var(--omni-text-muted-light)] border-t border-gray-100 pt-4">
               {t('home.pricing.extra.note', 'Pakiety dodatkowych lekcji będą dostępne po uruchomieniu płatności.')}
             </p>
-          </div>
+          </div> */}
         </div>
       </section>
 

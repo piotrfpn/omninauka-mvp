@@ -187,14 +187,14 @@
       },
       "premium": {
         "title": "Premium",
-        "price": "29 PLN",
+        "price": "29,99 PLN",
         "badge": "Am beliebtesten",
         "feat1": "Mehr KI-Lektionen jeden Tag",
         "feat2": "Erweiterter KI-Tutor",
         "feat3": "Fehlerüberprüfungen",
         "feat4": "Tests mit Fehlerberichten",
         "feat5": "Prioritäts-KI",
-        "cta": "7 Tage testen"
+        "cta": "Premium wählen"
       },
       "premiumPlus": {
         "title": "Premium+",
@@ -209,13 +209,13 @@
       },
       "family": {
         "title": "Familie",
-        "price": "59 PLN",
+        "price": "59,99 PLN",
         "feat1": "Bis zu 3 Schülerkonten",
         "feat2": "Alles in Premium",
         "feat3": "Fortschrittsberichte",
         "feat4": "Gemeinsamer Lernverlauf",
         "feat5": "Elternpanel — demnächst",
-        "cta": "7 Tage testen"
+        "cta": "Familienplan wählen"
       },
       "extra": {
         "info": "1 KI-Lektion = bis zu 5 Fotos oder 1 PDF/DOCX-Dokument.",

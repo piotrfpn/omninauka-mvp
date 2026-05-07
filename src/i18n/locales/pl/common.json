@@ -207,6 +207,7 @@
     "pricing": {
       "title": "Wybierz plan",
       "period": "/ miesiąc",
+      "ariaPeriod": "miesięcznie",
       "free": {
         "title": "Darmowy",
         "price": "0 zł",
@@ -219,14 +220,14 @@
       },
       "premium": {
         "title": "Premium",
-        "price": "29 zł",
+        "price": "29,99 zł",
         "badge": "Najpopularniejszy",
         "feat1": "Więcej lekcji AI każdego dnia",
         "feat2": "Zaawansowany AI Tutor",
         "feat3": "Powtórki błędów",
         "feat4": "Sprawdziany z raportem błędów",
         "feat5": "Priorytetowe AI",
-        "cta": "Wypróbuj 7 dni"
+        "cta": "Wybierz Premium"
       },
       "premiumPlus": {
         "title": "Premium+",
@@ -241,13 +242,13 @@
       },
       "family": {
         "title": "Rodzinny",
-        "price": "59 zł",
+        "price": "59,99 zł",
         "feat1": "Do 3 kont uczniowskich",
         "feat2": "Wszystko z Premium",
         "feat3": "Raporty postępów",
         "feat4": "Wspólna historia nauki",
         "feat5": "Panel rodzica — wkrótce",
-        "cta": "Wypróbuj 7 dni"
+        "cta": "Wybierz plan rodzinny"
       },
       "extra": {
         "info": "1 lekcja AI = do 5 zdjęć albo 1 dokument PDF/DOCX.",
