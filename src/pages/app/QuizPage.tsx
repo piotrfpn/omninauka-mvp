@@ -5,14 +5,19 @@ import { Check, X, ArrowRight, HelpCircle, Trophy, RotateCw } from 'lucide-react
 import { useTranslation } from 'react-i18next';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../lib/auth-context';
+import { getEffectivePlan } from '../../lib/plan-utils';
+import { getFeatureAccess } from '../../lib/feature-access';
 
 // TODO: Implement premium test mode with error report (Sprint 20B)
 
 export default function QuizPage() {
   const navigate = useNavigate();
   const { id: routeId } = useParams();
-  const { isDemoMode } = useAuth();
+  const { isDemoMode, user } = useAuth();
   const { t } = useTranslation();
+  
+  const effectivePlan = getEffectivePlan(user);
+  const { quizQuestionCount } = getFeatureAccess(effectivePlan);
   
   const [questions, setQuestions] = useState<QuizQuestion[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -47,7 +52,8 @@ export default function QuizPage() {
         if (analysisStr) {
           try {
             const analysis = JSON.parse(analysisStr);
-            setQuestions(analysis.quizQuestions || []);
+            const rawQs = analysis.quizQuestions || [];
+            setQuestions(rawQs.slice(0, quizQuestionCount));
             setStartTime(Date.now());
           } catch {
             setQuestions([]);
@@ -73,7 +79,9 @@ export default function QuizPage() {
           correctAnswer: q.correctAnswer ?? q.correctIndex
         }));
 
-        setQuestions(mappedQuestions);
+        const limitedQuestions = mappedQuestions.slice(0, quizQuestionCount);
+
+        setQuestions(limitedQuestions);
         setStartTime(Date.now());
 
         // Restore Progress or Initialize New Attempt
@@ -175,7 +183,9 @@ export default function QuizPage() {
         type: 'single_choice',
         correctAnswer: qq.correctIndex
       }));
-      setQuestions(mappedQuestions);
+
+      const limitedQuestions = mappedQuestions.slice(0, quizQuestionCount);
+      setQuestions(limitedQuestions);
 
       // 2. Reset progress and start new attempt
       const newAttemptId = crypto.randomUUID();
@@ -444,10 +454,10 @@ export default function QuizPage() {
       {/* Header */}
       <div>
         <h1 className="omni-heading-3 text-[var(--omni-text)] mb-2">
-          {t('quiz.title')}
+          {effectivePlan === 'free' ? t('quiz.titleFree') : t('quiz.titlePremium')}
         </h1>
         <p className="text-[var(--omni-text-muted)]">
-          {t('quiz.subtitle')}
+          {effectivePlan === 'free' ? t('quiz.subtitle') : t('quiz.modeFull')}
         </p>
       </div>
 

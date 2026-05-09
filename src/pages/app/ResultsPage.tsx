@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import type { QuizAnswer } from '../../types';
-import { Trophy, Target, TrendingUp, Clock, ArrowRight, BookOpen, RotateCw, Bot } from 'lucide-react';
+import { Trophy, Target, TrendingUp, Clock, ArrowRight, RotateCw, Bot, Check } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../lib/auth-context';
 import { getEffectivePlan } from '../../lib/plan-utils';
@@ -100,6 +100,8 @@ export default function ResultsPage() {
 
   const score = results.totalQuestions > 0 ? Math.min(100, Math.max(0, Math.round((results.correctAnswers / results.totalQuestions) * 100))) : 0;
   const incorrectAnswers = Math.max(0, results.totalQuestions - results.correctAnswers);
+  const correctAnswers = results.answers.filter(a => a.isCorrect);
+  const mistakes = results.answers.filter(a => !a.isCorrect);
 
   const getScoreColor = () => {
     if (score >= 80) return 'text-green-500';
@@ -113,12 +115,14 @@ export default function ResultsPage() {
     return t('results.messages.improve');
   };
 
+  const isPremium = effectivePlan !== 'free';
+
   return (
-    <div className="space-y-8">
+    <div className="space-y-8 pb-12">
       {/* Header */}
       <div>
         <h1 className="omni-heading-3 text-[var(--omni-text)] mb-2">
-          {t('results.title')}
+          {isPremium ? t('results.report.title') : t('quiz.titleFree')}
         </h1>
         <p className="text-[var(--omni-text-muted)]">
           {topic}
@@ -126,14 +130,14 @@ export default function ResultsPage() {
       </div>
 
       {/* Score Card */}
-      <div className="omni-card p-6 lg:p-8 text-center">
-        <div className="w-20 h-20 bg-[var(--omni-butter)] rounded-full flex items-center justify-center mx-auto mb-4">
-          <Trophy className="w-10 h-10 text-[var(--omni-text)]" />
+      <div className="omni-card p-6 lg:p-8 text-center bg-white dark:bg-slate-800/50">
+        <div className="w-16 h-16 bg-[var(--omni-butter)] rounded-full flex items-center justify-center mx-auto mb-4">
+          <Trophy className="w-8 h-8 text-[var(--omni-text)]" />
         </div>
         <h2 className={`text-5xl lg:text-6xl font-bold ${getScoreColor()} mb-2`}>
           {score}%
         </h2>
-        <p className="text-lg text-[var(--omni-text-muted)] mb-2">
+        <p className="text-lg font-semibold text-[var(--omni-text)] mb-2">
           {getScoreMessage()}
         </p>
         <p className="text-sm text-[var(--omni-text-muted)]">
@@ -143,104 +147,194 @@ export default function ResultsPage() {
 
       {/* Stats Grid */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="omni-card p-4 text-center">
-          <Target className="w-6 h-6 text-[var(--omni-accent)] mx-auto mb-2" />
-          <p className="text-2xl font-bold text-[var(--omni-text)]">
+        <div className="omni-card p-4 text-center bg-white dark:bg-slate-800/50">
+          <Target className="w-5 h-5 text-[var(--omni-accent)] mx-auto mb-2" />
+          <p className="text-xl font-bold text-[var(--omni-text)]">
             {results.totalQuestions}
           </p>
-          <p className="text-sm text-[var(--omni-text-muted)]">{t('results.stats.totalQuestions')}</p>
+          <p className="text-[10px] uppercase tracking-wider font-bold text-[var(--omni-text-muted)]">{t('results.stats.totalQuestions')}</p>
         </div>
-        <div className="omni-card p-4 text-center">
-          <TrendingUp className="w-6 h-6 text-green-500 mx-auto mb-2" />
-          <p className="text-2xl font-bold text-green-500">
+        <div className="omni-card p-4 text-center bg-white dark:bg-slate-800/50">
+          <TrendingUp className="w-5 h-5 text-green-500 mx-auto mb-2" />
+          <p className="text-xl font-bold text-green-500">
             {results.correctAnswers}
           </p>
-          <p className="text-sm text-[var(--omni-text-muted)]">{t('results.stats.correct')}</p>
+          <p className="text-[10px] uppercase tracking-wider font-bold text-[var(--omni-text-muted)]">{t('results.stats.correct')}</p>
         </div>
-        <div className="omni-card p-4 text-center">
-          <div className="w-6 h-6 rounded-full bg-red-100 flex items-center justify-center mx-auto mb-2">
-            <span className="text-red-500 text-sm font-bold">✕</span>
+        <div className="omni-card p-4 text-center bg-white dark:bg-slate-800/50">
+          <div className="w-5 h-5 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center mx-auto mb-2">
+            <span className="text-red-500 text-[10px] font-bold">✕</span>
           </div>
-          <p className="text-2xl font-bold text-red-500">
+          <p className="text-xl font-bold text-red-500">
             {incorrectAnswers}
           </p>
-          <p className="text-sm text-[var(--omni-text-muted)]">{t('results.stats.incorrect')}</p>
+          <p className="text-[10px] uppercase tracking-wider font-bold text-[var(--omni-text-muted)]">{t('results.stats.incorrect')}</p>
         </div>
-        <div className="omni-card p-4 text-center">
-          <Clock className="w-6 h-6 text-blue-500 mx-auto mb-2" />
-          <p className="text-2xl font-bold text-[var(--omni-text)]">
-            ~{Math.round(results.answers.reduce((acc, a) => acc + a.timeSpentSeconds, 0) / 60)}m
+        <div className="omni-card p-4 text-center bg-white dark:bg-slate-800/50">
+          <Clock className="w-5 h-5 text-blue-500 mx-auto mb-2" />
+          <p className="text-xl font-bold text-[var(--omni-text)]">
+            ~{Math.max(1, Math.round(results.answers.reduce((acc, a) => acc + a.timeSpentSeconds, 0) / 60))}m
           </p>
-          <p className="text-sm text-[var(--omni-text-muted)]">{t('results.stats.time')}</p>
+          <p className="text-[10px] uppercase tracking-wider font-bold text-[var(--omni-text-muted)]">{t('results.stats.time')}</p>
         </div>
       </div>
 
-      {/* Recommendations */}
-      <div className="omni-card p-6">
-        <h3 className="font-semibold text-[var(--omni-text)] mb-4 flex items-center gap-2">
-          <BookOpen className="w-5 h-5" />
-          {t('results.recommendations.title')}
-        </h3>
-        <div className="space-y-3">
-          {score < 80 && (
-            <div className="p-4 bg-yellow-50 rounded-xl">
-              <p className="text-yellow-700">
-                <strong>{t('results.recommendations.repeatMaterial')}</strong> {t('results.recommendations.repeatFlashcardsDesc')}
-              </p>
+      {isPremium ? (
+        <>
+          {/* Premium Report: Strengths */}
+          <div className="space-y-4">
+            <h3 className="text-lg font-bold text-[var(--omni-text)] px-1">
+              {t('results.report.strengths.title')}
+            </h3>
+            <div className="omni-card p-6 bg-green-50/50 dark:bg-green-950/10 border-green-100 dark:border-green-900/30">
+              {correctAnswers.length > 0 ? (
+                <div className="space-y-4">
+                  <p className="text-sm text-green-800/80 dark:text-green-200/80 mb-4">
+                    {t('results.report.strengths.desc')}
+                  </p>
+                  <ul className="space-y-3">
+                    {correctAnswers.map((ans, idx) => (
+                      <li key={idx} className="flex items-start gap-3 text-sm text-green-900 dark:text-green-100">
+                        <div className="w-5 h-5 rounded-full bg-green-500 flex items-center justify-center flex-shrink-0 mt-0.5">
+                          <Check className="w-3 h-3 text-white" />
+                        </div>
+                        <span>{ans.questionText || `Pytanie ${idx + 1}`}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ) : (
+                <p className="text-sm text-muted-foreground italic">
+                  {t('results.report.strengths.empty')}
+                </p>
+              )}
             </div>
-          )}
-          <div className="p-4 bg-[var(--omni-lavender)]/30 rounded-xl">
-            <p className="text-[var(--omni-text)]">
-              <strong>{t('results.recommendations.strengths')}</strong> {t('results.recommendations.strengthsDesc')}
-            </p>
           </div>
-          {incorrectAnswers > 0 && (
-            <div className="p-4 bg-red-50 rounded-xl">
-              <p className="text-red-700">
-                <strong>{t('results.recommendations.toImprove')}</strong> {t('results.recommendations.improveDesc', { count: incorrectAnswers })}
-              </p>
-            </div>
-          )}
-        </div>
-      </div>
 
-      {/* Actions */}
-      <div className="flex flex-col sm:flex-row gap-4">
-        {incorrectAnswers > 0 && (
-          <div className="flex-1 flex flex-col items-center">
-            <button
-              onClick={handleExplainMistakes}
-              className="w-full px-6 py-3 bg-[var(--omni-lavender)] text-[var(--omni-accent)] font-bold rounded-2xl hover:bg-indigo-100 transition-all flex items-center justify-center gap-2"
-            >
-              <Bot className="w-5 h-5" />
-              {mistakeReview === 'preview' 
-                ? 'Wyjaśnij pierwszy błąd (Preview)' 
-                : 'Wyjaśnij błędy z AI Tutorem'}
-            </button>
-            {mistakeReview === 'preview' && (
-              <span className="text-xs text-[var(--omni-text-muted)] mt-2">
-                W Premium omówisz wszystkie błędy z AI Tutorem.
-              </span>
-            )}
+          {/* Premium Report: To Improve */}
+          {mistakes.length > 0 && (
+            <div className="space-y-4">
+              <h3 className="text-lg font-bold text-[var(--omni-text)] px-1">
+                {t('results.report.toImprove.title')}
+              </h3>
+              <div className="space-y-4">
+                {mistakes.map((ans, idx) => (
+                  <div key={idx} className="omni-card p-5 border-l-4 border-l-red-500 bg-white dark:bg-slate-800/50">
+                    <div className="space-y-4">
+                      <div>
+                        <span className="text-[10px] uppercase tracking-widest font-bold text-red-500 mb-1 block">
+                          {t('results.report.toImprove.question')}
+                        </span>
+                        <p className="text-base font-semibold text-[var(--omni-text)]">
+                          {ans.questionText || t('results.report.toImprove.fallback')}
+                        </p>
+                      </div>
+                      
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div className="p-3 rounded-xl bg-red-50 dark:bg-red-900/20 border border-red-100 dark:border-red-900/30">
+                          <span className="text-[10px] uppercase font-bold text-red-600 dark:text-red-400 block mb-1">
+                            {t('results.report.toImprove.yourAnswer')}
+                          </span>
+                          <p className="text-sm font-medium text-red-800 dark:text-red-200">
+                            {ans.selectedAnswerText || String(ans.selectedAnswer)}
+                          </p>
+                        </div>
+                        <div className="p-3 rounded-xl bg-green-50 dark:bg-green-950/30 border border-green-100 dark:border-green-900/30">
+                          <span className="text-[10px] uppercase font-bold text-green-600 dark:text-green-400 block mb-1">
+                            {t('results.report.toImprove.correctAnswer')}
+                          </span>
+                          <p className="text-sm font-medium text-green-800 dark:text-green-200">
+                            {ans.correctAnswerText || "Poprawna odpowiedź"}
+                          </p>
+                        </div>
+                      </div>
+
+                      {ans.explanation && (
+                        <div className="pt-3 border-t border-border/50">
+                          <span className="text-[10px] uppercase font-bold text-muted-foreground block mb-1">
+                            {t('results.report.toImprove.explanation')}
+                          </span>
+                          <p className="text-sm text-[var(--omni-text-muted)] italic">
+                            {ans.explanation}
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Next Steps */}
+          <div className="omni-card p-6 bg-indigo-50/30 dark:bg-indigo-950/10 border-indigo-100 dark:border-indigo-900/30">
+            <h3 className="font-bold text-[var(--omni-text)] mb-4 flex items-center gap-2">
+              <TrendingUp className="w-5 h-5 text-indigo-500" />
+              {t('results.report.nextSteps.title')}
+            </h3>
+            <ul className="space-y-3">
+              <li className="flex items-center gap-3 text-sm text-[var(--omni-text)]">
+                <div className="w-1.5 h-1.5 rounded-full bg-indigo-500" />
+                {t('results.report.nextSteps.discuss')}
+              </li>
+              <li className="flex items-center gap-3 text-sm text-[var(--omni-text)]">
+                <div className="w-1.5 h-1.5 rounded-full bg-indigo-500" />
+                {t('results.report.nextSteps.repeatFlashcards')}
+              </li>
+              <li className="flex items-center gap-3 text-sm text-[var(--omni-text)]">
+                <div className="w-1.5 h-1.5 rounded-full bg-indigo-500" />
+                {t('results.report.nextSteps.retryTest')}
+              </li>
+            </ul>
           </div>
-        )}
-        <button
-          onClick={() => navigate('/app/quiz')}
-          className="flex-1 omni-btn-primary"
-        >
-          <RotateCw className="w-5 h-5" />
-          {t('results.actions.repeatQuiz')}
-        </button>
-        {incorrectAnswers === 0 && (
-          <Link to="/app/flashcards" className="flex-1 omni-btn-secondary">
-            <BookOpen className="w-5 h-5" />
-            {t('results.actions.learnFlashcards')}
+        </>
+      ) : (
+        /* Free View Upsell */
+        <div className="omni-card p-6 border-2 border-dashed border-indigo-200 dark:border-indigo-900/50 bg-indigo-50/20 dark:bg-indigo-950/10 text-center">
+          <Bot className="w-10 h-10 text-indigo-500 mx-auto mb-4" />
+          <h3 className="text-lg font-bold text-[var(--omni-text)] mb-2">
+            {t('results.report.upsell.title')}
+          </h3>
+          <p className="text-sm text-[var(--omni-text-muted)] mb-6 max-w-sm mx-auto">
+            {t('results.report.upsell.desc')}
+          </p>
+          <Link to="/app/payments" className="omni-btn-primary inline-flex">
+            {t('results.report.upsell.cta')}
           </Link>
+        </div>
+      )}
+
+      {/* Primary Actions */}
+      <div className="flex flex-col gap-4">
+        {incorrectAnswers > 0 && (
+          <button
+            onClick={handleExplainMistakes}
+            className="w-full p-5 bg-gradient-to-r from-indigo-600 to-violet-600 text-white font-bold rounded-2xl hover:opacity-90 transition-all flex items-center justify-center gap-3 shadow-lg shadow-indigo-200 dark:shadow-none"
+          >
+            <Bot className="w-6 h-6" />
+            <div className="text-left">
+              <p className="text-base leading-none mb-1">
+                {isPremium ? t('results.report.actions.discuss') : 'Wyjaśnij pierwszy błąd (Preview)'}
+              </p>
+              {!isPremium && <p className="text-[10px] font-medium opacity-80">W Premium omówisz wszystkie błędy</p>}
+            </div>
+          </button>
         )}
-        <Link to="/app/dashboard" className="flex-1 omni-btn-secondary">
-          {t('results.actions.dashboard')}
-          <ArrowRight className="w-5 h-5" />
-        </Link>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <button
+            onClick={() => navigate('/app/quiz')}
+            className="omni-btn-secondary py-4 flex items-center justify-center gap-2"
+          >
+            <RotateCw className="w-5 h-5" />
+            {isPremium ? t('results.report.actions.repeatTest') : t('results.actions.repeatQuiz')}
+          </button>
+          
+          <Link to="/app/dashboard" className="omni-btn-secondary py-4 flex items-center justify-center gap-2">
+            <ArrowRight className="w-5 h-5 order-last" />
+            {t('results.report.actions.dashboard')}
+          </Link>
+        </div>
       </div>
     </div>
   );

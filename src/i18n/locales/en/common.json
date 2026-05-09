@@ -679,7 +679,11 @@
   },
   "quiz": {
     "title": "Quiz",
+    "titleFree": "Basic Quiz",
+    "titlePremium": "Premium Test",
     "subtitle": "Test your knowledge",
+    "modeShort": "Short Quiz",
+    "modeFull": "Full Test with Error Report",
     "empty": {
       "title": "No questions",
       "desc": "Upload your notes first, and AI will generate quiz questions for you.",
@@ -748,7 +752,39 @@
     "actions": {
       "repeatQuiz": "Repeat quiz",
       "learnFlashcards": "Learn flashcards",
-      "dashboard": "Dashboard"
+      "dashboard": "Main Panel"
+    },
+    "report": {
+      "title": "Premium Test Report",
+      "strengths": {
+        "title": "Your Strengths",
+        "desc": "You did well on these questions:",
+        "empty": "You did well on some questions from this material."
+      },
+      "toImprove": {
+        "title": "To Improve",
+        "question": "Question",
+        "yourAnswer": "Your answer",
+        "correctAnswer": "Correct answer",
+        "explanation": "Explanation",
+        "fallback": "Full question content could not be read, but you can discuss this error with the AI Tutor."
+      },
+      "nextSteps": {
+        "title": "What to do now?",
+        "discuss": "Discuss errors with AI Tutor",
+        "repeatFlashcards": "Repeat flashcards for difficult concepts",
+        "retryTest": "Try taking the test again"
+      },
+      "upsell": {
+        "title": "Want a full report?",
+        "desc": "In Premium, you receive a full test report and a detailed discussion of all errors.",
+        "cta": "Check Premium"
+      },
+      "actions": {
+        "discuss": "Discuss these errors with AI Tutor",
+        "repeatTest": "Repeat test",
+        "dashboard": "Main Panel"
+      }
     }
   },
   "history": {

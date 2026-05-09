@@ -4,6 +4,8 @@ import type { AnalysisResult, KeyConcept } from '../../types';
 import { getDemoAnalysis } from '../../mock/data';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../lib/auth-context';
+import { getEffectivePlan } from '../../lib/plan-utils';
+import { getFeatureAccess } from '../../lib/feature-access';
 import { useTranslation } from 'react-i18next';
 
 import {
@@ -25,7 +27,10 @@ import { ConceptDetailSheet } from '../../components/lessons/concept-detail-shee
 export default function AnalysisPage() {
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const { isDemoMode } = useAuth();
+  const { isDemoMode, user } = useAuth();
+
+  const effectivePlan = getEffectivePlan(user);
+  const { maxFlashcardsPerLesson, quizQuestionCount } = getFeatureAccess(effectivePlan);
   const [analysis, setAnalysis] = useState<AnalysisResult | null>(null);
   const [uploadedImage, setUploadedImage] = useState<string | null>(null);
   const [sessionImages, setSessionImages] = useState<string[]>([]);
@@ -417,7 +422,7 @@ export default function AnalysisPage() {
                 {t('analysis.actions.quiz.title')}
               </h4>
               <p className="text-[10px] text-[var(--omni-text-muted)]">
-                {t('analysis.actions.quiz.desc', { count: analysis.quizQuestions.length })}
+                {t('analysis.actions.quiz.desc', { count: Math.min(analysis.quizQuestions.length, quizQuestionCount) })}
               </p>
             </div>
             <ArrowRight className="w-4 h-4 text-[var(--omni-text-muted)] group-hover:translate-x-1 transition-transform" />
@@ -436,7 +441,7 @@ export default function AnalysisPage() {
                 {t('analysis.actions.flashcards.title')}
               </h4>
               <p className="text-[10px] text-[var(--omni-text-muted)]">
-                {t('analysis.actions.flashcards.desc', { count: analysis.flashcards.length })}
+                {t('analysis.actions.flashcards.desc', { count: Math.min(analysis.flashcards.length, maxFlashcardsPerLesson) })}
               </p>
             </div>
             <ArrowRight className="w-4 h-4 text-[var(--omni-text-muted)] group-hover:translate-x-1 transition-transform" />

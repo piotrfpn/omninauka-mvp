@@ -6,6 +6,7 @@ export interface FeatureAccess {
   aiLessonsPerDay: number;
   tutorMode: TutorMode;
   maxFlashcardsPerLesson: number;
+  quizQuestionCount: number;
   mistakeReview: MistakeReviewAccess;
   premiumTest: boolean;
 }
@@ -14,6 +15,7 @@ const freeFeatures: FeatureAccess = {
   aiLessonsPerDay: 2,
   tutorMode: 'basic',
   maxFlashcardsPerLesson: 5,
+  quizQuestionCount: 5,
   mistakeReview: 'preview',
   premiumTest: false,
 };
@@ -22,6 +24,7 @@ const premiumFeatures: FeatureAccess = {
   aiLessonsPerDay: 10,
   tutorMode: 'advanced',
   maxFlashcardsPerLesson: 20,
+  quizQuestionCount: 10,
   mistakeReview: 'full',
   premiumTest: true,
 };

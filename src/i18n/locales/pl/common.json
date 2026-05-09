@@ -678,7 +678,11 @@
   },
   "quiz": {
     "title": "Quiz",
+    "titleFree": "Quiz podstawowy",
+    "titlePremium": "Sprawdzian Premium",
     "subtitle": "Sprawdź swoją wiedzę",
+    "modeShort": "Krótki quiz",
+    "modeFull": "Dłuższy sprawdzian z raportem błędów",
     "empty": {
       "title": "Brak pytań",
       "desc": "Najpierw prześlij swoje notatki, a AI wygeneruje pytania do quizu.",
@@ -747,7 +751,39 @@
     "actions": {
       "repeatQuiz": "Powtórz quiz",
       "learnFlashcards": "Ucz się fiszek",
-      "dashboard": "Dashboard"
+      "dashboard": "Panel główny"
+    },
+    "report": {
+      "title": "Raport ze sprawdzianu",
+      "strengths": {
+        "title": "Twoje mocne strony",
+        "desc": "Dobrze poradziłeś sobie z tymi pytaniami:",
+        "empty": "Dobrze poradziłeś sobie z częścią pytań z tego materiału."
+      },
+      "toImprove": {
+        "title": "Do poprawy",
+        "question": "Pytanie",
+        "yourAnswer": "Twoja odpowiedź",
+        "correctAnswer": "Poprawna odpowiedź",
+        "explanation": "Wyjaśnienie",
+        "fallback": "Nie udało się odczytać pełnej treści pytania, ale możesz omówić ten błąd z AI Tutorem."
+      },
+      "nextSteps": {
+        "title": "Co teraz zrobić?",
+        "discuss": "Omów błędy z AI Tutorem",
+        "repeatFlashcards": "Powtórz fiszki z trudnych pojęć",
+        "retryTest": "Spróbuj ponownie rozwiązać sprawdzian"
+      },
+      "upsell": {
+        "title": "Chcesz pełny raport?",
+        "desc": "W Premium otrzymujesz pełny raport ze sprawdzianu oraz szczegółowe omówienie wszystkich błędów.",
+        "cta": "Sprawdź Premium"
+      },
+      "actions": {
+        "discuss": "Omów te błędy z AI Tutorem",
+        "repeatTest": "Powtórz sprawdzian",
+        "dashboard": "Panel główny"
+      }
     }
   },
   "history": {
