@@ -50,37 +50,39 @@ export default function HomePage() {
     {
       name: t('home.pricing.free.title', 'Darmowy'),
       price: t('home.pricing.free.price', '0 zł'),
-      period: t('home.pricing.period', '/ miesiąc'),
+      period: '',
       features: [
         t('home.pricing.free.feat1', '2 lekcje AI dziennie'),
         t('home.pricing.free.feat2', 'AI Tutor tekstowy'),
         t('home.pricing.free.feat3', 'Quizy z wyjaśnieniami'),
         t('home.pricing.free.feat4', 'Historia nauki'),
-        t('home.pricing.free.feat5', 'Kolejna lekcja AI: 1,99 zł')
+        t('home.pricing.free.feat5', 'Podstawowe fiszki')
       ],
       cta: t('home.pricing.free.cta', 'Zacznij za darmo'),
       primary: false,
     },
     {
-      name: t('home.pricing.premium.title', 'Premium'),
+      name: t('home.pricing.premium.title', 'Premium 30 dni'),
       price: t('home.pricing.premium.price', '29,99 zł'),
-      period: t('home.pricing.period', '/ miesiąc'),
+      period: '',
+      tags: ['Płatność jednorazowa', 'Bez automatycznego odnawiania'],
       badge: t('home.pricing.premium.badge', 'Najpopularniejszy'),
       features: [
         t('home.pricing.premium.feat1', 'Więcej lekcji AI każdego dnia'),
         t('home.pricing.premium.feat2', 'Zaawansowany AI Tutor'),
         t('home.pricing.premium.feat3', 'Powtórki błędów'),
         t('home.pricing.premium.feat4', 'Sprawdziany z raportem błędów'),
-        t('home.pricing.premium.feat5', 'Priorytetowe AI')
+        t('home.pricing.premium.feat5', 'Priorytetowe AI w ramach fair use')
       ],
-      cta: t('home.pricing.premium.cta', 'Wybierz Premium'),
+      cta: t('home.pricing.premium.cta', 'Kup Premium na 30 dni'),
       primary: true,
-      link: import.meta.env.VITE_STRIPE_PREMIUM_PAYMENT_LINK,
+      link: import.meta.env.VITE_STRIPE_PREMIUM_30_DAYS_PAYMENT_LINK || import.meta.env.VITE_STRIPE_PREMIUM_PAYMENT_LINK,
     },
     {
-      name: t('home.pricing.family.title', 'Rodzinny'),
+      name: t('home.pricing.family.title', 'Rodzinny 30 dni'),
       price: t('home.pricing.family.price', '59,99 zł'),
-      period: t('home.pricing.period', '/ miesiąc'),
+      period: '',
+      tags: ['Płatność jednorazowa', 'Bez automatycznego odnawiania'],
       features: [
         t('home.pricing.family.feat1', 'Do 3 kont uczniowskich'),
         t('home.pricing.family.feat2', 'Wszystko z Premium'),
@@ -88,9 +90,9 @@ export default function HomePage() {
         t('home.pricing.family.feat4', 'Wspólna historia nauki'),
         t('home.pricing.family.feat5', 'Panel rodzica — wkrótce')
       ],
-      cta: t('home.pricing.family.cta', 'Wybierz plan rodzinny'),
+      cta: t('home.pricing.family.cta', 'Kup Rodzinny na 30 dni'),
       primary: false,
-      link: import.meta.env.VITE_STRIPE_FAMILY_PAYMENT_LINK,
+      link: import.meta.env.VITE_STRIPE_FAMILY_30_DAYS_PAYMENT_LINK || import.meta.env.VITE_STRIPE_FAMILY_PAYMENT_LINK,
     },
   ];
 
@@ -246,6 +248,15 @@ export default function HomePage() {
                     </span>
                   )}
                 </div>
+                {plan.tags && plan.tags.length > 0 && (
+                  <div className="flex gap-2 mb-3 flex-wrap">
+                    {plan.tags.map((tag: string, tIndex: number) => (
+                      <span key={tIndex} className="text-[10px] font-semibold uppercase tracking-wide bg-gray-100 text-[var(--omni-text-muted)] px-2 py-1 rounded-md">
+                        {tag}
+                      </span>
+                    ))}
+                  </div>
+                )}
                 <div 
                   className="flex items-baseline mb-4"
                   aria-label={plan.price.match(/[,.]99/) ? `${plan.price} ${t('home.pricing.ariaPeriod', 'miesięcznie')}` : undefined}
@@ -306,26 +317,32 @@ export default function HomePage() {
             {t('home.pricing.extra.info', '1 lekcja AI = do 5 zdjęć albo 1 dokument PDF/DOCX.')}
           </p>
           
-          {/* <div className="mt-12 max-w-sm mx-auto bg-white/50 border border-gray-100 rounded-2xl p-6 text-center">
-            <h3 className="font-semibold text-[var(--omni-text)] mb-4">{t('home.pricing.extra.title', 'Dodatkowe lekcje AI')}</h3>
-            <div className="space-y-2 text-[var(--omni-text-muted)] text-sm mb-4">
-              <div className="flex justify-between items-center px-4">
-                <span>{t('home.pricing.extra.pack1', '5 lekcji AI')}</span>
-                <span className="font-medium text-[var(--omni-text)]">{t('home.pricing.extra.price1', '7,99 zł')}</span>
+          <div className="mt-12 max-w-2xl mx-auto bg-white/60 border border-gray-100 rounded-2xl p-6 md:p-8 text-center shadow-sm">
+            <h3 className="font-bold text-2xl text-[var(--omni-text)] mb-2">Potrzebujesz więcej nauki?</h3>
+            <p className="text-[var(--omni-text-muted)] mb-6">
+              Dodatkowe lekcje AI dostępne są w pakietach od 9,99 zł.
+            </p>
+            
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
+              <div className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm flex flex-col items-center">
+                <span className="text-xl font-bold text-[var(--omni-text)] mb-1">9,99 zł</span>
+                <span className="text-sm font-medium text-[var(--omni-text-muted)]">5 lekcji AI</span>
               </div>
-              <div className="flex justify-between items-center px-4">
-                <span>{t('home.pricing.extra.pack2', '10 lekcji AI')}</span>
-                <span className="font-medium text-[var(--omni-text)]">{t('home.pricing.extra.price2', '14,99 zł')}</span>
+              <div className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm flex flex-col items-center">
+                <span className="text-xl font-bold text-[var(--omni-text)] mb-1">17,99 zł</span>
+                <span className="text-sm font-medium text-[var(--omni-text-muted)]">10 lekcji AI</span>
               </div>
-              <div className="flex justify-between items-center px-4">
-                <span>{t('home.pricing.extra.pack3', '25 lekcji AI')}</span>
-                <span className="font-medium text-[var(--omni-text)]">{t('home.pricing.extra.price3', '29,99 zł')}</span>
+              <div className="bg-white p-4 rounded-xl border border-[var(--omni-accent)]/30 ring-1 ring-[var(--omni-accent)]/10 shadow-sm flex flex-col items-center relative overflow-hidden">
+                <div className="absolute top-0 right-0 bg-[var(--omni-accent)]/10 text-[var(--omni-accent)] text-[10px] font-bold px-2 py-0.5 rounded-bl-lg">Najtaniej</div>
+                <span className="text-xl font-bold text-[var(--omni-text)] mb-1">34,99 zł</span>
+                <span className="text-sm font-medium text-[var(--omni-text-muted)]">25 lekcji AI</span>
               </div>
             </div>
-            <p className="text-xs text-[var(--omni-text-muted-light)] border-t border-gray-100 pt-4">
-              {t('home.pricing.extra.note', 'Pakiety dodatkowych lekcji będą dostępne po uruchomieniu płatności.')}
-            </p>
-          </div> */}
+
+            <Link to="/login" className="omni-btn-secondary inline-flex items-center gap-2">
+              Dokup lekcje po zalogowaniu
+            </Link>
+          </div>
         </div>
       </section>
 

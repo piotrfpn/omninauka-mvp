@@ -239,7 +239,7 @@ export default function TermsPage() {
         </ul>
         <p>3. Plan Premium może obejmować:</p>
         <ul className="list-[lower-alpha] pl-6 space-y-1">
-          <li>29 zł miesięcznie,</li>
+          <li>29,99 zł miesięcznie,</li>
           <li>więcej lekcji AI każdego dnia,</li>
           <li>zaawansowany AI Tutor,</li>
           <li>powtórki błędów,</li>
@@ -257,7 +257,7 @@ export default function TermsPage() {
         </ul>
         <p>5. Plan Rodzinny może obejmować:</p>
         <ul className="list-[lower-alpha] pl-6 space-y-1">
-          <li>59 zł miesięcznie,</li>
+          <li>59,99 zł miesięcznie,</li>
           <li>do 3 kont uczniowskich,</li>
           <li>funkcje Premium,</li>
           <li>raporty postępów,</li>

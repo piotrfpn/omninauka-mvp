@@ -211,23 +211,23 @@
       "free": {
         "title": "Free",
         "price": "0 PLN",
-        "feat1": "2 AI lessons daily",
+        "feat1": "2 AI lessons per day",
         "feat2": "Text AI Tutor",
         "feat3": "Quizzes with explanations",
         "feat4": "Learning history",
-        "feat5": "Next AI lesson: 1.99 PLN",
+        "feat5": "Basic flashcards",
         "cta": "Start for free"
       },
       "premium": {
-        "title": "Premium",
+        "title": "Premium 30 days",
         "price": "PLN 29.99",
-        "badge": "Most Popular",
+        "badge": "Most popular",
         "feat1": "More AI lessons every day",
         "feat2": "Advanced AI Tutor",
         "feat3": "Error reviews",
         "feat4": "Tests with error reports",
         "feat5": "Priority AI",
-        "cta": "Choose Premium"
+        "cta": "Buy Premium for 30 days"
       },
       "premiumPlus": {
         "title": "Premium+",
@@ -241,14 +241,14 @@
         "cta": "Try 7 days"
       },
       "family": {
-        "title": "Family",
+        "title": "Family 30 days",
         "price": "PLN 59.99",
         "feat1": "Up to 3 student accounts",
         "feat2": "Everything in Premium",
         "feat3": "Progress reports",
         "feat4": "Shared learning history",
         "feat5": "Parent panel — coming soon",
-        "cta": "Choose Family"
+        "cta": "Buy Family for 30 days"
       },
       "extra": {
         "info": "1 AI lesson = up to 5 photos or 1 PDF/DOCX document.",

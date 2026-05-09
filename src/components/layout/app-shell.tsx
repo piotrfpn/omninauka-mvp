@@ -16,6 +16,7 @@ import {
   LogOut,
   ChevronRight,
   ShieldCheck,
+  CreditCard,
 } from 'lucide-react';
 import OmniNaukaLogo from '../brand/OmniNaukaLogo';
 import { useTranslation } from 'react-i18next';
@@ -42,6 +43,7 @@ export function AppShell({ children }: AppShellProps) {
   ];
 
   const bottomNavItems = [
+    { label: t('appShell.nav.payments', 'Płatności i plan'), href: '/app/payments', icon: CreditCard },
     { label: t('appShell.nav.profile', 'Profil'), href: '/app/profile', icon: User },
     { label: t('appShell.nav.settings', 'Ustawienia'), href: '/app/settings', icon: Settings },
   ];

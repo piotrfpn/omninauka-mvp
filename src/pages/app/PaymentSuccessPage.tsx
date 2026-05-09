@@ -13,12 +13,12 @@ export default function PaymentSuccessPage() {
         </div>
         
         <h1 className="omni-heading-2 text-[var(--omni-text)] mb-4">
-          {t('paymentSuccess.title', 'Dziękujemy za zakup!')}
+          {t('paymentSuccess.title', 'Płatność została rozpoczęta lub zakończona')}
         </h1>
         
         <div className="space-y-4 text-[var(--omni-text-muted)] text-lg mb-8">
           <p>
-            {t('paymentSuccess.desc1', 'Twój plan zostanie aktywowany ręcznie w ciągu 24 godzin, zwykle znacznie szybciej.')}
+            {t('paymentSuccess.desc1', 'Jeśli płatność została poprawnie opłacona, aktywujemy plan ręcznie po potwierdzeniu płatności. Aktywacja planu może potrwać do 24 godzin.')}
           </p>
           <p className="text-sm">
             {t('paymentSuccess.desc2', 'Jeżeli płatność została wykonana innym adresem e-mail niż konto w OmniNauka, skontaktuj się z nami, abyśmy mogli przypisać płatność do właściwego konta.')}
@@ -40,11 +40,11 @@ export default function PaymentSuccessPage() {
             <ArrowRight className="w-4 h-4" />
           </Link>
           <Link 
-            to="/app/settings" 
+            to="/app/payments" 
             className="px-6 py-3 border border-gray-200 text-[var(--omni-text-muted)] rounded-xl font-medium hover:bg-gray-50 transition-colors flex items-center justify-center gap-2"
           >
             <Settings className="w-4 h-4" />
-            {t('paymentSuccess.goToSettings', 'Przejdź do ustawień')}
+            {t('paymentSuccess.goToSettings', 'Zobacz płatności i plan')}
           </Link>
         </div>
       </div>

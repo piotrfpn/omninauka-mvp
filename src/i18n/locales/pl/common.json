@@ -215,19 +215,19 @@
         "feat2": "AI Tutor tekstowy",
         "feat3": "Quizy z wyjaśnieniami",
         "feat4": "Historia nauki",
-        "feat5": "Kolejna lekcja AI: 1,99 zł",
+        "feat5": "Podstawowe fiszki",
         "cta": "Zacznij za darmo"
       },
       "premium": {
-        "title": "Premium",
+        "title": "Premium 30 dni",
         "price": "29,99 zł",
         "badge": "Najpopularniejszy",
         "feat1": "Więcej lekcji AI każdego dnia",
         "feat2": "Zaawansowany AI Tutor",
         "feat3": "Powtórki błędów",
         "feat4": "Sprawdziany z raportem błędów",
-        "feat5": "Priorytetowe AI",
-        "cta": "Wybierz Premium"
+        "feat5": "Priorytetowe AI w ramach fair use",
+        "cta": "Kup Premium na 30 dni"
       },
       "premiumPlus": {
         "title": "Premium+",
@@ -241,14 +241,14 @@
         "cta": "Wypróbuj 7 dni"
       },
       "family": {
-        "title": "Rodzinny",
+        "title": "Rodzinny 30 dni",
         "price": "59,99 zł",
         "feat1": "Do 3 kont uczniowskich",
         "feat2": "Wszystko z Premium",
         "feat3": "Raporty postępów",
         "feat4": "Wspólna historia nauki",
         "feat5": "Panel rodzica — wkrótce",
-        "cta": "Wybierz plan rodzinny"
+        "cta": "Kup Rodzinny na 30 dni"
       },
       "extra": {
         "info": "1 lekcja AI = do 5 zdjęć albo 1 dokument PDF/DOCX.",
