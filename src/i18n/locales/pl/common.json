@@ -641,7 +641,7 @@
       "clickToFlip": "Kliknij, by odwrócić"
     },
     "controls": {
-      "dontKnow": "Nie wiem",
+      "dontKnow": "Do powtórki",
       "know": "Znam",
       "prev": "Poprzednia karta",
       "next": "Następna karta"
@@ -661,13 +661,22 @@
       "title": "Gratulacje!",
       "desc": "Przerobiłeś wszystkie fiszki. Znasz {{known}} z {{total}} pojęć.",
       "descFree": "Przerobiłeś podstawową serię fiszek. Znasz {{known}} z {{total}} pojęć.",
-      "upsellHidden": "W Premium odblokujesz więcej fiszek, powtórki i pełniejszą naukę do sprawdzianu.",
-      "repeatDifficult": "Powtórz trudne ({{count}})",
+      "upsellHidden": "W Premium odblokujesz więcej fiszek, powtórki trudnych pojęć i pełniejszą naukę do sprawdzianu.",
+      "repeatDifficult": "Powtórz trudne fiszki",
+      "difficultRemaining": "Masz {{count}} fiszek, które warto powtórzyć.",
+      "allMastered": "Koniec powtórki! Wszystkie trudne fiszki zostały opanowane.",
+      "noneDifficult": "Świetnie! Nie oznaczono żadnych fiszek do powtórki.",
+      "repeatAgain": "Powtórz jeszcze raz",
+      "checkPremium": "Sprawdź Premium",
       "repeatAll": "Powtórz wszystkie",
       "repeatSame": "Powtórz tę samą serię",
       "regenerate": "Wygeneruj nowe fiszki",
       "goToQuiz": "Przejdź do quizu",
       "backToResults": "Powrót do wyników"
+    },
+    "review": {
+      "title": "Powtórka trudnych fiszek",
+      "subtitle": "Utrwal pojęcia, które sprawiły Ci trudność"
     },
     "notifications": {
       "regenerateConfirm": "Czy na pewno chcesz wygenerować nowy zestaw fiszek? Obecny zestaw zostanie zastąpiony nowymi pojęciami z Twoich notatek.",

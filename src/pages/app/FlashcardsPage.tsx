@@ -25,7 +25,8 @@ export default function FlashcardsPage() {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isFlipped, setIsFlipped] = useState(false);
   const [knownCards, setKnownCards] = useState<Set<string>>(new Set());
-  const [hasHiddenCards, setHasHiddenCards] = useState(false);
+  const [difficultCards, setDifficultCards] = useState<FlashcardData[]>([]);
+  const [isReviewMode, setIsReviewMode] = useState(false);
   const [hasUsedFreeRegen, setHasUsedFreeRegen] = useState(false);
   const [flashcardProgress, setFlashcardProgress] = useState<FlashcardProgressState>({});
   const [isLoading, setIsLoading] = useState(true);
@@ -88,7 +89,6 @@ export default function FlashcardsPage() {
         
         // Feature Gate: Limit flashcards based on plan
         const limitedCards = mappedCards.slice(0, maxFlashcardsPerLesson);
-        setHasHiddenCards(mappedCards.length > maxFlashcardsPerLesson);
         
         setFlashcards(limitedCards);
         setFlashcardProgress(prog);
@@ -102,6 +102,21 @@ export default function FlashcardsPage() {
             if (Array.isArray(progress.knownCards)) setKnownCards(new Set(progress.knownCards));
           } catch (e) {
             console.error("Failed to parse flashcards progress", e);
+          }
+        }
+
+        // Restore difficult cards from localStorage for Review Mode
+        const userId = user?.id || 'anonymous';
+        const reviewKey = `omninauka_flashcards_review_${userId}_${sessionId}`;
+        const reviewStr = localStorage.getItem(reviewKey);
+        if (reviewStr) {
+          try {
+            const stored = JSON.parse(reviewStr);
+            if (Array.isArray(stored)) {
+              setDifficultCards(stored);
+            }
+          } catch (e) {
+            console.error("Failed to parse difficult cards", e);
           }
         }
       } catch (err) {
@@ -192,7 +207,6 @@ export default function FlashcardsPage() {
       // TODO: Enforce flashcard generation limits in backend in Sprint 20B
       // Feature Gate: Limit flashcards based on plan
       const limitedCards = mappedCards.slice(0, maxFlashcardsPerLesson);
-      setHasHiddenCards(mappedCards.length > maxFlashcardsPerLesson);
       setFlashcards(limitedCards);
 
       // 2. Reset progress
@@ -235,16 +249,43 @@ export default function FlashcardsPage() {
     return { toReview, difficult, mastered };
   }, [flashcards, flashcardProgress]);
 
-  const updateProgress = (cardId: string, status: 'know' | 'dont_know') => {
+  const persistDifficultCards = (cards: FlashcardData[]) => {
+    const sessionId = routeId || sessionStorage.getItem('currentSessionId');
+    const userId = user?.id || 'anonymous';
+    if (!sessionId) return;
+    const reviewKey = `omninauka_flashcards_review_${userId}_${sessionId}`;
+    localStorage.setItem(reviewKey, JSON.stringify(cards));
+  };
+
+  const updateProgress = (card: FlashcardData, status: 'know' | 'dont_know') => {
     const sessionId = routeId || sessionStorage.getItem('currentSessionId');
     if (!sessionId || isDemoMode || sessionId === 'demo-session') return;
 
     const now = new Date().toISOString();
+    
+    // Update difficult cards list for Premium
+    if (effectivePlan !== 'free') {
+      if (status === 'dont_know') {
+        setDifficultCards(prev => {
+          if (prev.some(c => c.id === card.id)) return prev;
+          const next = [...prev, card];
+          persistDifficultCards(next);
+          return next;
+        });
+      } else if (status === 'know' && isReviewMode) {
+        setDifficultCards(prev => {
+          const next = prev.filter(c => c.id !== card.id);
+          persistDifficultCards(next);
+          return next;
+        });
+      }
+    }
+
     setFlashcardProgress(prev => {
-      const existing = prev[cardId] || { know_count: 0, dont_know_count: 0 };
+      const existing = prev[card.id] || { know_count: 0, dont_know_count: 0 };
       const nextProgress = {
         ...prev,
-        [cardId]: {
+        [card.id]: {
           status,
           last_reviewed_at: now,
           know_count: existing.know_count + (status === 'know' ? 1 : 0),
@@ -252,7 +293,7 @@ export default function FlashcardsPage() {
         }
       };
 
-      // Optimistic persistence without blocking the UX loop
+      // Optimistic persistence
       supabase
         .from('study_sessions')
         .update({ flashcard_progress: nextProgress })
@@ -289,14 +330,14 @@ export default function FlashcardsPage() {
   const handleKnown = () => {
     if (currentCard) {
       setKnownCards(prev => new Set([...prev, currentCard.id]));
-      updateProgress(currentCard.id, 'know');
+      updateProgress(currentCard, 'know');
       handleNext();
     }
   };
 
   const handleUnknown = () => {
     if (currentCard) {
-      updateProgress(currentCard.id, 'dont_know');
+      updateProgress(currentCard, 'dont_know');
       handleNext();
     }
   };
@@ -332,129 +373,153 @@ export default function FlashcardsPage() {
   }
 
   if (currentIndex >= flashcards.length) {
-    const hasDifficult = flashcards.some(c => flashcardProgress[c.id]?.status === 'dont_know');
-    const gridColsClass = hasDifficult 
-      ? "grid-cols-2 md:grid-cols-3 lg:grid-cols-5" 
-      : "grid-cols-2 md:grid-cols-4";
+    const hasDifficult = difficultCards.length > 0;
+    
+    // Premium specific logic
+    if (effectivePlan !== 'free') {
+      return (
+        <div className="flex flex-col items-center justify-center min-h-[60vh] w-full px-4">
+          <div className="omni-card p-6 md:p-8 text-center max-w-2xl w-full mx-auto shadow-sm">
+            <div className={`w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6 ${hasDifficult ? 'bg-orange-100' : 'bg-green-100'}`}>
+              <span className="text-3xl">{hasDifficult ? '💡' : '🏆'}</span>
+            </div>
+            
+            <h2 className="omni-heading-3 text-[var(--omni-text)] mb-2">
+              {isReviewMode ? t('flashcards.review.title') : t('flashcards.completion.title')}
+            </h2>
+            
+            <div className="mb-8">
+              {hasDifficult ? (
+                <>
+                  <p className="text-orange-700 font-medium mb-2">
+                    {t('flashcards.completion.difficultRemaining', { count: difficultCards.length })}
+                  </p>
+                  <div className="flex flex-wrap justify-center gap-2 mt-4">
+                    {difficultCards.slice(0, 5).map(c => (
+                      <span key={c.id} className="px-3 py-1 bg-orange-50 text-orange-600 rounded-full text-xs font-medium border border-orange-100">
+                        {c.front}
+                      </span>
+                    ))}
+                    {difficultCards.length > 5 && (
+                      <span className="px-3 py-1 bg-orange-50 text-orange-600 rounded-full text-xs font-medium border border-orange-100">
+                        +{difficultCards.length - 5}...
+                      </span>
+                    )}
+                  </div>
+                </>
+              ) : (
+                <p className="text-green-700 font-medium">
+                  {isReviewMode ? t('flashcards.completion.allMastered') : t('flashcards.completion.noneDifficult')}
+                </p>
+              )}
+            </div>
 
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {hasDifficult ? (
+                <button
+                  onClick={() => {
+                    setFlashcards(difficultCards);
+                    setCurrentIndex(0);
+                    setKnownCards(new Set());
+                    setIsFlipped(false);
+                    setIsReviewMode(true);
+                  }}
+                  className="omni-btn-primary bg-orange-500 hover:bg-orange-600 border-none py-4 text-sm"
+                >
+                  {t('flashcards.completion.repeatDifficult')}
+                </button>
+              ) : (
+                <button
+                  onClick={() => {
+                    const currentId = routeId || sessionStorage.getItem('currentSessionId');
+                    navigate(`/app/quiz/${currentId}`);
+                  }}
+                  className="omni-btn-primary py-4 text-sm"
+                >
+                  {t('flashcards.completion.goToQuiz')}
+                </button>
+              )}
+
+              <button
+                onClick={() => {
+                  window.location.reload(); // Hard reload to reset state
+                }}
+                className="omni-btn-secondary py-4 text-sm"
+              >
+                {hasDifficult ? t('flashcards.completion.repeatAgain') : t('flashcards.completion.repeatSame')}
+              </button>
+
+              <button
+                onClick={handleRegenerate}
+                disabled={isRegenerating}
+                className="omni-btn-secondary py-4 text-sm flex items-center justify-center gap-2"
+              >
+                {isRegenerating ? (
+                  <div className="w-4 h-4 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin" />
+                ) : (
+                  <RotateCw className="w-4 h-4" />
+                )}
+                {t('flashcards.completion.regenerate')}
+              </button>
+
+              <button
+                onClick={() => navigate('/app/results')}
+                className="omni-btn-secondary py-4 text-sm"
+              >
+                {t('flashcards.completion.backToResults')}
+              </button>
+            </div>
+            
+            {/* TODO: Persist difficult flashcards in database in future sprint. */}
+          </div>
+        </div>
+      );
+    }
+
+    // Free Plan View
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] w-full px-4">
-        <div className="omni-card p-6 md:p-8 text-center max-w-3xl w-full mx-auto shadow-sm">
-          <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
-            <span className="text-3xl">🎉</span>
+        <div className="omni-card p-6 md:p-8 text-center max-w-xl w-full mx-auto shadow-sm">
+          <div className="w-20 h-20 bg-green-50 rounded-full flex items-center justify-center mx-auto mb-6">
+            <span className="text-3xl">🎯</span>
           </div>
           <h2 className="omni-heading-3 text-[var(--omni-text)] mb-2">
             {t('flashcards.completion.title')}
           </h2>
-          <p className="text-[var(--omni-text-muted)]">
-            {effectivePlan === 'free' 
-              ? t('flashcards.completion.descFree', 'Przerobiłeś podstawową serię fiszek. Znasz {{known}} z {{total}} pojęć.', { known: knownCards.size, total: flashcards.length })
-              : t('flashcards.completion.desc', { known: knownCards.size, total: flashcards.length })}
+          <p className="text-[var(--omni-text-muted)] mb-8">
+            {t('flashcards.completion.descFree', { known: knownCards.size, total: flashcards.length })}
           </p>
-          <div className={`grid w-full max-w-2xl mx-auto mt-6 gap-3 justify-items-stretch ${gridColsClass}`}>
-            {hasDifficult && (
-              <button
-                onClick={() => {
-                  const difficult = flashcards.filter(c => flashcardProgress[c.id]?.status === 'dont_know');
-                  setFlashcards(difficult);
-                  setCurrentIndex(0);
-                  setKnownCards(new Set());
-                  setIsFlipped(false);
-                  const sessionId = routeId || sessionStorage.getItem('currentSessionId');
-                  if (sessionId) localStorage.removeItem(`flashcards-progress-${sessionId}`);
-                }}
-                className="omni-btn-primary bg-orange-500 hover:bg-orange-600 border-none w-full min-h-[72px] px-3 py-3 text-center whitespace-normal break-words rounded-xl flex items-center justify-center text-sm"
-              >
-                {t('flashcards.completion.repeatDifficult', { count: flashcards.filter(c => flashcardProgress[c.id]?.status === 'dont_know').length })}
-              </button>
-            )}
+          
+          <div className="p-5 bg-indigo-50 border border-indigo-100 rounded-2xl text-left mb-8">
+            <p className="text-indigo-900 text-sm mb-4 leading-relaxed">
+              {t('flashcards.completion.upsellHidden')}
+            </p>
+            <button
+              onClick={() => navigate('/app/payments')}
+              className="omni-btn-primary w-full py-3 text-sm font-bold shadow-lg shadow-indigo-200"
+            >
+              {t('flashcards.completion.checkPremium', 'Sprawdź Premium')}
+            </button>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
             <button
               onClick={() => {
                 setCurrentIndex(0);
                 setKnownCards(new Set());
                 setIsFlipped(false);
-                const sessionId = routeId || sessionStorage.getItem('currentSessionId');
-                if (sessionId) {
-                  localStorage.removeItem(`flashcards-progress-${sessionId}`);
-                }
               }}
-              className="omni-btn-secondary w-full min-h-[72px] px-3 py-3 text-center whitespace-normal break-words rounded-xl flex items-center justify-center text-sm"
+              className="omni-btn-secondary py-3 text-xs md:text-sm"
             >
-              {hasDifficult 
-                ? t('flashcards.completion.repeatAll') 
-                : t('flashcards.completion.repeatSame')}
+              {t('flashcards.completion.repeatSame')}
             </button>
-            {effectivePlan === 'free' && hasUsedFreeRegen ? (
-              <div className="omni-card bg-indigo-50 border-indigo-100 p-4 col-span-1 md:col-span-2 flex flex-col justify-center text-left h-full min-h-[72px]">
-                <p className="font-bold text-indigo-900 mb-1 text-sm">
-                  {t('flashcards.completion.regenUsedTitle', 'To już dodatkowa seria fiszek w planie Darmowym.')}
-                </p>
-                <p className="text-xs text-indigo-700 mb-2">
-                  {t('flashcards.completion.regenUsedDesc', 'W Premium odblokujesz więcej fiszek, powtórki i pełniejszą naukę do sprawdzianu.')}
-                </p>
-                <button
-                  onClick={() => navigate('/app/payments')}
-                  className="omni-btn-primary w-full py-2 text-sm mt-auto"
-                >
-                  {t('flashcards.completion.regenUsedCta', 'Sprawdź Premium')}
-                </button>
-              </div>
-            ) : (
-              <button
-                onClick={handleRegenerate}
-                disabled={isRegenerating}
-                className="omni-btn-secondary border-2 border-[var(--omni-accent)]/20 hover:border-[var(--omni-accent)] text-[var(--omni-accent)] w-full min-h-[72px] px-3 py-3 text-center whitespace-normal break-words rounded-xl flex items-center justify-center gap-2 text-sm"
-              >
-                {isRegenerating ? (
-                  <div className="w-4 h-4 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin flex-shrink-0" />
-                ) : (
-                  <RotateCw className="w-4 h-4 flex-shrink-0" />
-                )}
-                {t('flashcards.completion.regenerate')}
-              </button>
-            )}
             <button
-              onClick={() => {
-                const currentId = routeId || sessionStorage.getItem('currentSessionId');
-                if (currentId) {
-                  navigate(`/app/quiz/${currentId}`);
-                } else {
-                  navigate('/app/history');
-                }
-              }}
-              className="omni-btn-secondary w-full min-h-[72px] px-3 py-3 text-center whitespace-normal break-words rounded-xl flex items-center justify-center text-sm"
+              onClick={() => navigate(`/app/quiz/${routeId || sessionStorage.getItem('currentSessionId')}`)}
+              className="omni-btn-secondary py-3 text-xs md:text-sm"
             >
               {t('flashcards.completion.goToQuiz')}
             </button>
-            <button
-              onClick={() => {
-                const currentId = routeId || sessionStorage.getItem('currentSessionId');
-                if (currentId) {
-                  sessionStorage.setItem('currentSessionId', currentId);
-                  navigate('/app/results');
-                } else {
-                  navigate('/app/results');
-                }
-              }}
-              className="omni-btn-secondary w-full min-h-[72px] px-3 py-3 text-center whitespace-normal break-words rounded-xl flex items-center justify-center text-sm"
-            >
-              {t('flashcards.completion.backToResults')}
-            </button>
           </div>
-          
-          {(hasHiddenCards || (effectivePlan === 'free' && hasUsedFreeRegen)) && effectivePlan === 'free' && (
-            <div className="mt-8 p-4 bg-indigo-50 border border-indigo-100 rounded-xl max-w-lg mx-auto">
-              <p className="text-indigo-800 font-medium mb-3">
-                {t('flashcards.completion.upsellHidden', 'W Premium odblokujesz więcej fiszek, powtórki i pełniejszą naukę do sprawdzianu.')}
-              </p>
-              <button
-                onClick={() => navigate('/app/payments')}
-                className="omni-btn-primary w-full py-2.5 text-sm"
-              >
-                {t('flashcards.completion.regenUsedCta', 'Sprawdź Premium')}
-              </button>
-            </div>
-          )}
         </div>
       </div>
     );
@@ -483,10 +548,10 @@ export default function FlashcardsPage() {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="omni-heading-3 text-[var(--omni-text)] mb-1">
-            {t('flashcards.title')}
+            {isReviewMode ? t('flashcards.review.title') : t('flashcards.title')}
           </h1>
           <p className="text-[var(--omni-text-muted)]">
-            {t('flashcards.subtitle')}
+            {isReviewMode ? t('flashcards.review.subtitle') : t('flashcards.subtitle')}
           </p>
         </div>
         <div className="flex items-center gap-2">

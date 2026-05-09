@@ -642,7 +642,7 @@
       "clickToFlip": "Click to flip"
     },
     "controls": {
-      "dontKnow": "Don't know",
+      "dontKnow": "To review",
       "know": "I know",
       "prev": "Previous card",
       "next": "Next card"
@@ -662,13 +662,22 @@
       "title": "Congratulations!",
       "desc": "You've finished all flashcards. You know {{known}} out of {{total}} concepts.",
       "descFree": "You've finished the basic set of flashcards. You know {{known}} out of {{total}} concepts.",
-      "upsellHidden": "In Premium you will unlock more flashcards, reviews and fuller study for the test.",
-      "repeatDifficult": "Repeat difficult ({{count}})",
+      "upsellHidden": "In Premium you will unlock more flashcards, reviews of difficult concepts and fuller study for the test.",
+      "repeatDifficult": "Repeat difficult flashcards",
+      "difficultRemaining": "You have {{count}} flashcards worth reviewing.",
+      "allMastered": "Review finished! All difficult flashcards have been mastered.",
+      "noneDifficult": "Great! No flashcards were marked for review.",
+      "repeatAgain": "Repeat once more",
+      "checkPremium": "Check Premium",
       "repeatAll": "Repeat all",
       "repeatSame": "Repeat same set",
       "regenerate": "Generate new flashcards",
       "goToQuiz": "Go to quiz",
       "backToResults": "Back to results"
+    },
+    "review": {
+      "title": "Difficult Flashcards Review",
+      "subtitle": "Master the concepts that were difficult for you"
     },
     "notifications": {
       "regenerateConfirm": "Are you sure you want to generate a new set of flashcards? The current set will be replaced by new concepts from your notes.",
