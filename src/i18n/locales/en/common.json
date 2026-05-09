@@ -661,6 +661,8 @@
     "completion": {
       "title": "Congratulations!",
       "desc": "You've finished all flashcards. You know {{known}} out of {{total}} concepts.",
+      "descFree": "You've finished the basic set of flashcards. You know {{known}} out of {{total}} concepts.",
+      "upsellHidden": "In Premium you will unlock more flashcards, reviews and fuller study for the test.",
       "repeatDifficult": "Repeat difficult ({{count}})",
       "repeatAll": "Repeat all",
       "repeatSame": "Repeat same set",

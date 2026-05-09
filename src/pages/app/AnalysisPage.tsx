@@ -128,26 +128,43 @@ export default function AnalysisPage() {
 
           if (!rawResponse.ok || (backendPayload.includes("error") && !rawResponse.ok)) {
             let errorMsg = t('analysis.backendErrors.generic');
+            let isUsageLimit = false;
             
-            if (rawResponse.status === 422 || backendPayload.includes("Nie wykryto") || backendPayload.includes("no text")) {
-               errorMsg = t('analysis.backendErrors.unreadableText');
-            } else if (rawResponse.status === 401 || rawResponse.status === 403 || backendPayload.includes("Unauthorized") || backendPayload.includes("validation failed")) {
-               errorMsg = t('analysis.backendErrors.unauthorized');
-            } else if (rawResponse.status === 404 || backendPayload.includes("Session not found")) {
-               errorMsg = t('analysis.backendErrors.sessionNotFound');
-            } else if (backendPayload.includes("Failed to download image")) {
-               errorMsg = t('analysis.backendErrors.downloadFailed');
-            } else if (backendPayload.includes("interpretacji tekstu") || backendPayload.includes("OpenAI")) {
-               errorMsg = t('analysis.backendErrors.aiUnderstanding');
-            } else if (rawResponse.status >= 500) {
-               errorMsg = t('analysis.backendErrors.serverError');
+            try {
+              const errorObj = JSON.parse(backendPayload);
+              if (errorObj.error === 'usage_limit_reached') {
+                isUsageLimit = true;
+                errorMsg = errorObj.message;
+              }
+            } catch (e) {
+              // Not JSON or other error
+            }
+
+            if (!isUsageLimit) {
+              if (rawResponse.status === 422 || backendPayload.includes("Nie wykryto") || backendPayload.includes("no text")) {
+                errorMsg = t('analysis.backendErrors.unreadableText');
+              } else if (rawResponse.status === 401 || rawResponse.status === 403 || backendPayload.includes("Unauthorized") || backendPayload.includes("validation failed")) {
+                errorMsg = t('analysis.backendErrors.unauthorized');
+              } else if (rawResponse.status === 404 || backendPayload.includes("Session not found")) {
+                errorMsg = t('analysis.backendErrors.sessionNotFound');
+              } else if (backendPayload.includes("Failed to download image")) {
+                errorMsg = t('analysis.backendErrors.downloadFailed');
+              } else if (backendPayload.includes("interpretacji tekstu") || backendPayload.includes("OpenAI")) {
+                errorMsg = t('analysis.backendErrors.aiUnderstanding');
+              } else if (rawResponse.status >= 500) {
+                errorMsg = t('analysis.backendErrors.serverError');
+              }
             }
 
             // Developer diagnostic logging kept strictly inside the console
             console.error(`Edge function analysis failed (Status ${rawResponse.status}):`, backendPayload);
             
             // Clean UX message mapping returned to the UI instead of raw debug strings
-            setAnalysisError(errorMsg);
+            if (isUsageLimit) {
+              setAnalysisError(`usage_limit:${errorMsg}`);
+            } else {
+              setAnalysisError(errorMsg);
+            }
             setIsLoading(false);
             return;
           }
@@ -236,13 +253,24 @@ export default function AnalysisPage() {
   }
 
   if (analysisError) {
+    const isUsageLimit = analysisError.startsWith('usage_limit:');
+    const displayMsg = isUsageLimit ? analysisError.replace('usage_limit:', '') : analysisError;
+
     return (
       <div className="text-center py-12 mt-12 bg-red-50/50 dark:bg-red-950/20 rounded-2xl border border-red-100 dark:border-red-900 mx-auto max-w-lg p-8">
         <h2 className="text-xl font-semibold text-red-600 dark:text-red-400 mb-2">{t('analysis.error.title')}</h2>
-        <p className="text-red-800/80 dark:text-red-200/80 mb-6">{analysisError}</p>
-        <Link to="/app/upload" className="omni-btn-primary inline-flex">
-          {t('analysis.error.retry')}
-        </Link>
+        <p className="text-red-800/80 dark:text-red-200/80 mb-6">{displayMsg}</p>
+        <div className="flex flex-col items-center gap-3">
+          {isUsageLimit ? (
+            <Link to="/app/payments" className="omni-btn-primary inline-flex">
+              {t('analysis.error.checkPremium', 'Sprawdź Premium')}
+            </Link>
+          ) : (
+            <Link to="/app/upload" className="omni-btn-primary inline-flex">
+              {t('analysis.error.retry')}
+            </Link>
+          )}
+        </div>
       </div>
     );
   }

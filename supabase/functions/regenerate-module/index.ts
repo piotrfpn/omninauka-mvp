@@ -64,12 +64,26 @@ serve(async (req) => {
       });
     }
 
-    // Step 4: Load session data with admin client (bypasses RLS for internal operations)
+    // Step 4: Load session data and user profile
     const adminClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
       { auth: { persistSession: false } }
     );
+
+    const { data: profile } = await adminClient
+      .from('profiles')
+      .select('plan, plan_expires_at')
+      .eq('id', userId)
+      .single();
+
+    const now = new Date();
+    let effectivePlan = 'free';
+    if (profile?.plan === 'premium' || profile?.plan === 'family') {
+      if (!profile.plan_expires_at || new Date(profile.plan_expires_at) > now) {
+        effectivePlan = profile.plan;
+      }
+    }
 
     const { data: sessionData, error: dbError } = await adminClient
       .from('study_sessions')
@@ -101,15 +115,49 @@ serve(async (req) => {
       });
     }
 
+    // --- USAGE LIMITS GUARD ---
+    if (module === 'flashcards') {
+      const { count: regenCount, error: regenError } = await adminClient
+        .from('usage_events')
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', userId)
+        .eq('session_id', sessionId)
+        .eq('event_type', 'flashcard_regen');
+
+      if (regenError) {
+        console.error("[regenerate-module] Regen count error:", regenError.message);
+      }
+
+      const regenLimit = effectivePlan === 'free' ? 1 : 5;
+
+      if ((regenCount || 0) >= regenLimit) {
+        console.warn(`[regenerate-module] 403: Regen limit reached for user ${userId}, session ${sessionId} (${regenCount}/${regenLimit})`);
+        return new Response(JSON.stringify({ 
+          error: "usage_limit_reached",
+          feature: "flashcard_regen",
+          limit: regenLimit,
+          plan: effectivePlan === 'family' || effectivePlan === 'premium' ? 'premium' : 'free',
+          message: effectivePlan === 'free' 
+            ? "W planie Darmowym możesz wygenerować jedną dodatkową serię fiszek. Sprawdź Premium, aby odblokować więcej powtórek."
+            : "Osiągnąłeś limit regeneracji fiszek dla tej lekcji (fair use)."
+        }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 403,
+        });
+      }
+    }
+    // --------------------------
+
     console.log(`[regenerate-module] Regenerating module="${module}" for session=${sessionId}`);
 
     // Step 5: Build module-specific prompt
     let schema = '';
     let rules = '';
+    const maxCards = effectivePlan === 'free' ? 5 : 20;
 
     if (module === 'flashcards') {
       schema = `{"flashcards": [{ "front": "String", "back": "String", "difficulty": "easy"|"medium"|"hard" }]}`;
-      rules = `Wygeneruj 5-15 UNIKALNYCH fiszek. Każda dotyczy innego faktu. Zwróć TYLKO JSON flashcards.`;
+      rules = `Wygeneruj maksymalnie ${maxCards} UNIKALNYCH fiszek. Każda dotyczy innego faktu. Zwróć TYLKO JSON flashcards.`;
     } else {
       schema = `{"quizQuestions": [{ "question": "String", "options": ["A","B","C","D"], "correctIndex": 0-3, "explanation": "String", "difficulty": "easy"|"medium"|"hard" }]}`;
       rules = `Wygeneruj 12 pytań (4 easy, 5 medium, 3 hard). DOKŁADNIE 4 opcje każde. Zwróć TYLKO JSON quizQuestions.`;
@@ -170,11 +218,13 @@ serve(async (req) => {
 
     if (module === 'flashcards') {
       const raw: any[] = Array.isArray(generation.flashcards) ? generation.flashcards : [];
-      finalData = raw.filter((card, i) =>
+      const deduped = raw.filter((card, i) =>
         !raw.slice(0, i).some(
           (k) => jaccard(normalise(card.front ?? ''), normalise(k.front ?? '')) >= 0.75
         )
       );
+      // Hard slice to enforce plan limits
+      finalData = deduped.slice(0, maxCards);
       finalUpdate = { flashcards: finalData };
     } else {
       const raw: any[] = Array.isArray(generation.quizQuestions) ? generation.quizQuestions : [];
@@ -195,6 +245,16 @@ serve(async (req) => {
       .eq('id', sessionId);
 
     if (updateError) throw new Error(`DB update failed: ${updateError.message}`);
+
+    // Log usage event on success
+    if (module === 'flashcards') {
+      await adminClient.from('usage_events').insert({
+        user_id: userId,
+        event_type: 'flashcard_regen',
+        session_id: sessionId,
+        metadata: { effectivePlan, maxCards, count: finalData.length }
+      });
+    }
 
     return new Response(JSON.stringify({ success: true, module, data: finalData }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },

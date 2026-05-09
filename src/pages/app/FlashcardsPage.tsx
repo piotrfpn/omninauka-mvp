@@ -26,6 +26,7 @@ export default function FlashcardsPage() {
   const [isFlipped, setIsFlipped] = useState(false);
   const [knownCards, setKnownCards] = useState<Set<string>>(new Set());
   const [hasHiddenCards, setHasHiddenCards] = useState(false);
+  const [hasUsedFreeRegen, setHasUsedFreeRegen] = useState(false);
   const [flashcardProgress, setFlashcardProgress] = useState<FlashcardProgressState>({});
   const [isLoading, setIsLoading] = useState(true);
   const [isRegenerating, setIsRegenerating] = useState(false);
@@ -43,6 +44,10 @@ export default function FlashcardsPage() {
         navigate('/app/dashboard');
         return;
       }
+
+      // Check free regeneration usage
+      const regenKey = `omninauka_free_flashcard_regen_used_${sessionId}`;
+      setHasUsedFreeRegen(sessionStorage.getItem(regenKey) === 'true');
 
       if (isDemoMode || sessionId === 'demo-session') {
         const analysisStr = sessionStorage.getItem('currentAnalysis');
@@ -125,6 +130,10 @@ export default function FlashcardsPage() {
     const sessionId = routeId || sessionStorage.getItem('currentSessionId');
     if (!sessionId) return;
 
+    if (effectivePlan === 'free' && hasUsedFreeRegen) {
+      return;
+    }
+
     if (!confirm(t('flashcards.notifications.regenerateConfirm'))) {
       return;
     }
@@ -147,6 +156,28 @@ export default function FlashcardsPage() {
 
       if (!response.ok) {
         const errText = await response.text();
+        let isUsageLimit = false;
+        try {
+          const errObj = JSON.parse(errText);
+          if (errObj.error === 'usage_limit_reached') {
+            isUsageLimit = true;
+            alert(errObj.message);
+            // If it was a free plan, mark as used to show the upsell UI immediately
+            if (effectivePlan === 'free') {
+              const regenKey = `omninauka_free_flashcard_regen_used_${sessionId}`;
+              sessionStorage.setItem(regenKey, 'true');
+              setHasUsedFreeRegen(true);
+            }
+          }
+        } catch (e) {
+          // Not JSON
+        }
+        
+        if (isUsageLimit) {
+          setIsRegenerating(false);
+          setRegenerationMessage(null);
+          return;
+        }
         throw new Error(`HTTP ${response.status}: ${errText}`);
       }
 
@@ -157,7 +188,12 @@ export default function FlashcardsPage() {
         ...fc,
         id: fc.id || `card-${i}`
       }));
-      setFlashcards(mappedCards);
+
+      // TODO: Enforce flashcard generation limits in backend in Sprint 20B
+      // Feature Gate: Limit flashcards based on plan
+      const limitedCards = mappedCards.slice(0, maxFlashcardsPerLesson);
+      setHasHiddenCards(mappedCards.length > maxFlashcardsPerLesson);
+      setFlashcards(limitedCards);
 
       // 2. Reset progress
       setCurrentIndex(0);
@@ -165,6 +201,13 @@ export default function FlashcardsPage() {
       setFlashcardProgress({});
       setIsFlipped(false);
       localStorage.removeItem(`flashcards-progress-${sessionId}`);
+
+      // Track usage for Free
+      if (effectivePlan === 'free') {
+        const regenKey = `omninauka_free_flashcard_regen_used_${sessionId}`;
+        sessionStorage.setItem(regenKey, 'true');
+        setHasUsedFreeRegen(true);
+      }
 
       setRegenerationMessage(t('flashcards.notifications.success'));
       setTimeout(() => setRegenerationMessage(null), 3000);
@@ -304,7 +347,9 @@ export default function FlashcardsPage() {
             {t('flashcards.completion.title')}
           </h2>
           <p className="text-[var(--omni-text-muted)]">
-            {t('flashcards.completion.desc', { known: knownCards.size, total: flashcards.length })}
+            {effectivePlan === 'free' 
+              ? t('flashcards.completion.descFree', 'Przerobiłeś podstawową serię fiszek. Znasz {{known}} z {{total}} pojęć.', { known: knownCards.size, total: flashcards.length })
+              : t('flashcards.completion.desc', { known: knownCards.size, total: flashcards.length })}
           </p>
           <div className={`grid w-full max-w-2xl mx-auto mt-6 gap-3 justify-items-stretch ${gridColsClass}`}>
             {hasDifficult && (
@@ -339,18 +384,35 @@ export default function FlashcardsPage() {
                 ? t('flashcards.completion.repeatAll') 
                 : t('flashcards.completion.repeatSame')}
             </button>
-            <button
-              onClick={handleRegenerate}
-              disabled={isRegenerating}
-              className="omni-btn-secondary border-2 border-[var(--omni-accent)]/20 hover:border-[var(--omni-accent)] text-[var(--omni-accent)] w-full min-h-[72px] px-3 py-3 text-center whitespace-normal break-words rounded-xl flex items-center justify-center gap-2 text-sm"
-            >
-              {isRegenerating ? (
-                <div className="w-4 h-4 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin flex-shrink-0" />
-              ) : (
-                <RotateCw className="w-4 h-4 flex-shrink-0" />
-              )}
-              {t('flashcards.completion.regenerate')}
-            </button>
+            {effectivePlan === 'free' && hasUsedFreeRegen ? (
+              <div className="omni-card bg-indigo-50 border-indigo-100 p-4 col-span-1 md:col-span-2 flex flex-col justify-center text-left h-full min-h-[72px]">
+                <p className="font-bold text-indigo-900 mb-1 text-sm">
+                  {t('flashcards.completion.regenUsedTitle', 'To już dodatkowa seria fiszek w planie Darmowym.')}
+                </p>
+                <p className="text-xs text-indigo-700 mb-2">
+                  {t('flashcards.completion.regenUsedDesc', 'W Premium odblokujesz więcej fiszek, powtórki i pełniejszą naukę do sprawdzianu.')}
+                </p>
+                <button
+                  onClick={() => navigate('/app/payments')}
+                  className="omni-btn-primary w-full py-2 text-sm mt-auto"
+                >
+                  {t('flashcards.completion.regenUsedCta', 'Sprawdź Premium')}
+                </button>
+              </div>
+            ) : (
+              <button
+                onClick={handleRegenerate}
+                disabled={isRegenerating}
+                className="omni-btn-secondary border-2 border-[var(--omni-accent)]/20 hover:border-[var(--omni-accent)] text-[var(--omni-accent)] w-full min-h-[72px] px-3 py-3 text-center whitespace-normal break-words rounded-xl flex items-center justify-center gap-2 text-sm"
+              >
+                {isRegenerating ? (
+                  <div className="w-4 h-4 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin flex-shrink-0" />
+                ) : (
+                  <RotateCw className="w-4 h-4 flex-shrink-0" />
+                )}
+                {t('flashcards.completion.regenerate')}
+              </button>
+            )}
             <button
               onClick={() => {
                 const currentId = routeId || sessionStorage.getItem('currentSessionId');
@@ -380,16 +442,16 @@ export default function FlashcardsPage() {
             </button>
           </div>
           
-          {hasHiddenCards && effectivePlan === 'free' && (
+          {(hasHiddenCards || (effectivePlan === 'free' && hasUsedFreeRegen)) && effectivePlan === 'free' && (
             <div className="mt-8 p-4 bg-indigo-50 border border-indigo-100 rounded-xl max-w-lg mx-auto">
               <p className="text-indigo-800 font-medium mb-3">
-                Odblokuj więcej fiszek i powtórki w Premium.
+                {t('flashcards.completion.upsellHidden', 'W Premium odblokujesz więcej fiszek, powtórki i pełniejszą naukę do sprawdzianu.')}
               </p>
               <button
                 onClick={() => navigate('/app/payments')}
                 className="omni-btn-primary w-full py-2.5 text-sm"
               >
-                Sprawdź Premium
+                {t('flashcards.completion.regenUsedCta', 'Sprawdź Premium')}
               </button>
             </div>
           )}

@@ -79,10 +79,10 @@ serve(async (req) => {
       { auth: { persistSession: false } }
     );
 
-    // Verify user account status (Parental Consent Check)
+    // Verify user account status and plan
     const { data: profile, error: profileError } = await adminClient
       .from('profiles')
-      .select('age_band, account_status')
+      .select('age_band, account_status, plan, plan_expires_at')
       .eq('id', userId)
       .single();
 
@@ -107,6 +107,55 @@ serve(async (req) => {
         status: 403,
       });
     }
+
+    // --- USAGE LIMITS GUARD ---
+    const now = new Date();
+    let effectivePlan = 'free';
+    if (profile.plan === 'premium' || profile.plan === 'family') {
+      // If plan_expires_at is null, we treat as active (manual management fallback)
+      if (!profile.plan_expires_at || new Date(profile.plan_expires_at) > now) {
+        effectivePlan = profile.plan;
+      }
+    }
+
+    const limits = {
+      free: 2,
+      premium: 10,
+      family: 10
+    };
+    const dailyLimit = limits[effectivePlan as keyof typeof limits] || 2;
+
+    // Count today's lessons (UTC)
+    const startOfToday = new Date();
+    startOfToday.setUTCHours(0, 0, 0, 0);
+
+    const { count: usageCount, error: usageError } = await adminClient
+      .from('usage_events')
+      .select('*', { count: 'exact', head: true })
+      .eq('user_id', userId)
+      .eq('event_type', 'lesson_analysis')
+      .gte('created_at', startOfToday.toISOString());
+
+    if (usageError) {
+      console.error("[analyze-notes] Usage count error:", usageError.message);
+    }
+
+    if ((usageCount || 0) >= dailyLimit) {
+      console.warn(`[analyze-notes] 403: Usage limit reached for user ${userId} (${usageCount}/${dailyLimit})`);
+      return new Response(JSON.stringify({ 
+        error: "usage_limit_reached",
+        feature: "ai_lessons",
+        limit: dailyLimit,
+        plan: effectivePlan === 'family' || effectivePlan === 'premium' ? 'premium' : 'free',
+        message: effectivePlan === 'free' 
+          ? "Osiągnąłeś dzienny limit lekcji AI w planie Darmowym. Sprawdź Premium, aby korzystać z większego limitu."
+          : "Osiągnąłeś dzienny limit lekcji AI dla swojego planu (fair use)."
+      }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 403,
+      });
+    }
+    // --------------------------
 
     const body = await req.json();
     const sessionId = body.sessionId;
@@ -521,6 +570,14 @@ ZASADY QUIZU — KRYTYCZNE, MUSZĄ BYĆ BEZWZGLĘDNIE PRZESTRZEGANE:
       .eq('id', sessionId);
 
     if (updateError) throw new Error(`DB Update failed: ${updateError.message}`);
+
+    // Log usage event on success
+    await adminClient.from('usage_events').insert({
+      user_id: userId,
+      event_type: 'lesson_analysis',
+      session_id: sessionId,
+      metadata: { effectivePlan }
+    });
 
     return new Response(JSON.stringify({ success: true, sessionId }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },

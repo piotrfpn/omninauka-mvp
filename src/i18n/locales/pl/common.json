@@ -660,6 +660,8 @@
     "completion": {
       "title": "Gratulacje!",
       "desc": "Przerobiłeś wszystkie fiszki. Znasz {{known}} z {{total}} pojęć.",
+      "descFree": "Przerobiłeś podstawową serię fiszek. Znasz {{known}} z {{total}} pojęć.",
+      "upsellHidden": "W Premium odblokujesz więcej fiszek, powtórki i pełniejszą naukę do sprawdzianu.",
       "repeatDifficult": "Powtórz trudne ({{count}})",
       "repeatAll": "Powtórz wszystkie",
       "repeatSame": "Powtórz tę samą serię",
