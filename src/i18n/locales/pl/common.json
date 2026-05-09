@@ -368,7 +368,7 @@
   },
   "appShell": {
     "nav": {
-      "dashboard": "Dashboard",
+      "dashboard": "Panel główny",
       "upload": "Upload",
       "flashcards": "Fiszki",
       "quiz": "Quiz",
@@ -561,12 +561,12 @@
   },
   "analysis": {
     "error": {
-      "title": "Błąd analizy",
+      "title": "Błąd podsumowania lekcji",
       "retry": "Spróbuj ponownie z innym zdjęciem",
       "network": "Wystąpił nieoczekiwany błąd sieci."
     },
     "empty": {
-      "title": "Nie znaleziono analizy",
+      "title": "Nie znaleziono podsumowania lekcji",
       "back": "Wróć do uploadu"
     },
     "header": {
@@ -698,10 +698,12 @@
     },
     "buttons": {
       "next": "Następne pytanie",
-      "finish": "Zakończ quiz i zobacz wynik",
+      "finish": "Zakończ i zobacz podsumowanie",
       "repeat": "Rozwiąż ten sam quiz",
       "regenerate": "Wygeneruj nowy quiz",
-      "backToAnalysis": "Wróć do analizy"
+      "backToAnalysis": "Wróć do podsumowania lekcji",
+      "viewResult": "Zobacz wynik",
+      "viewReport": "Zobacz raport"
     },
     "difficulty": {
       "label": "Poziom trudności",
@@ -711,6 +713,7 @@
     },
     "completion": {
       "title": "Quiz ukończony!",
+      "titlePremium": "Sprawdzian ukończony!",
       "score": "Twój wynik: {{correct}} z {{total}} poprawnych odpowiedzi"
     },
     "notifications": {
@@ -788,7 +791,7 @@
   },
   "history": {
     "title": "Historia nauki",
-    "subtitle": "Twoje wszystkie sesje analizy",
+    "subtitle": "Twoje wszystkie sesje naukowe",
     "buttons": {
       "newFolder": "Nowy folder",
       "move": "Przenieś",

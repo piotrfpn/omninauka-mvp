@@ -368,7 +368,7 @@
   },
   "appShell": {
     "nav": {
-      "dashboard": "Dashboard",
+      "dashboard": "Main Panel",
       "upload": "Upload",
       "flashcards": "Flashcards",
       "quiz": "Quiz",
@@ -562,12 +562,12 @@
   },
   "analysis": {
     "error": {
-      "title": "Analysis Error",
+      "title": "Lesson Summary Error",
       "retry": "Try again with another photo",
       "network": "An unexpected network error occurred."
     },
     "empty": {
-      "title": "Analysis not found",
+      "title": "Lesson summary not found",
       "back": "Back to upload"
     },
     "header": {
@@ -699,10 +699,12 @@
     },
     "buttons": {
       "next": "Next question",
-      "finish": "Finish quiz and see result",
+      "finish": "Finish and see summary",
       "repeat": "Take the same quiz again",
       "regenerate": "Generate new quiz",
-      "backToAnalysis": "Back to analysis"
+      "backToAnalysis": "Back to lesson summary",
+      "viewResult": "View result",
+      "viewReport": "View report"
     },
     "difficulty": {
       "label": "Difficulty level",
@@ -712,6 +714,7 @@
     },
     "completion": {
       "title": "Quiz completed!",
+      "titlePremium": "Premium test completed!",
       "score": "Your score: {{correct}} out of {{total}} correct answers"
     },
     "notifications": {
@@ -789,7 +792,7 @@
   },
   "history": {
     "title": "Study History",
-    "subtitle": "All your analysis sessions",
+    "subtitle": "All your study sessions",
     "buttons": {
       "newFolder": "New folder",
       "move": "Move",

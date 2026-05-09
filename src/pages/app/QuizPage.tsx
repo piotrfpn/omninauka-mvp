@@ -360,7 +360,7 @@ export default function QuizPage() {
             <Trophy className="w-10 h-10 text-[var(--omni-text)]" />
           </div>
           <h2 className="omni-heading-3 text-[var(--omni-text)] mb-2">
-            {t('quiz.completion.title')}
+            {effectivePlan === 'free' ? t('quiz.completion.title') : t('quiz.completion.titlePremium')}
           </h2>
           <p className="text-[var(--omni-text-muted)] mb-6">
             {t('quiz.completion.score', { correct: correctCount, total: questions.length })}
@@ -371,6 +371,14 @@ export default function QuizPage() {
           </div>
 
           <div className="flex flex-col gap-3">
+            <button
+              onClick={() => navigate('/app/results')}
+              className="omni-btn-primary flex items-center justify-center gap-2"
+            >
+              {effectivePlan === 'free' ? t('quiz.buttons.viewResult') : t('quiz.buttons.viewReport')}
+              <ArrowRight className="w-5 h-5" />
+            </button>
+
             <button
               onClick={() => {
                 const sessionId = routeId || sessionStorage.getItem('currentSessionId');
@@ -398,14 +406,14 @@ export default function QuizPage() {
                 setIsFinished(false);
                 setShowFeedback(false);
               }}
-              className="omni-btn-primary"
+              className="omni-btn-secondary py-3 text-sm"
             >
               {t('quiz.buttons.repeat')}
             </button>
             <button
               onClick={handleRegenerate}
               disabled={isRegenerating}
-              className="omni-btn-secondary border-2 border-[var(--omni-accent)]/20 hover:border-[var(--omni-accent)] text-[var(--omni-accent)] flex items-center justify-center gap-2"
+              className="omni-btn-secondary border-2 border-[var(--omni-accent)]/10 hover:border-[var(--omni-accent)] text-[var(--omni-accent)] flex items-center justify-center gap-2 py-3 text-sm"
             >
               {isRegenerating ? (
                 <div className="w-4 h-4 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin" />
@@ -416,7 +424,7 @@ export default function QuizPage() {
             </button>
             <button
               onClick={() => navigate('/app/analysis/' + (routeId || ''))}
-              className="omni-btn-secondary"
+              className="omni-btn-secondary py-3 text-sm text-[var(--omni-text-muted)]"
             >
               {t('quiz.buttons.backToAnalysis')}
             </button>
