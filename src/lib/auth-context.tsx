@@ -31,6 +31,8 @@ const mapSupabaseUser = (sbUser: any, dbProfile?: any): User => ({
   profileCompleted: dbProfile?.profile_completed,
   profileCompletedAt: dbProfile?.profile_completed_at ? new Date(dbProfile.profile_completed_at) : undefined,
   lastLoginAt: dbProfile?.last_login_at ? new Date(dbProfile.last_login_at) : (sbUser?.last_sign_in_at ? new Date(sbUser.last_sign_in_at) : undefined),
+  planExpiresAt: dbProfile?.plan_expires_at ? new Date(dbProfile.plan_expires_at) : null,
+  planUpdatedAt: dbProfile?.plan_updated_at ? new Date(dbProfile.plan_updated_at) : null,
 });
 
 export function AuthProvider({ children }: { children: ReactNode }) {

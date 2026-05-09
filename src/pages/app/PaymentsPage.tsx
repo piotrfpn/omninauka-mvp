@@ -41,25 +41,54 @@ export default function PaymentsPage() {
       </header>
 
       {/* Sekcja 2: Karta obecnego planu */}
-      <section className="omni-card p-6 bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-100">
+      <section className={`omni-card p-6 border-l-4 ${
+        user?.plan && user.plan !== 'free' && (user.planExpiresAt ? new Date(user.planExpiresAt) > new Date() : true)
+          ? 'bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-400' 
+          : 'bg-gray-50 border-gray-300'
+      }`}>
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
-            <h2 className="text-sm font-semibold text-blue-600 uppercase tracking-wider mb-1">
+            <h2 className="text-sm font-semibold text-[var(--omni-text-muted)] uppercase tracking-wider mb-1">
               {t('payments.currentPlanLabel', 'Twój obecny plan')}
             </h2>
             <div className="flex items-center gap-3">
               <span className="text-2xl font-bold text-gray-900">
-                {user?.plan === 'premium' ? t('payments.plan.premium', 'Premium') : t('payments.plan.free', 'Darmowy')}
+                {user?.plan === 'premium' && (user.planExpiresAt ? new Date(user.planExpiresAt) > new Date() : true) 
+                  ? t('payments.plan.premium', 'Premium') 
+                  : user?.plan === 'family' && (user.planExpiresAt ? new Date(user.planExpiresAt) > new Date() : true)
+                    ? t('payments.plan.family', 'Rodzinny')
+                    : t('payments.plan.free', 'Darmowy')}
               </span>
-              <span className="px-2 py-1 bg-blue-100 text-blue-700 text-xs font-medium rounded-full">
-                Aktywny
-              </span>
+              {user?.plan && user.plan !== 'free' && (user.planExpiresAt ? new Date(user.planExpiresAt) > new Date() : true) ? (
+                <span className="px-2 py-1 bg-blue-100 text-blue-700 text-xs font-medium rounded-full">
+                  {t('payments.status.active', 'Aktywny')}
+                </span>
+              ) : user?.plan && user.plan !== 'free' && user.planExpiresAt && new Date(user.planExpiresAt) <= new Date() ? (
+                <span className="px-2 py-1 bg-red-100 text-red-700 text-xs font-medium rounded-full">
+                  {t('payments.status.expired', 'Wygasł')}
+                </span>
+              ) : null}
             </div>
-            <p className="text-sm text-gray-600 mt-2">
-              {t('payments.currentPlanNote', 'Po płatności aktywacja planu może potrwać do 24 godzin.')}
-            </p>
+            
+            <div className="mt-2 space-y-1">
+              {user?.plan && user.plan !== 'free' && user.planExpiresAt && (
+                <p className={`text-sm font-medium ${new Date(user.planExpiresAt) > new Date() ? 'text-blue-600' : 'text-red-500'}`}>
+                  {new Date(user.planExpiresAt) > new Date() 
+                    ? `${t('payments.validUntil', 'Ważny do')}: ${new Intl.DateTimeFormat('pl-PL').format(new Date(user.planExpiresAt))}`
+                    : t('payments.expiredNotice', 'Twój plan wygasł. Obecnie korzystasz z planu Darmowego.')}
+                </p>
+              )}
+              {user?.plan && user.plan !== 'free' && !user.planExpiresAt && (
+                <p className="text-sm text-amber-600 font-medium">
+                  {t('payments.noExpiryDate', 'Plan aktywny. Brak zapisanej daty wygaśnięcia — skontaktuj się z obsługą.')}
+                </p>
+              )}
+              <p className="text-xs text-gray-500">
+                {t('payments.currentPlanNote', 'Po płatności aktywacja planu może potrwać do 24 godzin.')}
+              </p>
+            </div>
           </div>
-          <div className="bg-white p-3 rounded-lg border border-blue-100 max-w-xs flex items-start gap-3">
+          <div className="bg-white p-3 rounded-lg border border-blue-100 max-w-xs flex items-start gap-3 shadow-sm">
             <AlertCircle className="w-5 h-5 text-blue-500 shrink-0 mt-0.5" />
             <p className="text-xs text-gray-600 leading-relaxed">
               {t('payments.mvpNote', 'To rozwiązanie MVP. Plan aktywujemy ręcznie po potwierdzeniu płatności.')}

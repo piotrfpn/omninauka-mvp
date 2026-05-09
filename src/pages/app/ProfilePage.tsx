@@ -218,6 +218,13 @@ export default function ProfilePage() {
             <p className="text-lg font-semibold text-[var(--omni-text)] mt-1">
               {getPlanLabel(user?.plan)}
             </p>
+            {user?.plan && user.plan !== 'free' && user.planExpiresAt && (
+              <p className={`text-xs font-medium mt-1 ${new Date(user.planExpiresAt) > new Date() ? 'text-blue-600' : 'text-red-500'}`}>
+                {new Date(user.planExpiresAt) > new Date() 
+                  ? `${t('payments.validUntil', 'Ważny do')}: ${new Intl.DateTimeFormat(currentLocale).format(new Date(user.planExpiresAt))}`
+                  : t('payments.status.expired', 'Wygasł')}
+              </p>
+            )}
           </div>
         </div>
 
