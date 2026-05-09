@@ -51,12 +51,14 @@ export default function HomePage() {
       name: t('home.pricing.free.title', 'Darmowy'),
       price: t('home.pricing.free.price', '0 zł'),
       period: '',
+      desc: t('home.pricing.free.desc', 'Dobry na start.'),
       features: [
         t('home.pricing.free.feat1', '2 lekcje AI dziennie'),
-        t('home.pricing.free.feat2', 'AI Tutor tekstowy'),
-        t('home.pricing.free.feat3', 'Quizy z wyjaśnieniami'),
-        t('home.pricing.free.feat4', 'Historia nauki'),
-        t('home.pricing.free.feat5', 'Podstawowe fiszki')
+        t('home.pricing.free.feat2', 'AI Tutor podstawowy'),
+        t('home.pricing.free.feat3', 'Quiz podstawowy'),
+        t('home.pricing.free.feat4', 'Podstawowe fiszki'),
+        t('home.pricing.free.feat5', 'Historia nauki'),
+        t('home.pricing.free.feat6', 'Możliwość dokupienia Premium')
       ],
       cta: t('home.pricing.free.cta', 'Zacznij za darmo'),
       primary: false,
@@ -67,12 +69,14 @@ export default function HomePage() {
       period: '',
       tags: ['Płatność jednorazowa', 'Bez automatycznego odnawiania'],
       badge: t('home.pricing.premium.badge', 'Najpopularniejszy'),
+      desc: t('home.pricing.premium.desc', 'Dla regularnej nauki i powtórek.'),
       features: [
         t('home.pricing.premium.feat1', 'Więcej lekcji AI każdego dnia'),
         t('home.pricing.premium.feat2', 'Zaawansowany AI Tutor'),
-        t('home.pricing.premium.feat3', 'Powtórki błędów'),
-        t('home.pricing.premium.feat4', 'Sprawdziany z raportem błędów'),
-        t('home.pricing.premium.feat5', 'Priorytetowe AI w ramach fair use')
+        t('home.pricing.premium.feat3', 'Pełne omówienie błędów z quizu'),
+        t('home.pricing.premium.feat4', 'Sprawdzian z raportem błędów'),
+        t('home.pricing.premium.feat5', 'Fiszki Premium i powtórki'),
+        t('home.pricing.premium.feat6', 'Historia nauki i powrót do tematów')
       ],
       cta: t('home.pricing.premium.cta', 'Załóż konto i kup Premium'),
       primary: true,
@@ -83,12 +87,13 @@ export default function HomePage() {
       price: t('home.pricing.family.price', '59,99 zł'),
       period: '',
       tags: ['Płatność jednorazowa', 'Bez automatycznego odnawiania'],
+      desc: t('home.pricing.family.desc', 'Dla rodzica i maksymalnie 3 kont uczniowskich.'),
       features: [
         t('home.pricing.family.feat1', 'Do 3 kont uczniowskich'),
-        t('home.pricing.family.feat2', 'Wszystko z Premium'),
-        t('home.pricing.family.feat3', 'Raporty postępów'),
-        t('home.pricing.family.feat4', 'Wspólna historia nauki'),
-        t('home.pricing.family.feat5', 'Panel rodzica — wkrótce')
+        t('home.pricing.family.feat2', 'Panel Rodzica'),
+        t('home.pricing.family.feat3', 'Podgląd dzieci po zgodzie rodzicielskiej'),
+        t('home.pricing.family.feat4', 'Wszystko z Premium dla uczniów'),
+        t('home.pricing.family.feat5', 'Wspólna organizacja nauki')
       ],
       cta: t('home.pricing.family.cta', 'Załóż konto i kup Rodzinny'),
       primary: false,
@@ -274,6 +279,11 @@ export default function HomePage() {
                     {plan.period}
                   </span>
                 </div>
+                {plan.desc && (
+                  <p className="text-sm text-[var(--omni-text-muted)] mb-6 whitespace-pre-line">
+                    {plan.desc}
+                  </p>
+                )}
                 <ul className="space-y-3 mb-8">
                   {plan.features.map((feature, fIndex) => (
                     <li key={fIndex} className="flex items-center gap-2">

@@ -6,6 +6,8 @@ import { useTranslation } from 'react-i18next';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../lib/auth-context';
 
+// TODO: Implement premium test mode with error report (Sprint 20B)
+
 export default function QuizPage() {
   const navigate = useNavigate();
   const { id: routeId } = useParams();

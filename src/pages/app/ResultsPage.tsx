@@ -3,6 +3,9 @@ import { Link, useNavigate } from 'react-router-dom';
 import type { QuizAnswer } from '../../types';
 import { Trophy, Target, TrendingUp, Clock, ArrowRight, BookOpen, RotateCw, Bot } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import { useAuth } from '../../lib/auth-context';
+import { getEffectivePlan } from '../../lib/plan-utils';
+import { getFeatureAccess } from '../../lib/feature-access';
 
 interface QuizResults {
   totalQuestions: number;
@@ -16,6 +19,10 @@ export default function ResultsPage() {
   const [results, setResults] = useState<QuizResults | null>(null);
   const [topic, setTopic] = useState('');
   const [fullAnalysis, setFullAnalysis] = useState<any>(null);
+
+  const { user } = useAuth();
+  const effectivePlan = getEffectivePlan(user);
+  const { mistakeReview } = getFeatureAccess(effectivePlan);
 
   const handleExplainMistakes = () => {
     if (!results || !fullAnalysis) return;
@@ -33,10 +40,14 @@ export default function ResultsPage() {
         };
       });
 
-    if (incorrectAnswersData.length > 0) {
+    const mistakesToPass = mistakeReview === 'preview' 
+      ? incorrectAnswersData.slice(0, 1) 
+      : incorrectAnswersData;
+
+    if (mistakesToPass.length > 0) {
       sessionStorage.setItem('omninauka_mistake_review_context', JSON.stringify({
         reviewId: Date.now().toString(),
-        mistakes: incorrectAnswersData
+        mistakes: mistakesToPass
       }));
       navigate('/app/lesson', { state: { mistakeReview: true } });
     }
@@ -196,13 +207,22 @@ export default function ResultsPage() {
       {/* Actions */}
       <div className="flex flex-col sm:flex-row gap-4">
         {incorrectAnswers > 0 && (
-          <button
-            onClick={handleExplainMistakes}
-            className="flex-1 px-6 py-3 bg-[var(--omni-lavender)] text-[var(--omni-accent)] font-bold rounded-2xl hover:bg-indigo-100 transition-all flex items-center justify-center gap-2"
-          >
-            <Bot className="w-5 h-5" />
-            Wyjaśnij błędy z AI Tutorem
-          </button>
+          <div className="flex-1 flex flex-col items-center">
+            <button
+              onClick={handleExplainMistakes}
+              className="w-full px-6 py-3 bg-[var(--omni-lavender)] text-[var(--omni-accent)] font-bold rounded-2xl hover:bg-indigo-100 transition-all flex items-center justify-center gap-2"
+            >
+              <Bot className="w-5 h-5" />
+              {mistakeReview === 'preview' 
+                ? 'Wyjaśnij pierwszy błąd (Preview)' 
+                : 'Wyjaśnij błędy z AI Tutorem'}
+            </button>
+            {mistakeReview === 'preview' && (
+              <span className="text-xs text-[var(--omni-text-muted)] mt-2">
+                W Premium omówisz wszystkie błędy z AI Tutorem.
+              </span>
+            )}
+          </div>
         )}
         <button
           onClick={() => navigate('/app/quiz')}

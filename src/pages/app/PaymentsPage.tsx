@@ -163,13 +163,12 @@ export default function PaymentsPage() {
           </p>
           <ul className="space-y-3 mb-8 flex-1">
             {[
-              'Więcej lekcji AI każdego dnia',
-              'Dłuższa praca z AI korepetytorem',
-              'Więcej quizów i fiszek',
-              'Powtórki błędów',
-              'Historia nauki i powrót do tematów',
-              'Lepsze przygotowanie do sprawdzianów',
-              'Priorytetowe funkcje AI w ramach fair use'
+              t('home.pricing.premium.feat1', 'Więcej lekcji AI każdego dnia'),
+              t('home.pricing.premium.feat2', 'Zaawansowany AI Tutor'),
+              t('home.pricing.premium.feat3', 'Pełne omówienie błędów z quizu'),
+              t('home.pricing.premium.feat4', 'Sprawdzian z raportem błędów'),
+              t('home.pricing.premium.feat5', 'Fiszki Premium i powtórki'),
+              t('home.pricing.premium.feat6', 'Historia nauki i powrót do tematów')
             ].map((feature, idx) => (
               <li key={idx} className="flex items-start gap-2">
                 <CheckCircle className="w-4 h-4 text-green-500 shrink-0 mt-0.5" />
@@ -224,11 +223,11 @@ export default function PaymentsPage() {
           </p>
           <ul className="space-y-3 mb-8 flex-1">
             {[
-              'Do 3 kont uczniowskich',
-              'Panel Rodzica',
-              'Podgląd dzieci po zgodzie rodzicielskiej',
-              'Wszystko z Premium dla uczniów',
-              'Wspólna organizacja nauki'
+              t('home.pricing.family.feat1', 'Do 3 kont uczniowskich'),
+              t('home.pricing.family.feat2', 'Panel Rodzica'),
+              t('home.pricing.family.feat3', 'Podgląd dzieci po zgodzie rodzicielskiej'),
+              t('home.pricing.family.feat4', 'Wszystko z Premium dla uczniów'),
+              t('home.pricing.family.feat5', 'Wspólna organizacja nauki')
             ].map((feature, idx) => (
               <li key={idx} className="flex items-start gap-2">
                 <CheckCircle className="w-4 h-4 text-green-500 shrink-0 mt-0.5" />

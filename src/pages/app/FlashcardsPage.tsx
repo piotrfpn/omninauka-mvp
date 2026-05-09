@@ -5,6 +5,8 @@ import { RotateCw, ChevronLeft, ChevronRight, BookOpen } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../lib/auth-context';
+import { getEffectivePlan } from '../../lib/plan-utils';
+import { getFeatureAccess } from '../../lib/feature-access';
 
 type FlashcardProgressState = Record<string, {
   status: 'know' | 'dont_know';
@@ -23,10 +25,15 @@ export default function FlashcardsPage() {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isFlipped, setIsFlipped] = useState(false);
   const [knownCards, setKnownCards] = useState<Set<string>>(new Set());
+  const [hasHiddenCards, setHasHiddenCards] = useState(false);
   const [flashcardProgress, setFlashcardProgress] = useState<FlashcardProgressState>({});
   const [isLoading, setIsLoading] = useState(true);
   const [isRegenerating, setIsRegenerating] = useState(false);
   const [regenerationMessage, setRegenerationMessage] = useState<string | null>(null);
+
+  const { user } = useAuth();
+  const effectivePlan = getEffectivePlan(user);
+  const { maxFlashcardsPerLesson } = getFeatureAccess(effectivePlan);
 
   useEffect(() => {
     const fetchFlashcards = async () => {
@@ -74,7 +81,11 @@ export default function FlashcardsPage() {
           return wA - wB;
         });
         
-        setFlashcards(mappedCards);
+        // Feature Gate: Limit flashcards based on plan
+        const limitedCards = mappedCards.slice(0, maxFlashcardsPerLesson);
+        setHasHiddenCards(mappedCards.length > maxFlashcardsPerLesson);
+        
+        setFlashcards(limitedCards);
         setFlashcardProgress(prog);
 
         // Restore progress
@@ -368,6 +379,20 @@ export default function FlashcardsPage() {
               {t('flashcards.completion.backToResults')}
             </button>
           </div>
+          
+          {hasHiddenCards && effectivePlan === 'free' && (
+            <div className="mt-8 p-4 bg-indigo-50 border border-indigo-100 rounded-xl max-w-lg mx-auto">
+              <p className="text-indigo-800 font-medium mb-3">
+                Odblokuj więcej fiszek i powtórki w Premium.
+              </p>
+              <button
+                onClick={() => navigate('/app/payments')}
+                className="omni-btn-primary w-full py-2.5 text-sm"
+              >
+                Sprawdź Premium
+              </button>
+            </div>
+          )}
         </div>
       </div>
     );
