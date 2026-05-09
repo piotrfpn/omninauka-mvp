@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import type { QuizQuestion, QuizAnswer } from '../../types';
 import { Check, X, ArrowRight, HelpCircle, Trophy, RotateCw } from 'lucide-react';
@@ -22,6 +22,10 @@ export default function QuizPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isRegenerating, setIsRegenerating] = useState(false);
   const [regenerationMessage, setRegenerationMessage] = useState<string | null>(null);
+
+  // Stores the fully-resolved last answer object so handleNext can read it synchronously
+  // (React state updates are async, so answers[] in handleNext won't have the last item yet)
+  const lastAnswerRef = useRef<import('../../types').QuizAnswer | null>(null);
   
   // Randomization state
   const [attemptId, setAttemptId] = useState<string | null>(null);
@@ -220,12 +224,36 @@ export default function QuizPage() {
     const isCorrect = originalIndex === currentQuestion.correctAnswer;
     const timeSpent = Math.round((Date.now() - startTime) / 1000);
 
-    setAnswers(prev => [...prev, {
+    // Resolve human-readable text for the selected and correct answers up-front,
+    // so we never store a raw index as display text.
+    let selectedAnswerText: string;
+    let correctAnswerText: string;
+    
+    if (currentQuestion.type === 'single_choice' && currentQuestion.options) {
+      selectedAnswerText = currentQuestion.options[originalIndex] ?? String(originalIndex);
+      correctAnswerText = currentQuestion.options[currentQuestion.correctAnswer as number] ?? String(currentQuestion.correctAnswer);
+    } else if (currentQuestion.type === 'true_false') {
+      selectedAnswerText = originalIndex === 0 ? t('quiz.options.true') : t('quiz.options.false');
+      correctAnswerText = currentQuestion.correctAnswer === 0 ? t('quiz.options.true') : t('quiz.options.false');
+    } else {
+      selectedAnswerText = String(originalIndex);
+      correctAnswerText = String(currentQuestion.correctAnswer);
+    }
+
+    const newAnswer: import('../../types').QuizAnswer = {
       questionId: currentQuestion.id,
-      selectedAnswer: originalIndex, // Store the original answer for persistence
+      selectedAnswer: originalIndex,
       isCorrect,
       timeSpentSeconds: timeSpent,
-    }]);
+      questionText: currentQuestion.question,
+      selectedAnswerText,
+      correctAnswerText,
+      explanation: currentQuestion.explanation || '',
+    };
+
+    // Store in ref for synchronous access in handleNext (state update is async)
+    lastAnswerRef.current = newAnswer;
+    setAnswers(prev => [...prev, newAnswer]);
   };
 
   const handleNext = async () => {
@@ -236,8 +264,15 @@ export default function QuizPage() {
       setStartTime(Date.now());
     } else {
       setIsFinished(true);
-      // Store results
-      const correctCount = answers.filter(a => a.isCorrect).length;
+
+      // Because React state updates are async, `answers` here may not yet include the
+      // final answer that was just set. We merge it manually via lastAnswerRef.
+      const lastAnswer = lastAnswerRef.current;
+      const allAnswers = lastAnswer && !answers.find(a => a.questionId === lastAnswer.questionId)
+        ? [...answers, lastAnswer]
+        : answers;
+
+      const correctCount = allAnswers.filter(a => a.isCorrect).length;
       const totalCount = questions.length;
       const percentage = totalCount > 0 ? Math.round((correctCount / totalCount) * 100) : 0;
       const completedAt = new Date().toISOString();
@@ -245,7 +280,7 @@ export default function QuizPage() {
       sessionStorage.setItem('quizResults', JSON.stringify({
         totalQuestions: totalCount,
         correctAnswers: correctCount,
-        answers: answers,
+        answers: allAnswers,
       }));
 
       // Phase 8A: Persist to DB (Isolated update)

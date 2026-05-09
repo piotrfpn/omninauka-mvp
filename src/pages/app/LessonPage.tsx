@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
-import { Send, Bot, User, Mic, MicOff, AlertCircle, RefreshCw, MessageCircle, LayoutDashboard, History } from 'lucide-react';
+import { useNavigate, useParams, useLocation } from 'react-router-dom';
+import { Send, Bot, User, Mic, MicOff, AlertCircle, RefreshCw, MessageCircle, LayoutDashboard, History, Target } from 'lucide-react';
 import type { LessonMessage } from '../../types';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../lib/auth-context';
@@ -238,6 +238,7 @@ interface ChatMessage {
 function RealLessonChat() {
   const navigate = useNavigate();
   const { id: routeId } = useParams();
+  const location = useLocation();
   const [topic, setTopic] = useState('');
   const [isInitializing, setIsInitializing] = useState(true);
   const [contextError, setContextError] = useState<string | null>(null);
@@ -251,6 +252,8 @@ function RealLessonChat() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [threadId, setThreadId] = useState<string | null>(null);
   const [contextSnapshot, setContextSnapshot] = useState<any>(null);
+  const [isMistakeReview, setIsMistakeReview] = useState(false);
+  const [mistakeCount, setMistakeCount] = useState(0);
 
   useEffect(() => {
     const initSession = async () => {
@@ -335,12 +338,33 @@ function RealLessonChat() {
           return summary;
         };
 
+        let masterySummary = buildMasterySummary();
+        
+        // --- Mistake Review Logic ---
+        let isMistakeModeActive = false;
+        let mistakeContextObj: any = null;
+        const stateContext = (location.state as any)?.mistakeReview;
+        const storageContextStr = sessionStorage.getItem('omninauka_mistake_review_context');
+
+        if (stateContext && storageContextStr) {
+          try {
+            mistakeContextObj = JSON.parse(storageContextStr);
+            isMistakeModeActive = true;
+          } catch (e) {}
+        }
+
+        if (isMistakeModeActive) {
+          setIsMistakeReview(true);
+          setMistakeCount(mistakeContextObj.mistakes?.length || 0);
+          masterySummary += "\n\nCONTEXT INSTRUCTION: The user is currently in a Mistake Review mode. Guide them through their incorrect quiz answers one by one. Ask questions to help them understand their mistake. Do not give the answer immediately.";
+        }
+
         const latestContext = {
           topic: dbData.topic,
           summary: dbData.summary,
           subject: dbData.subject,
           key_concepts: dbData.key_concepts,
-          mastery_summary: buildMasterySummary()
+          mastery_summary: masterySummary
         };
 
         // --- Sprint 5 / Stabilized: Idempotent thread bootstrap ---
@@ -408,10 +432,12 @@ function RealLessonChat() {
           setThreadId(thread.id);
           setContextSnapshot(thread.context_snapshot);
 
+          const currentMessages: ChatMessage[] = [];
+
           if (existingMessages && existingMessages.length > 0) {
-            setMessages(existingMessages.map(m => ({
+            currentMessages.push(...existingMessages.map(m => ({
               id: m.id,
-              role: m.role,
+              role: m.role as 'user' | 'assistant',
               content: m.content
             })));
           } else {
@@ -442,12 +468,64 @@ function RealLessonChat() {
               proactiveMsg = `Cześć! Masz za sobą solidną powtórkę. Od czego dzisiaj zaczynamy naszą rozmowę?`;
             }
 
-            setMessages([{
+            currentMessages.push({
               id: 'msg-welcome',
               role: 'assistant',
               content: proactiveMsg
-            }]);
+            });
           }
+
+          // Mistake Review Message Insertion (Appended at the end of whatever history we have)
+          if (isMistakeModeActive && mistakeContextObj && thread) {
+            const reviewId = mistakeContextObj.reviewId;
+            const doneKey = `omninauka_mistake_review_done_${reviewId}`;
+            if (!sessionStorage.getItem(doneKey)) {
+              sessionStorage.setItem(doneKey, 'true');
+              const firstMistake = mistakeContextObj.mistakes[0];
+              
+              let mistakeStartMsg = '';
+              if (!firstMistake.question) {
+                // Soft fallback — data was from an old quiz session before the enrichment patch
+                mistakeStartMsg = `Cześć! Widzę, że w quizie kilka pytań sprawiło Ci trudność. Przejdziemy przez nie krok po kroku.\n\nNie mam pełnych danych pierwszego pytania z tego quizu, więc najlepiej uruchomić quiz ponownie albo przejść do nowego zestawu pytań.`;
+              } else {
+                const parts = [
+                  `Cześć! Widzę, że w quizie kilka pytań sprawiło Ci trudność. Przejdziemy przez nie krok po kroku.\n\nZacznijmy od pierwszego błędu.`,
+                  `**Pytanie:**\n»${firstMistake.question}«`,
+                  `**Twoja odpowiedź:**\n»${firstMistake.selectedAnswer}«`,
+                ];
+                if (firstMistake.correctAnswer) {
+                  parts.push(`**Poprawna odpowiedź:**\n»${firstMistake.correctAnswer}«`);
+                }
+                if (firstMistake.explanation) {
+                  parts.push(`**Wyjaśnienie:**\n${firstMistake.explanation}`);
+                }
+                const remaining = mistakeContextObj.mistakes.length - 1;
+                if (remaining > 0) {
+                  parts.push(`Chcesz, żebym omówił kolejny błąd? (zostało ${remaining})`);
+                } else {
+                  parts.push(`To był jedyny błąd w tym quizie. Jeśli chcesz, możemy porozmawiać o tym zagadnieniu szerzej.`);
+                }
+                mistakeStartMsg = parts.join('\n\n');
+              }
+              currentMessages.push({
+                id: `msg-mistake-${Date.now()}`,
+                role: 'assistant',
+                content: mistakeStartMsg
+              });
+              
+              // Persist to DB since this is auto-generated and we want Edge Function to see it as part of thread
+              if (authData.session?.user.id) {
+                // Background insert, fire and forget
+                supabase.from('tutor_messages').insert([
+                  { thread_id: thread.id, user_id: authData.session.user.id, role: 'assistant', content: mistakeStartMsg }
+                ]).then(({ error }) => {
+                  if (error) console.error("Mistake insert failed", error);
+                });
+              }
+            }
+          }
+
+          setMessages(currentMessages);
         }
 
       } catch (err: any) {
@@ -821,6 +899,16 @@ function RealLessonChat() {
           </button>
         </div>
       </div>
+
+      {/* Mistake Review Banner */}
+      {isMistakeReview && (
+        <div className="px-4 py-2 bg-yellow-50 dark:bg-yellow-900/20 border-b border-yellow-100 dark:border-yellow-900/50 flex items-center gap-2">
+          <Target className="w-4 h-4 text-yellow-600 dark:text-yellow-500" />
+          <span className="text-xs font-semibold text-yellow-800 dark:text-yellow-400">
+            Tryb: Omówienie błędów z quizu ({mistakeCount} do poprawy)
+          </span>
+        </div>
+      )}
 
       {/* Messages Area */}
       <div className="flex-1 overflow-y-auto px-4 py-4 space-y-6 custom-scrollbar">

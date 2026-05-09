@@ -136,6 +136,10 @@ export interface QuizAnswer {
   selectedAnswer: string | number;
   isCorrect: boolean;
   timeSpentSeconds: number;
+  questionText?: string;
+  selectedAnswerText?: string;
+  correctAnswerText?: string;
+  explanation?: string;
 }
 
 // Lesson/Tutor Types

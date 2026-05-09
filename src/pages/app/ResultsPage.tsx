@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import type { QuizAnswer } from '../../types';
-import { Trophy, Target, TrendingUp, Clock, ArrowRight, BookOpen, RotateCw } from 'lucide-react';
+import { Trophy, Target, TrendingUp, Clock, ArrowRight, BookOpen, RotateCw, Bot } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
 interface QuizResults {
@@ -15,6 +15,32 @@ export default function ResultsPage() {
   const { t } = useTranslation();
   const [results, setResults] = useState<QuizResults | null>(null);
   const [topic, setTopic] = useState('');
+  const [fullAnalysis, setFullAnalysis] = useState<any>(null);
+
+  const handleExplainMistakes = () => {
+    if (!results || !fullAnalysis) return;
+    
+    const incorrectAnswersData = results.answers
+      .filter(a => !a.isCorrect)
+      .map(a => {
+        // We now rely on the pre-filled text fields from QuizPage. 
+        // If they are missing (e.g. old session), we just pass them through so LessonPage can handle the fallback gently.
+        return {
+          question: a.questionText || '',
+          selectedAnswer: a.selectedAnswerText || String(a.selectedAnswer),
+          correctAnswer: a.correctAnswerText || '',
+          explanation: a.explanation || ''
+        };
+      });
+
+    if (incorrectAnswersData.length > 0) {
+      sessionStorage.setItem('omninauka_mistake_review_context', JSON.stringify({
+        reviewId: Date.now().toString(),
+        mistakes: incorrectAnswersData
+      }));
+      navigate('/app/lesson', { state: { mistakeReview: true } });
+    }
+  };
 
   useEffect(() => {
     const resultsStr = sessionStorage.getItem('quizResults');
@@ -32,6 +58,7 @@ export default function ResultsPage() {
       try {
         const analysis = JSON.parse(analysisStr);
         setTopic(analysis.topic);
+        setFullAnalysis(analysis);
       } catch {
         setTopic('');
       }
@@ -168,6 +195,15 @@ export default function ResultsPage() {
 
       {/* Actions */}
       <div className="flex flex-col sm:flex-row gap-4">
+        {incorrectAnswers > 0 && (
+          <button
+            onClick={handleExplainMistakes}
+            className="flex-1 px-6 py-3 bg-[var(--omni-lavender)] text-[var(--omni-accent)] font-bold rounded-2xl hover:bg-indigo-100 transition-all flex items-center justify-center gap-2"
+          >
+            <Bot className="w-5 h-5" />
+            Wyjaśnij błędy z AI Tutorem
+          </button>
+        )}
         <button
           onClick={() => navigate('/app/quiz')}
           className="flex-1 omni-btn-primary"
@@ -175,10 +211,12 @@ export default function ResultsPage() {
           <RotateCw className="w-5 h-5" />
           {t('results.actions.repeatQuiz')}
         </button>
-        <Link to="/app/flashcards" className="flex-1 omni-btn-secondary">
-          <BookOpen className="w-5 h-5" />
-          {t('results.actions.learnFlashcards')}
-        </Link>
+        {incorrectAnswers === 0 && (
+          <Link to="/app/flashcards" className="flex-1 omni-btn-secondary">
+            <BookOpen className="w-5 h-5" />
+            {t('results.actions.learnFlashcards')}
+          </Link>
+        )}
         <Link to="/app/dashboard" className="flex-1 omni-btn-secondary">
           {t('results.actions.dashboard')}
           <ArrowRight className="w-5 h-5" />
