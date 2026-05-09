@@ -74,9 +74,9 @@ export default function HomePage() {
         t('home.pricing.premium.feat4', 'Sprawdziany z raportem błędów'),
         t('home.pricing.premium.feat5', 'Priorytetowe AI w ramach fair use')
       ],
-      cta: t('home.pricing.premium.cta', 'Kup Premium na 30 dni'),
+      cta: t('home.pricing.premium.cta', 'Załóż konto i kup Premium'),
       primary: true,
-      link: import.meta.env.VITE_STRIPE_PREMIUM_30_DAYS_PAYMENT_LINK || import.meta.env.VITE_STRIPE_PREMIUM_PAYMENT_LINK,
+      link: '/register',
     },
     {
       name: t('home.pricing.family.title', 'Rodzinny 30 dni'),
@@ -90,9 +90,9 @@ export default function HomePage() {
         t('home.pricing.family.feat4', 'Wspólna historia nauki'),
         t('home.pricing.family.feat5', 'Panel rodzica — wkrótce')
       ],
-      cta: t('home.pricing.family.cta', 'Kup Rodzinny na 30 dni'),
+      cta: t('home.pricing.family.cta', 'Załóż konto i kup Rodzinny'),
       primary: false,
-      link: import.meta.env.VITE_STRIPE_FAMILY_30_DAYS_PAYMENT_LINK || import.meta.env.VITE_STRIPE_FAMILY_PAYMENT_LINK,
+      link: '/register',
     },
   ];
 
@@ -283,24 +283,19 @@ export default function HomePage() {
                   ))}
                 </ul>
                 <div className="mt-auto flex justify-center">
-                  {plan.name === t('home.pricing.free.title', 'Darmowy') ? (
+                  {plan.link ? (
                     <Link
-                      to="/register"
-                      className="w-full inline-flex items-center justify-center whitespace-nowrap px-4 py-3 rounded-xl transition-all bg-gray-100 text-[var(--omni-text)] font-semibold hover:bg-gray-200"
-                    >
-                      {plan.cta}
-                    </Link>
-                  ) : plan.link ? (
-                    <a
-                      href={plan.link}
+                      to={plan.link}
                       className={`w-full inline-flex items-center justify-center whitespace-nowrap px-4 py-3 rounded-xl transition-all ${
                         plan.primary
                           ? 'bg-[#2EE6A6] text-[#0B1220] font-bold hover:shadow-lg'
-                          : 'bg-gray-100 text-[var(--omni-text)] font-semibold hover:bg-gray-200'
+                          : plan.name === t('home.pricing.free.title', 'Darmowy')
+                            ? 'bg-gray-100 text-[var(--omni-text)] font-semibold hover:bg-gray-200'
+                            : 'bg-gray-100 text-[var(--omni-text)] font-semibold hover:bg-gray-200'
                       }`}
                     >
                       {plan.cta}
-                    </a>
+                    </Link>
                   ) : (
                     <button
                       disabled
