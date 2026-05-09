@@ -38,6 +38,19 @@ Limit liczony jest na podstawie liczby eventów `flashcard_regen` w ramach konkr
 
 *Uwaga: Backend wymusza limit liczby fiszek nawet jeśli model AI wygeneruje ich więcej.*
 
+### 3. AI Tutor (`chat-tutor`)
+Limit liczony jest na podstawie liczby eventów `tutor_message`.
+
+| Plan | Limit na lekcję | Limit dzienny | Wersja |
+| :--- | :--- | :--- | :--- |
+| **Free** | 10 wiadomości | 20 wiadomości | Podstawowy (krótki kontekst) |
+| **Premium** | 50 wiadomości | 100 wiadomości | Zaawansowany (długi kontekst) |
+| **Family** | 50 wiadomości | 100 wiadomości | Zaawansowany (długi kontekst) |
+
+**Różnice techniczne:**
+- **Free**: Kontekst historii ograniczony do 6 wiadomości, max output ~500 tokens, max input 1000 znaków.
+- **Premium/Family**: Kontekst historii do 12 wiadomości, max output ~900 tokens, max input 3000 znaków.
+
 ## Obsługa błędów
 
 W przypadku osiągnięcia limitu, Edge Function zwraca status **403 Forbidden** z następującym JSONem:
@@ -45,7 +58,7 @@ W przypadku osiągnięcia limitu, Edge Function zwraca status **403 Forbidden** 
 ```json
 {
   "error": "usage_limit_reached",
-  "feature": "ai_lessons" | "flashcard_regen",
+  "feature": "ai_lessons" | "flashcard_regen" | "ai_tutor",
   "limit": number,
   "plan": "free" | "premium",
   "message": "Czytelny komunikat dla użytkownika"
@@ -56,8 +69,11 @@ Frontend obsługuje ten błąd, wyświetlając odpowiedni komunikat oraz przycis
 
 ## Fair Use Policy
 
-Plany Premium i Family nie są określane jako "nielimitowane". Wyższe limity są dobrane tak, aby zapewniały komfortową naukę (10 lekcji dziennie to bardzo duża dawka materiału), jednocześnie chroniąc projekt przed nadużyciami i niekontrolowanymi kosztami API.
+Plany Premium i Family nie są określane jako "nielimitowane". Wyższe limity są dobrane tak, aby zapewniał komfortową naukę (10 lekcji dziennie i 50 wiadomości z Tutorem na lekcję to bardzo duża dawka materiału), jednocześnie chroniąc projekt przed nadużyciami i niekontrolowanymi kosztami API.
 
-## Plany na Sprint 20B.2
-- Wdrożenie limitów dla `chat-tutor`.
-- Uszczelnienie weryfikacji profilu w `chat-tutor`.
+## Logowanie i Audyt
+
+Logi użycia można sprawdzić w bazie danych:
+```sql
+SELECT * FROM usage_events ORDER BY created_at DESC;
+```

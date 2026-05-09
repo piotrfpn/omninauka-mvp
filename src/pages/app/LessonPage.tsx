@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
-import { Send, Bot, User, Mic, MicOff, AlertCircle, RefreshCw, MessageCircle, LayoutDashboard, History, Target } from 'lucide-react';
+import { Send, Bot, User, Mic, MicOff, AlertCircle, AlertTriangle, RefreshCw, MessageCircle, LayoutDashboard, History, Target } from 'lucide-react';
 import type { LessonMessage } from '../../types';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../lib/auth-context';
@@ -243,11 +243,17 @@ function RealLessonChat() {
   const [isInitializing, setIsInitializing] = useState(true);
   const [contextError, setContextError] = useState<string | null>(null);
   const [isEmptyState, setIsEmptyState] = useState(false);
+  const [chatError, setChatError] = useState<string | null>(null);
+  const [usageLimitInfo, setUsageLimitInfo] = useState<{
+    limit: number;
+    plan: string;
+    message: string;
+  } | null>(null);
   const [authToken, setAuthToken] = useState<string | null>(null);
+  
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [isVoiceMode, setIsVoiceMode] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [chatError, setChatError] = useState<string | null>(null);
   const [input, setInput] = useState('');
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [threadId, setThreadId] = useState<string | null>(null);
@@ -682,15 +688,21 @@ function RealLessonChat() {
     e.preventDefault();
     if (!input.trim() || isLoading) return;
 
+    const currentSessionId = routeId || sessionStorage.getItem('currentSessionId');
+    if (!currentSessionId) {
+      setChatError('Błąd: Brak identyfikatora sesji.');
+      return;
+    }
+
     const userMessage: ChatMessage = {
       id: `msg-${Date.now()}`,
       role: 'user',
       content: input.trim()
     };
 
-    // Build history to send (last 5 messages for cost control)
+    // Build history to send (backend will slice further based on plan)
     const historyToSend = [...messages, userMessage]
-      .slice(-5)
+      .slice(-15)
       .map(m => ({ role: m.role, content: m.content }));
 
     setMessages(prev => [...prev, userMessage]);
@@ -714,12 +726,30 @@ function RealLessonChat() {
         body: JSON.stringify({
           messages: historyToSend,
           context: contextSnapshot,
-          stream: true // Phase II Streaming enabled
+          sessionId: currentSessionId, // Sprint 20B.2: Required for usage counting
+          stream: true
         })
       });
 
       if (!response.ok) {
         const errText = await response.text();
+        
+        // Handle Usage Limits (Sprint 20B.2)
+        if (response.status === 403) {
+          try {
+            const errorData = JSON.parse(errText);
+            if (errorData.error === 'usage_limit_reached') {
+              setUsageLimitInfo({
+                limit: errorData.limit,
+                plan: errorData.plan,
+                message: errorData.message
+              });
+              setMessages(prev => prev.filter(m => m.id !== assistantId));
+              return;
+            }
+          } catch (e) {}
+        }
+
         console.error(`[chat-tutor] HTTP ${response.status}:`, errText);
         setChatError(`Błąd serwera (${response.status}). Spróbuj ponownie.`);
         // Remove the empty assistant placeholder
@@ -1016,12 +1046,52 @@ function RealLessonChat() {
         </div>
       )}
 
+      {/* Usage Limit Info Panel (Sprint 20B.2) */}
+      {usageLimitInfo && (
+        <div className="mx-4 mb-4 p-4 bg-orange-50 dark:bg-orange-900/20 border border-orange-100 dark:border-orange-900/40 rounded-2xl animate-in slide-in-from-bottom-4 duration-300">
+          <div className="flex items-start gap-3">
+            <div className="w-10 h-10 bg-orange-100 dark:bg-orange-900/40 rounded-xl flex items-center justify-center flex-shrink-0">
+              <AlertTriangle className="w-5 h-5 text-orange-600 dark:text-orange-400" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <h4 className="text-sm font-bold text-orange-900 dark:text-orange-300 mb-1">
+                Limit wiadomości AI
+              </h4>
+              <p className="text-xs text-orange-800 dark:text-orange-400 leading-relaxed mb-3">
+                {usageLimitInfo.message}
+              </p>
+              <div className="flex gap-2">
+                {usageLimitInfo.plan === 'free' ? (
+                  <button
+                    onClick={() => navigate('/app/payments')}
+                    className="px-4 py-2 bg-orange-500 text-white text-xs font-bold rounded-lg hover:bg-orange-600 transition-colors shadow-sm"
+                  >
+                    Odblokuj Premium
+                  </button>
+                ) : null}
+                <button
+                  onClick={() => navigate('/app/results')}
+                  className="px-4 py-2 bg-white dark:bg-slate-800 border border-orange-200 dark:border-orange-900/40 text-orange-700 dark:text-orange-400 text-xs font-bold rounded-lg hover:bg-orange-100 dark:hover:bg-orange-900/20 transition-colors"
+                >
+                  Podsumowanie lekcji
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Input Area */}
       <div className="bg-card border-t border-border pb-safe shadow-[0_-4px_12px_rgba(0,0,0,0.06)]">
         <div className="max-w-4xl mx-auto w-full p-3 md:p-4 flex items-center gap-2">
           <button
             onClick={toggleVoiceMode}
-            className={`w-11 h-11 flex items-center justify-center rounded-xl transition-all ${isVoiceMode ? 'bg-red-500 text-white animate-pulse' : 'bg-muted dark:bg-slate-700 text-muted-foreground hover:bg-muted/80'}`}
+            disabled={usageLimitInfo !== null}
+            className={`w-11 h-11 flex items-center justify-center rounded-xl transition-all ${
+              isVoiceMode 
+                ? 'bg-red-500 text-white animate-pulse' 
+                : 'bg-muted dark:bg-slate-700 text-muted-foreground hover:bg-muted/80'
+            } disabled:opacity-30`}
           >
             {isVoiceMode ? <MicOff className="w-5 h-5" /> : <Mic className="w-5 h-5" />}
           </button>
@@ -1030,14 +1100,14 @@ function RealLessonChat() {
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="Zadaj pytanie..."
-            disabled={isLoading}
-            className="flex-1 bg-muted dark:bg-slate-800 border-none outline-none text-sm text-foreground placeholder:text-muted-foreground px-4 py-3 rounded-xl focus:ring-1 focus:ring-[var(--omni-accent)]/30 transition-all resize-none max-h-32"
+            placeholder={usageLimitInfo ? "Osiągnięto limit wiadomości" : "Zadaj pytanie..."}
+            disabled={isLoading || usageLimitInfo !== null}
+            className="flex-1 bg-muted dark:bg-slate-800 border-none outline-none text-sm text-foreground placeholder:text-muted-foreground px-4 py-3 rounded-xl focus:ring-1 focus:ring-[var(--omni-accent)]/30 transition-all resize-none max-h-32 disabled:opacity-50"
           />
           <button
             id="chat-send-btn"
             onClick={handleSend}
-            disabled={!input.trim() || isLoading}
+            disabled={!input.trim() || isLoading || usageLimitInfo !== null}
             className="w-11 h-11 flex items-center justify-center bg-[var(--omni-accent)] text-white rounded-xl disabled:opacity-50 hover:scale-105 active:scale-95 transition-all shadow-sm shadow-indigo-200 flex-shrink-0"
           >
             {isLoading ? <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <Send className="w-5 h-5" />}

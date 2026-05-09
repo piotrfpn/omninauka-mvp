@@ -1,5 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createRemoteJWKSet, jwtVerify } from "npm:jose";
+import { createClient } from "npm:@supabase/supabase-js@2";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -36,40 +36,112 @@ const sanitizeKeyConcepts = (val: unknown, maxItems: number, maxItemLen: number)
     .filter(Boolean);
 };
 
-// ── Limits ────────────────────────────────────────────────────────────────────
-const MAX_MESSAGES_PAYLOAD  = 30;    // max messages accepted from client
-const MAX_CONTEXT_WINDOW    = 8;     // last N messages sent to OpenAI
-const MAX_MESSAGE_CONTENT   = 4000;  // chars per message content
-const MAX_TOPIC_LEN         = 200;
-const MAX_SUMMARY_LEN       = 3000;
-const MAX_KEY_CONCEPTS      = 20;
-const MAX_KEY_CONCEPT_LEN   = 120;
-const MAX_TOTAL_PAYLOAD     = 20000; // total chars (context + messages) before 400/413
-
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
   }
 
   try {
-    // ── 1. JWT verification ───────────────────────────────────────────────────
-    const authHeader = req.headers.get('Authorization');
+    // ── 1. Auth & Admin Setup ──────────────────────────────────────────────────
+    const authHeader = req.headers.get('Authorization') || req.headers.get('authorization');
     if (!authHeader) throw new Error("Missing authorization header");
 
-    const token = authHeader.replace('Bearer ', '');
     const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? '';
-    const JWKS = createRemoteJWKSet(new URL(`${supabaseUrl}/auth/v1/.well-known/jwks.json`));
+    const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY') ?? '';
+    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
 
-    const { payload } = await jwtVerify(token, JWKS, {
-      issuer: `${supabaseUrl}/auth/v1`,
+    const supabaseClient = createClient(supabaseUrl, supabaseAnonKey, {
+      global: { headers: { Authorization: authHeader } }
     });
-    const userId = payload.sub;
 
-    // ── 2. Parse raw body ─────────────────────────────────────────────────────
+    const { data: { user }, error: authError } = await supabaseClient.auth.getUser();
+    if (authError || !user) throw new Error("Unauthorized");
+    const userId = user.id;
+
+    const adminClient = createClient(supabaseUrl, supabaseServiceKey, {
+      auth: { persistSession: false }
+    });
+
+    // ── 2. Parse raw body & Session ID ─────────────────────────────────────────
     const body = await req.json();
-    const { messages: rawMessages, context: rawContext, stream = true } = body;
+    const { messages: rawMessages, context: rawContext, stream = true, sessionId } = body;
 
-    // ── 3. Validate messages ──────────────────────────────────────────────────
+    if (!sessionId) {
+      return new Response(JSON.stringify({ error: 'Missing sessionId' }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 400,
+      });
+    }
+
+    // ── 3. Plan Verification ──────────────────────────────────────────────────
+    const { data: profile } = await adminClient
+      .from('profiles')
+      .select('plan, plan_expires_at')
+      .eq('id', userId)
+      .single();
+
+    const now = new Date();
+    let effectivePlan = 'free';
+    if (profile?.plan === 'premium' || profile?.plan === 'family') {
+      if (!profile.plan_expires_at || new Date(profile.plan_expires_at) > now) {
+        effectivePlan = profile.plan;
+      }
+    }
+
+    // ── 4. Usage Guard ────────────────────────────────────────────────────────
+    // Define limits
+    const limits = effectivePlan === 'free' 
+      ? { session: 10, daily: 20, maxInLen: 1000, contextMsgs: 6, maxOutTokens: 500 }
+      : { session: 50, daily: 100, maxInLen: 3000, contextMsgs: 12, maxOutTokens: 900 };
+
+    // Count session messages
+    const { count: sessionCount } = await adminClient
+      .from('usage_events')
+      .select('*', { count: 'exact', head: true })
+      .eq('user_id', userId)
+      .eq('session_id', sessionId)
+      .eq('event_type', 'tutor_message');
+
+    if (sessionCount !== null && sessionCount >= limits.session) {
+      return new Response(JSON.stringify({
+        error: "usage_limit_reached",
+        feature: "ai_tutor",
+        limit: limits.session,
+        plan: effectivePlan,
+        message: effectivePlan === 'free' 
+          ? "Osiągnąłeś limit wiadomości AI Tutora w planie Darmowym. Sprawdź Premium, aby kontynuować naukę z AI Tutorem."
+          : "Osiągnąłeś limit wiadomości AI Tutora dla tej lekcji w ramach zasad Fair Use."
+      }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 403,
+      });
+    }
+
+    // Count daily messages
+    const today = new Date().toISOString().split('T')[0];
+    const { count: dailyCount } = await adminClient
+      .from('usage_events')
+      .select('*', { count: 'exact', head: true })
+      .eq('user_id', userId)
+      .eq('event_type', 'tutor_message')
+      .gte('created_at', today);
+
+    if (dailyCount !== null && dailyCount >= limits.daily) {
+      return new Response(JSON.stringify({
+        error: "usage_limit_reached",
+        feature: "ai_tutor",
+        limit: limits.daily,
+        plan: effectivePlan,
+        message: effectivePlan === 'free'
+          ? "Osiągnąłeś dzienny limit wiadomości AI Tutora w planie Darmowym. Wróć jutro lub sprawdź Premium."
+          : "Osiągnąłeś dzienny limit wiadomości AI Tutora (Fair Use). Spróbuj ponownie jutro."
+      }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 403,
+      });
+    }
+
+    // ── 5. Message Validation & Sanitization ──────────────────────────────────
     if (!rawMessages || !Array.isArray(rawMessages)) {
       return new Response(JSON.stringify({ error: 'messages must be a non-empty array' }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -77,49 +149,11 @@ serve(async (req) => {
       });
     }
 
-    if (rawMessages.length > MAX_MESSAGES_PAYLOAD) {
-      return new Response(JSON.stringify({
-        error: `Too many messages. Maximum allowed: ${MAX_MESSAGES_PAYLOAD}`,
-      }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 400,
-      });
-    }
+    const MAX_TOPIC_LEN         = 200;
+    const MAX_SUMMARY_LEN       = 3000;
+    const MAX_KEY_CONCEPTS      = 20;
+    const MAX_KEY_CONCEPT_LEN   = 120;
 
-    const ALLOWED_ROLES = new Set(['user', 'assistant']);
-    for (let i = 0; i < rawMessages.length; i++) {
-      const msg = rawMessages[i];
-      if (typeof msg !== 'object' || msg === null) {
-        return new Response(JSON.stringify({ error: `messages[${i}] must be an object` }), {
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          status: 400,
-        });
-      }
-      if (!ALLOWED_ROLES.has(msg.role)) {
-        return new Response(JSON.stringify({
-          error: `messages[${i}].role must be "user" or "assistant"`,
-        }), {
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          status: 400,
-        });
-      }
-      if (typeof msg.content !== 'string') {
-        return new Response(JSON.stringify({ error: `messages[${i}].content must be a string` }), {
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          status: 400,
-        });
-      }
-      if (msg.content.length > MAX_MESSAGE_CONTENT) {
-        return new Response(JSON.stringify({
-          error: `messages[${i}].content exceeds ${MAX_MESSAGE_CONTENT} characters`,
-        }), {
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          status: 400,
-        });
-      }
-    }
-
-    // ── 4. Sanitize context ───────────────────────────────────────────────────
     const context = {
       topic:        sanitizeString(rawContext?.topic,       MAX_TOPIC_LEN),
       summary:      sanitizeString(rawContext?.summary,     MAX_SUMMARY_LEN),
@@ -127,37 +161,12 @@ serve(async (req) => {
       mastery_summary: sanitizeString(rawContext?.mastery_summary, 500),
     };
 
-    // ── 5. Total payload size guard ───────────────────────────────────────────
-    const contextCharCount =
-      context.topic.length +
-      context.summary.length +
-      context.key_concepts.join('').length +
-      context.mastery_summary.length;
-
-    const messagesCharCount = rawMessages.reduce(
-      (sum: number, m: any) => sum + (typeof m.content === 'string' ? m.content.length : 0),
-      0
-    );
-
-    if (contextCharCount + messagesCharCount > MAX_TOTAL_PAYLOAD) {
-      return new Response(JSON.stringify({
-        error: `Payload too large. Total characters (context + messages) exceeds ${MAX_TOTAL_PAYLOAD}.`,
-      }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 413,
-      });
-    }
-
-    // ── 6. OpenAI setup ───────────────────────────────────────────────────────
+    // ── 6. OpenAI Setup ───────────────────────────────────────────────────────
     const OPENAI_API_KEY = Deno.env.get('OPENAI_API_KEY');
     if (!OPENAI_API_KEY) throw new Error("OpenAI API Key missing");
 
     const currentTopic = context.topic || 'aktualny materiał z dodanej notatki';
 
-    // ── 7. System prompt with injection guard ─────────────────────────────────
-    // SECURITY NOTE: The CONTEXT INJECTION GUARD section explicitly tells the
-    // model that anything coming from context/messages is user-supplied educational
-    // material and cannot override system-level instructions.
     const systemPrompt = `Jesteś Osobistym Korepetytorem (Personal Tutor) w aplikacji OmniNauka. 
 Twoim celem jest wspieranie ucznia (dziecko lub nastolatek) w nauce z wykorzystaniem Zrównoważonej Metody Sokratejskiej. 
 
@@ -208,33 +217,56 @@ GRANICE TEMATYCZNE (SCOPE GUARD):
      "To ciekawe, ale trochę odchodzimy od tej lekcji. Teraz skupiamy się na: ${currentTopic}. Mogę wyjaśnić to prościej, podać przykład albo zadać krótkie pytanie sprawdzające."
 `;
 
-    // Use only the last MAX_CONTEXT_WINDOW messages to control cost
-    const sanitizedMessages = rawMessages.slice(-MAX_CONTEXT_WINDOW).map((m: any) => ({
+    // ── 7. History Slicing (Preserving System Prompt) ─────────────────────────
+    const sanitizedMessages = rawMessages.map((m: any) => ({
       role: m.role,
-      content: stripControlChars(m.content),
-    }));
+      content: sanitizeString(m.content, limits.maxInLen),
+    })).filter(m => m.role === 'user' || m.role === 'assistant');
+
+    const slicedHistory = sanitizedMessages.slice(-limits.contextMsgs);
 
     const allMessages = [
       { role: 'system', content: systemPrompt },
-      ...sanitizedMessages,
+      ...slicedHistory,
     ];
 
-    // ── 8. OpenAI call ────────────────────────────────────────────────────────
-    if (!stream) {
-      const res = await fetch("https://api.openai.com/v1/chat/completions", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${OPENAI_API_KEY}`
-        },
-        body: JSON.stringify({
-          model: "gpt-4o-mini",
-          messages: allMessages,
-          max_tokens: 800,
-          temperature: 0.5
-        })
+    // ── 8. OpenAI Call ────────────────────────────────────────────────────────
+    const openaiPayload = {
+      model: "gpt-4o-mini",
+      messages: allMessages,
+      max_tokens: limits.maxOutTokens,
+      temperature: 0.5,
+      stream: stream
+    };
+
+    const response = await fetch("https://api.openai.com/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${OPENAI_API_KEY}`
+      },
+      body: JSON.stringify(openaiPayload)
+    });
+
+    if (!response.ok) throw new Error(`OpenAI API error: ${response.status}`);
+
+    // ── 9. Usage Logging ──────────────────────────────────────────────────────
+    // We log the usage event right before returning the response.
+    // This is safe because we've already received a successful response from OpenAI.
+    await adminClient
+      .from('usage_events')
+      .insert({
+        user_id: userId,
+        session_id: sessionId,
+        event_type: 'tutor_message',
+        metadata: { 
+          effectivePlan,
+          mode: effectivePlan === 'free' ? 'basic' : 'advanced'
+        }
       });
-      const data = await res.json();
+
+    if (!stream) {
+      const data = await response.json();
       return new Response(JSON.stringify({ 
         success: true, 
         reply: data.choices?.[0]?.message?.content || '' 
@@ -242,24 +274,6 @@ GRANICE TEMATYCZNE (SCOPE GUARD):
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
-
-    // Streaming (SSE)
-    const response = await fetch("https://api.openai.com/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${OPENAI_API_KEY}`
-      },
-      body: JSON.stringify({
-        model: "gpt-4o-mini",
-        messages: allMessages,
-        max_tokens: 800,
-        temperature: 0.5,
-        stream: true
-      })
-    });
-
-    if (!response.ok) throw new Error(`OpenAI API error: ${response.status}`);
 
     return new Response(response.body, {
       headers: { 
@@ -274,7 +288,7 @@ GRANICE TEMATYCZNE (SCOPE GUARD):
     console.error('[chat-tutor] Error:', error);
     return new Response(JSON.stringify({ error: error?.message || "Internal server error" }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      status: 500,
+      status: error?.message === "Unauthorized" ? 401 : 500,
     });
   }
 });
