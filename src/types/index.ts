@@ -16,8 +16,8 @@ export interface User {
   profileCompleted?: boolean;
   profileCompletedAt?: Date;
   lastLoginAt?: Date;
-  planExpiresAt?: Date | null;
-  planUpdatedAt?: Date | null;
+  planExpiresAt?: string | null;
+  planUpdatedAt?: string | null;
 }
 
 export interface Folder {

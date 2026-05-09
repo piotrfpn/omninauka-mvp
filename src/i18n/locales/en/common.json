@@ -131,7 +131,8 @@
         "blockedSubtitle": "Ask a parent or guardian to first add this email address in the Parent Dashboard in OmniNauka.",
         "nextStepsTitle": "What's next?",
         "cleanupRule": "If the account is not linked to a parent or legal guardian within 72 hours, it may be deleted or marked for deletion in accordance with data minimization principles.",
-        "goToLogin": "Go to login"
+        "goToLogin": "Go to login",
+        "loginAgain": "You can try to log in again to check your status."
       },
       "wait": "Wait",
       "waitSuffix": "s...",

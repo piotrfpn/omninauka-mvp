@@ -1,6 +1,7 @@
 import { useAuth } from '../../lib/auth-context';
 import { useTranslation } from 'react-i18next';
 import { CheckCircle, AlertCircle, Sparkles, Users, Layers, ExternalLink } from 'lucide-react';
+import { isPlanActive } from '../../lib/plan-utils';
 
 export default function PaymentsPage() {
   const { t } = useTranslation();
@@ -8,13 +9,30 @@ export default function PaymentsPage() {
 
   const premium30Link = import.meta.env.VITE_STRIPE_PREMIUM_30_DAYS_PAYMENT_LINK || import.meta.env.VITE_STRIPE_PREMIUM_PAYMENT_LINK;
   const family30Link = import.meta.env.VITE_STRIPE_FAMILY_30_DAYS_PAYMENT_LINK || import.meta.env.VITE_STRIPE_FAMILY_PAYMENT_LINK;
-  
+
   const premiumSubLink = import.meta.env.VITE_STRIPE_PREMIUM_SUBSCRIPTION_PAYMENT_LINK;
   const familySubLink = import.meta.env.VITE_STRIPE_FAMILY_SUBSCRIPTION_PAYMENT_LINK;
 
   const lesson5Link = import.meta.env.VITE_STRIPE_LESSON_5_PAYMENT_LINK;
   const lesson10Link = import.meta.env.VITE_STRIPE_LESSON_10_PAYMENT_LINK;
   const lesson25Link = import.meta.env.VITE_STRIPE_LESSON_25_PAYMENT_LINK;
+
+  // Plan status computed values
+  const isPaidPlan = user?.plan === 'premium' || user?.plan === 'family';
+  const expiresDate = user?.planExpiresAt ? new Date(user.planExpiresAt) : null;
+  const isExpired = expiresDate ? expiresDate <= new Date() : false;
+  const isPlanActiveNow = isPlanActive(user);
+  const hasNoExpiryDate = isPaidPlan && !user?.planExpiresAt;
+
+  const planLabel = user?.plan === 'premium' && isPlanActiveNow
+    ? t('payments.plan.premium', 'Premium')
+    : user?.plan === 'family' && isPlanActiveNow
+      ? t('payments.plan.family', 'Rodzinny')
+      : t('payments.plan.free', 'Darmowy');
+
+  const expiryDateFormatted = expiresDate
+    ? new Intl.DateTimeFormat('pl-PL', { day: '2-digit', month: '2-digit', year: 'numeric' }).format(expiresDate)
+    : null;
 
   const renderPrice = (priceStr: string) => {
     const match = priceStr.match(/^(.*?)([,.]99)(.*)$/);
@@ -42,9 +60,7 @@ export default function PaymentsPage() {
 
       {/* Sekcja 2: Karta obecnego planu */}
       <section className={`omni-card p-6 border-l-4 ${
-        user?.plan && user.plan !== 'free' && (user.planExpiresAt ? new Date(user.planExpiresAt) > new Date() : true)
-          ? 'bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-400' 
-          : 'bg-gray-50 border-gray-300'
+        isPlanActiveNow && isPaidPlan ? 'bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-400' : 'bg-gray-50 border-gray-300'
       }`}>
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
@@ -52,33 +68,31 @@ export default function PaymentsPage() {
               {t('payments.currentPlanLabel', 'Twój obecny plan')}
             </h2>
             <div className="flex items-center gap-3">
-              <span className="text-2xl font-bold text-gray-900">
-                {user?.plan === 'premium' && (user.planExpiresAt ? new Date(user.planExpiresAt) > new Date() : true) 
-                  ? t('payments.plan.premium', 'Premium') 
-                  : user?.plan === 'family' && (user.planExpiresAt ? new Date(user.planExpiresAt) > new Date() : true)
-                    ? t('payments.plan.family', 'Rodzinny')
-                    : t('payments.plan.free', 'Darmowy')}
-              </span>
-              {user?.plan && user.plan !== 'free' && (user.planExpiresAt ? new Date(user.planExpiresAt) > new Date() : true) ? (
+              <span className="text-2xl font-bold text-gray-900">{planLabel}</span>
+              {isPlanActiveNow && isPaidPlan && (
                 <span className="px-2 py-1 bg-blue-100 text-blue-700 text-xs font-medium rounded-full">
                   {t('payments.status.active', 'Aktywny')}
                 </span>
-              ) : user?.plan && user.plan !== 'free' && user.planExpiresAt && new Date(user.planExpiresAt) <= new Date() ? (
+              )}
+              {isPaidPlan && isExpired && (
                 <span className="px-2 py-1 bg-red-100 text-red-700 text-xs font-medium rounded-full">
                   {t('payments.status.expired', 'Wygasł')}
                 </span>
-              ) : null}
+              )}
             </div>
-            
+
             <div className="mt-2 space-y-1">
-              {user?.plan && user.plan !== 'free' && user.planExpiresAt && (
-                <p className={`text-sm font-medium ${new Date(user.planExpiresAt) > new Date() ? 'text-blue-600' : 'text-red-500'}`}>
-                  {new Date(user.planExpiresAt) > new Date() 
-                    ? `${t('payments.validUntil', 'Ważny do')}: ${new Intl.DateTimeFormat('pl-PL').format(new Date(user.planExpiresAt))}`
-                    : t('payments.expiredNotice', 'Twój plan wygasł. Obecnie korzystasz z planu Darmowego.')}
+              {isPaidPlan && expiresDate && !isExpired && expiryDateFormatted && (
+                <p className="text-sm font-medium text-blue-600">
+                  {t('payments.validUntil', 'Ważny do')}: {expiryDateFormatted}
                 </p>
               )}
-              {user?.plan && user.plan !== 'free' && !user.planExpiresAt && (
+              {isPaidPlan && isExpired && expiryDateFormatted && (
+                <p className="text-sm font-medium text-red-500">
+                  {t('payments.expiredNotice', 'Twój plan wygasł. Obecnie korzystasz z planu Darmowego.')}
+                </p>
+              )}
+              {hasNoExpiryDate && (
                 <p className="text-sm text-amber-600 font-medium">
                   {t('payments.noExpiryDate', 'Plan aktywny. Brak zapisanej daty wygaśnięcia — skontaktuj się z obsługą.')}
                 </p>

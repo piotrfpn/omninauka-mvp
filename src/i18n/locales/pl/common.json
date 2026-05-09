@@ -131,7 +131,8 @@
         "blockedSubtitle": "Poproś rodzica lub opiekuna, aby najpierw dodał ten adres e-mail w Panelu Rodzica w OmniNauka.",
         "nextStepsTitle": "Co dalej?",
         "cleanupRule": "Jeżeli konto nie zostanie powiązane z rodzicem lub opiekunem w ciągu 72 godzin, może zostać usunięte lub oznaczone do usunięcia zgodnie z zasadą minimalizacji danych.",
-        "goToLogin": "Przejdź do logowania"
+        "goToLogin": "Przejdź do logowania",
+        "loginAgain": "Możesz spróbować zalogować się ponownie, aby sprawdzić status."
       },
       "wait": "Odczekaj",
       "waitSuffix": "s...",

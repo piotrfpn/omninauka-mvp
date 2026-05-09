@@ -20,6 +20,7 @@ import {
 } from 'lucide-react';
 import OmniNaukaLogo from '../brand/OmniNaukaLogo';
 import { useTranslation } from 'react-i18next';
+import { getEffectivePlan } from '../../lib/plan-utils';
 
 interface AppShellProps {
   children: React.ReactNode;
@@ -152,7 +153,11 @@ export function AppShell({ children }: AppShellProps) {
                 {user?.name || t('appShell.user', 'Użytkownik')}
               </p>
               <p className="text-xs text-[var(--omni-text-muted)] truncate">
-                {user?.plan === 'premium' ? t('appShell.plan.premium', 'Premium') : t('appShell.plan.free', 'Darmowy')}
+                {getEffectivePlan(user) === 'premium' 
+                  ? t('appShell.plan.premium', 'Premium') 
+                  : getEffectivePlan(user) === 'family'
+                    ? t('appShell.plan.family', 'Rodzinny')
+                    : t('appShell.plan.free', 'Darmowy')}
               </p>
             </div>
             <button

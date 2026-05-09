@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
+import { isPlanActive } from '../../lib/plan-utils';
 
 export default function ProfilePage() {
   const { t, i18n } = useTranslation();
@@ -99,8 +100,10 @@ export default function ProfilePage() {
   };
 
   // Plan formatting
-  const getPlanLabel = (plan: string | undefined) => {
-    if (plan === 'premium') return t('appShell.plan.premium', 'Premium');
+  const getPlanLabel = (user: any) => {
+    const active = isPlanActive(user);
+    if (user?.plan === 'premium' && active) return t('appShell.plan.premium', 'Premium');
+    if (user?.plan === 'family' && active) return t('payments.plan.family', 'Rodzinny');
     return t('appShell.plan.free', 'Darmowy');
   };
 
@@ -216,11 +219,11 @@ export default function ProfilePage() {
           <div>
             <p className="text-sm font-medium text-[var(--omni-text-muted)]">{t('profile.info.plan', 'Plan')}</p>
             <p className="text-lg font-semibold text-[var(--omni-text)] mt-1">
-              {getPlanLabel(user?.plan)}
+              {getPlanLabel(user)}
             </p>
             {user?.plan && user.plan !== 'free' && user.planExpiresAt && (
-              <p className={`text-xs font-medium mt-1 ${new Date(user.planExpiresAt) > new Date() ? 'text-blue-600' : 'text-red-500'}`}>
-                {new Date(user.planExpiresAt) > new Date() 
+              <p className={`text-xs font-medium mt-1 ${isPlanActive(user) ? 'text-blue-600' : 'text-red-500'}`}>
+                {isPlanActive(user) 
                   ? `${t('payments.validUntil', 'Ważny do')}: ${new Intl.DateTimeFormat(currentLocale).format(new Date(user.planExpiresAt))}`
                   : t('payments.status.expired', 'Wygasł')}
               </p>

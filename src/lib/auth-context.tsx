@@ -31,8 +31,8 @@ const mapSupabaseUser = (sbUser: any, dbProfile?: any): User => ({
   profileCompleted: dbProfile?.profile_completed,
   profileCompletedAt: dbProfile?.profile_completed_at ? new Date(dbProfile.profile_completed_at) : undefined,
   lastLoginAt: dbProfile?.last_login_at ? new Date(dbProfile.last_login_at) : (sbUser?.last_sign_in_at ? new Date(sbUser.last_sign_in_at) : undefined),
-  planExpiresAt: dbProfile?.plan_expires_at ? new Date(dbProfile.plan_expires_at) : null,
-  planUpdatedAt: dbProfile?.plan_updated_at ? new Date(dbProfile.plan_updated_at) : null,
+  planExpiresAt: dbProfile?.plan_expires_at ?? null,
+  planUpdatedAt: dbProfile?.plan_updated_at ?? null,
 });
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -114,9 +114,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       const { data: dbProfile } = await supabase
         .from('profiles')
-        .select('*')
+        .select('id, email, name, plan, plan_expires_at, plan_updated_at, age_band, account_status, user_role, school_type, education_level, grade_level, postal_code, profile_completed, profile_completed_at, pending_preapproval_since')
         .eq('id', sbUser.id)
-        .maybeSingle(); // maybeSingle() returns null (no error) when row doesn't exist
+        .maybeSingle();
 
       if (dbProfile) {
         setState(prev => ({
@@ -131,7 +131,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const login = async (email: string, password: string): Promise<boolean> => {
     setIsDemoMode(false);
-    const { data, error } = await supabase.auth.signInWithPassword({
+    const { error } = await supabase.auth.signInWithPassword({
       email,
       password,
     });
@@ -139,26 +139,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (error) {
       console.error(error);
       return false;
-    }
-    
-    // Non-blocking best-effort update of last_login_at
-    if (data.session?.user?.id) {
-      const now = new Date();
-      supabase
-        .from('profiles')
-        .update({ last_login_at: now.toISOString() })
-        .eq('id', data.session.user.id)
-        .then(({ error: updateError }) => {
-          if (updateError) {
-            console.warn("Failed to update last_login_at:", updateError);
-          } else {
-            // Update local state immediately so UI sees the new date without waiting for token refresh
-            setState(prev => prev.user ? {
-              ...prev,
-              user: { ...prev.user, lastLoginAt: now }
-            } : prev);
-          }
-        });
     }
     
     return true;
@@ -237,9 +217,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       const { data: dbProfile } = await supabase
         .from('profiles')
-        .select('*')
+        .select('id, email, name, plan, plan_expires_at, plan_updated_at, age_band, account_status, user_role, school_type, education_level, grade_level, postal_code, profile_completed, profile_completed_at, pending_preapproval_since')
         .eq('id', sbUser.id)
-        .maybeSingle(); // maybeSingle() avoids error when row doesn't exist
+        .maybeSingle();
 
       setState(prev => ({
         ...prev,

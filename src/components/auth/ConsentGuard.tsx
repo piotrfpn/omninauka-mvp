@@ -4,7 +4,7 @@ import type { ReactNode } from 'react';
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '../../lib/auth-context';
 import { supabase } from '../../lib/supabase';
-import { ShieldAlert, Loader2 } from 'lucide-react';
+import { ShieldAlert, Loader2, LogOut } from 'lucide-react';
 
 interface ConsentGuardProps {
   children: ReactNode;
@@ -23,7 +23,7 @@ interface ConsentGuardProps {
  *      → Show blocked screen
  */
 export function ConsentGuard({ children, requireApproval = true }: ConsentGuardProps) {
-  const { user, isLoading, refreshUser } = useAuth();
+  const { user, isLoading, refreshUser, logout } = useAuth();
   const { t } = useTranslation('common');
 
   // State for retroactive link attempt (under_13 who logs in after parent adds their email)
@@ -91,25 +91,36 @@ export function ConsentGuard({ children, requireApproval = true }: ConsentGuardP
               <ShieldAlert className="w-8 h-8" />
             </div>
             <h2 className="text-xl font-bold text-[var(--omni-text)]">
-              Wymagana zgoda rodzica
+              {t('auth.pending.under13.title')}
             </h2>
             <p className="text-[var(--omni-text-muted)]">
-              Aby korzystać z OmniNauka, Twój rodzic lub opiekun musi najpierw dodać ten adres e-mail w Panelu Rodzica.
+              {t('auth.pending.under13.blockedSubtitle')}
             </p>
             <div className="p-4 bg-amber-50 border border-amber-100 rounded-xl text-sm text-amber-800 text-left w-full">
-              <p className="font-semibold mb-2">{t('pending.under13.nextStepsTitle')}</p>
+              <p className="font-semibold mb-2">{t('auth.pending.under13.nextStepsTitle')}</p>
               <ol className="list-decimal list-inside space-y-2">
-                <li>{t('pending.under13.step1')}</li>
-                <li>{t('pending.under13.step2')}</li>
-                <li>{t('pending.under13.step3')}</li>
+                <li>{t('auth.pending.under13.step1')}</li>
+                <li>{t('auth.pending.under13.step2')}</li>
+                <li>{t('auth.pending.under13.step3')}</li>
               </ol>
             </div>
             <p className="text-xs text-[var(--omni-text-muted)] italic">
-              {t('pending.under13.cleanupRule')}
+              {t('auth.pending.under13.cleanupRule')}
             </p>
-            <p className="text-xs text-[var(--omni-text-muted)] mt-2">
-              {t('pending.under13.loginAgain')}
-            </p>
+            
+            <div className="flex flex-col gap-4 w-full mt-2">
+              <button
+                onClick={() => logout()}
+                className="omni-btn-secondary w-full flex items-center justify-center gap-2"
+              >
+                <LogOut className="w-4 h-4" />
+                {t('auth.pending.logout')}
+              </button>
+              
+              <p className="text-xs text-[var(--omni-text-muted)]">
+                {t('auth.pending.under13.loginAgain')}
+              </p>
+            </div>
           </div>
         </div>
       </div>
