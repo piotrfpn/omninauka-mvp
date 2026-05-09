@@ -43,6 +43,23 @@ SET
 WHERE email = '<EMAIL_UZYTKOWNIKA>';
 ```
 
+#### Przedłużenie aktywnego Premium
+Jeżeli użytkownik ma już aktywny plan Premium i dokonał kolejnej płatności, administrator powinien przedłużyć datę ważności, zamiast ustawiać ją od nowa. Dzięki temu użytkownik nie traci opłaconych dni.
+
+```sql
+UPDATE public.profiles
+SET
+  plan = 'premium',
+  plan_expires_at = greatest(coalesce(plan_expires_at, now()), now()) + interval '30 days',
+  plan_updated_at = now()
+WHERE email = '<EMAIL_UZYTKOWNIKA>';
+```
+
+**Wyjaśnienie:**
+- `greatest(coalesce(plan_expires_at, now()), now())` wybiera późniejszą datę między obecną datą wygaśnięcia a chwilą obecną.
+- Dzięki temu, jeśli plan jest jeszcze aktywny, nowe 30 dni zostanie dodane do obecnej daty.
+- Jeśli plan już wygasł (data w przeszłości), nowe 30 dni zostanie naliczone od teraz.
+
 #### Cofnięcie do planu Darmowego
 ```sql
 UPDATE public.profiles

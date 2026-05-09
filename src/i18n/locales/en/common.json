@@ -916,5 +916,36 @@
     "mvpNote": "This is a temporary MVP process. Full automatic plan activation will be implemented in the next stage.",
     "backToDashboard": "Back to dashboard",
     "goToSettings": "Go to settings"
+  },
+  "payments": {
+    "title": "Payments & Plan",
+    "subtitle": "Check available Premium options and extra AI lesson packs here.",
+    "currentPlanLabel": "Your current plan",
+    "currentPlanNote": "Plan activation can take up to 24 hours after payment.",
+    "mvpNote": "This is an MVP solution. We activate the plan manually after confirming the payment.",
+    "validUntil": "Valid until",
+    "expiredNotice": "Your plan has expired. You are currently using the Free plan.",
+    "noExpiryDate": "Plan active. No expiry date recorded — please contact support.",
+    "status": {
+      "active": "Active",
+      "expired": "Expired"
+    },
+    "plan": {
+      "free": "Free",
+      "premium": "Premium",
+      "family": "Family"
+    },
+    "premium": {
+      "cta": {
+        "buy": "Buy Premium for 30 days",
+        "renew": "Renew Premium for 30 days",
+        "extend": "Extend Premium by 30 days",
+        "haveFamily": "You have Family plan"
+      },
+      "description": {
+        "active": "You have active Premium until: {{date}}. Extending will add another 30 days to the current expiry date.",
+        "expired": "Your previous plan has expired. You can renew Premium for another 30 days."
+      }
+    }
   }
 }

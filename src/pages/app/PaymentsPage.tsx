@@ -4,7 +4,7 @@ import { CheckCircle, AlertCircle, Sparkles, Users, Layers, ExternalLink } from 
 import { isPlanActive } from '../../lib/plan-utils';
 
 export default function PaymentsPage() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { user } = useAuth();
 
   const premium30Link = import.meta.env.VITE_STRIPE_PREMIUM_30_DAYS_PAYMENT_LINK || import.meta.env.VITE_STRIPE_PREMIUM_PAYMENT_LINK;
@@ -31,8 +31,29 @@ export default function PaymentsPage() {
       : t('payments.plan.free', 'Darmowy');
 
   const expiryDateFormatted = expiresDate
-    ? new Intl.DateTimeFormat('pl-PL', { day: '2-digit', month: '2-digit', year: 'numeric' }).format(expiresDate)
+    ? new Intl.DateTimeFormat(i18n.language === 'pl' ? 'pl-PL' : 'en-US', { day: '2-digit', month: '2-digit', year: 'numeric' }).format(expiresDate)
     : null;
+
+  // Premium CTA logic
+  const isPremium = user?.plan === 'premium';
+  const isFamily = user?.plan === 'family';
+
+  let premiumCTA = t('payments.premium.cta.buy', 'Kup Premium na 30 dni');
+  let premiumDescription = t('payments.premium.description.default', 'Dla ucznia, który chce więcej lekcji AI i wygodniejszą naukę.');
+  let premiumCTAIsDisabled = false;
+
+  if (isFamily && isPlanActiveNow) {
+    premiumCTA = t('payments.premium.cta.haveFamily', 'Masz plan Rodzinny');
+    premiumCTAIsDisabled = true;
+  } else if (isPremium) {
+    if (isPlanActiveNow) {
+      premiumCTA = t('payments.premium.cta.extend', 'Przedłuż Premium o 30 dni');
+      premiumDescription = t('payments.premium.description.active', 'Masz aktywny Premium do: {{date}}. Przedłużenie doda kolejne 30 dni do obecnej daty ważności.', { date: expiryDateFormatted });
+    } else {
+      premiumCTA = t('payments.premium.cta.renew', 'Odnow Premium na 30 dni');
+      premiumDescription = t('payments.premium.description.expired', 'Twój poprzedni plan wygasł. Możesz odnowić Premium na kolejne 30 dni.');
+    }
+  }
 
   const renderPrice = (priceStr: string) => {
     const match = priceStr.match(/^(.*?)([,.]99)(.*)$/);
@@ -137,8 +158,8 @@ export default function PaymentsPage() {
               {renderPrice('29,99 zł')}
             </span>
           </div>
-          <p className="text-sm text-[var(--omni-text-muted)] mb-6">
-            Dla ucznia, który chce więcej lekcji AI i wygodniejszą naukę.
+          <p className="text-sm text-[var(--omni-text-muted)] mb-6 whitespace-pre-line">
+            {premiumDescription}
           </p>
           <ul className="space-y-3 mb-8 flex-1">
             {[
@@ -157,12 +178,16 @@ export default function PaymentsPage() {
             ))}
           </ul>
           <div className="mt-auto">
-            {premium30Link ? (
+            {premiumCTAIsDisabled ? (
+              <button disabled className="w-full inline-flex items-center justify-center whitespace-nowrap px-4 py-3 rounded-xl transition-all bg-gray-100 text-gray-400 font-semibold cursor-not-allowed">
+                {premiumCTA}
+              </button>
+            ) : premium30Link ? (
               <a
                 href={premium30Link}
                 className="w-full inline-flex items-center justify-center whitespace-nowrap px-4 py-3 rounded-xl transition-all bg-[var(--omni-accent)] text-white font-bold hover:shadow-lg gap-2"
               >
-                Kup Premium na 30 dni
+                {premiumCTA}
                 <ExternalLink className="w-4 h-4" />
               </a>
             ) : (

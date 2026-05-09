@@ -915,5 +915,36 @@
     "mvpNote": "To tymczasowy proces MVP. Pełna automatyczna aktywacja planu zostanie wdrożona w kolejnym etapie.",
     "backToDashboard": "Wróć do dashboardu",
     "goToSettings": "Przejdź do ustawień"
+  },
+  "payments": {
+    "title": "Płatności i plan",
+    "subtitle": "Tutaj sprawdzisz dostępne opcje Premium i pakiety dodatkowych lekcji AI.",
+    "currentPlanLabel": "Twój obecny plan",
+    "currentPlanNote": "Po płatności aktywacja planu może potrwać do 24 godzin.",
+    "mvpNote": "To rozwiązanie MVP. Plan aktywujemy ręcznie po potwierdzeniu płatności.",
+    "validUntil": "Ważny do",
+    "expiredNotice": "Twój plan wygasł. Obecnie korzystasz z planu Darmowego.",
+    "noExpiryDate": "Plan aktywny. Brak zapisanej daty wygaśnięcia — skontaktuj się z obsługą.",
+    "status": {
+      "active": "Aktywny",
+      "expired": "Wygasł"
+    },
+    "plan": {
+      "free": "Darmowy",
+      "premium": "Premium",
+      "family": "Rodzinny"
+    },
+    "premium": {
+      "cta": {
+        "buy": "Kup Premium na 30 dni",
+        "renew": "Odnow Premium na 30 dni",
+        "extend": "Przedłuż Premium o 30 dni",
+        "haveFamily": "Masz plan Rodzinny"
+      },
+      "description": {
+        "active": "Masz aktywny Premium do: {{date}}. Przedłużenie doda kolejne 30 dni do obecnej daty ważności.",
+        "expired": "Twój poprzedni plan wygasł. Możesz odnowić Premium na kolejne 30 dni."
+      }
+    }
   }
 }
