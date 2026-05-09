@@ -67,9 +67,15 @@ W przypadku osiągnięcia limitu, Edge Function zwraca status **403 Forbidden** 
 
 Frontend obsługuje ten błąd, wyświetlając odpowiedni komunikat oraz przycisk przekierowujący do `/app/payments`.
 
-## Fair Use Policy
+## Fair Use Policy i Zasady Prawne
 
-Plany Premium i Family nie są określane jako "nielimitowane". Wyższe limity są dobrane tak, aby zapewniał komfortową naukę (10 lekcji dziennie i 50 wiadomości z Tutorem na lekcję to bardzo duża dawka materiału), jednocześnie chroniąc projekt przed nadużyciami i niekontrolowanymi kosztami API.
+Plany Premium i Family nie są określane jako "nielimitowane". Wyższe limity są dobrane tak, aby zapewniały komfortową naukę (np. 10 lekcji dziennie i 50 wiadomości z Tutorem na lekcję to bardzo duża dawka materiału), jednocześnie chroniąc projekt przed nadużyciami i niekontrolowanymi kosztami API.
+
+**Kluczowe zasady:**
+- **MVP Status**: Limity mają charakter techniczny i mogą być dostosowywane w ramach fazy MVP w celu optymalizacji kosztów i wydajności.
+- **Fair Use**: Korzystanie z funkcji AI (Lekcje AI, AI Tutor, OCR) odbywa się w ramach zasad fair use opisanych w Regulaminie (§ 14).
+- **Komunikacja**: W UI oraz Regulaminie nie używamy pojęcia "tokeny". Posługujemy się jednostkami zrozumiałymi dla ucznia: *wiadomości AI Tutora*, *lekcje AI*, *fiszki* oraz *regeneracje*.
+- **Blokady**: Operator zastrzega sobie prawo do czasowego ograniczenia dostępu w przypadku wykrycia nadużyć lub nietypowego obciążenia (zgodnie z Regulaminem).
 
 ## Logowanie i Audyt
 

@@ -195,34 +195,26 @@ export default function TermsPage() {
       </section>
 
       <section>
-        <h2>§ 14. Lekcje AI, limity i fair use</h2>
-        <p>1. Korzystanie z aplikacji OmniNauka może podlegać limitom technicznym, funkcjonalnym, kosztowym, organizacyjnym i bezpieczeństwa.</p>
+        <h2>§ 14. Limity korzystania i zasady fair use</h2>
+        <p>1. OmniNauka korzysta z narzędzi sztucznej inteligencji (AI), technologii rozpoznawania tekstu (OCR) oraz automatycznego przetwarzania materiałów edukacyjnych. Ze względu na koszty operacyjne, bezpieczeństwo działania usługi oraz stabilność systemu Operator stosuje limity korzystania z wybranych funkcji.</p>
         <p>2. Limity mogą dotyczyć w szczególności:</p>
         <ul className="list-[lower-alpha] pl-6 space-y-1">
-          <li>liczby lekcji AI,</li>
-          <li>liczby pytań do AI Tutora,</li>
-          <li>liczby przesyłanych zdjęć lub dokumentów,</li>
-          <li>przetwarzania OCR,</li>
-          <li>pojemności przechowywania materiałów,</li>
-          <li>historii nauki,</li>
-          <li>liczby raportów,</li>
-          <li>intensywności korzystania z funkcji AI,</li>
-          <li>liczby kont uczniowskich w planie rodzinnym,</li>
-          <li>dodatkowych zabezpieczeń przed nadużyciami.</li>
+          <li>liczby lekcji AI dziennie lub w innym okresie,</li>
+          <li>liczby wiadomości wymienianych z AI Tutorem,</li>
+          <li>liczby przesyłanych zdjęć lub dokumentów (skany OCR),</li>
+          <li>regeneracji materiałów, fiszek, quizów i sprawdzianów,</li>
+          <li>pojemności przechowywania materiałów i historii nauki.</li>
         </ul>
-        <p>3. Jedna lekcja AI oznacza przetworzenie do 5 zdjęć albo 1 dokumentu PDF/DOCX, zgodnie z aktualnym opisem usługi.</p>
-        <p>4. Plany płatne, w tym Premium, Premium+ i Rodzinny, nie oznaczają nielimitowanego korzystania z aplikacji, AI Tutora, OCR, przestrzeni dyskowej ani innych zasobów technicznych.</p>
-        <p>5. Korzystanie z aplikacji odbywa się zgodnie z zasadą fair use.</p>
-        <p>6. Usługodawca może czasowo ograniczyć, spowolnić lub zablokować dostęp do wybranych funkcji, jeżeli sposób korzystania z aplikacji:</p>
+        <p>3. Plan Premium lub Rodzinny zwiększa dostępne limity i odblokowuje funkcje rozszerzone, ale nie oznacza nielimitowanego korzystania z usługi. Korzystanie z funkcji AI odbywa się w ramach zasad fair use.</p>
+        <p>4. Aktualne limity techniczne mogą być prezentowane w aplikacji, cenniku, komunikatach systemowych lub dokumentacji usługi. Jedna lekcja AI oznacza przetworzenie do 5 zdjęć albo 1 dokumentu PDF/DOCX, chyba że opis usługi stanowi inaczej.</p>
+        <p>5. Operator może czasowo ograniczyć, spowolnić lub zablokować dostęp do wybranych funkcji w przypadku:</p>
         <ul className="list-[lower-alpha] pl-6 space-y-1">
-          <li>narusza Regulamin,</li>
-          <li>powoduje ryzyko przeciążenia systemu,</li>
-          <li>generuje ponadstandardowe koszty techniczne,</li>
-          <li>wskazuje na automatyczne, masowe albo nieuczciwe użycie aplikacji,</li>
-          <li>zmierza do obejścia limitów,</li>
-          <li>zagraża bezpieczeństwu aplikacji lub innych użytkowników.</li>
+          <li>nadużyć lub działań automatycznych (boty),</li>
+          <li>nietypowego użycia wykraczającego poza standardową naukę ucznia,</li>
+          <li>nadmiernego obciążenia systemu zagrażającego stabilności usługi,</li>
+          <li>naruszenia zasad fair use lub Regulaminu.</li>
         </ul>
-        <p>7. Aktualne limity powinny być prezentowane użytkownikowi w aplikacji lub na stronie internetowej w sposób jasny i zrozumiały, szczególnie przed zakupem planu płatnego.</p>
+        <p>6. Usługodawca dokłada starań, aby limity były dobrane w sposób zapewniający komfortową naukę, jednocześnie chroniąc projekt przed niekontrolowanymi kosztami i nadużyciami.</p>
       </section>
 
       <section>
