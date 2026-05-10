@@ -45,9 +45,9 @@ export default function PaymentsPage() {
   const premiumSubUrl = buildStripePaymentUrl(premiumSubLink, user?.id);
   const familySubUrl = buildStripePaymentUrl(familySubLink, user?.id);
 
-  const planLabel = user?.plan === 'premium' && isPlanActiveNow
+  const planLabel = (user?.effectivePlan || user?.plan) === 'premium' && isPlanActiveNow
     ? t('payments.plan.premium', 'Premium')
-    : user?.plan === 'family' && isPlanActiveNow
+    : (user?.effectivePlan || user?.plan) === 'family' && isPlanActiveNow
       ? t('payments.plan.family', 'Rodzinny')
       : t('payments.plan.free', 'Darmowy');
 
@@ -111,12 +111,12 @@ export default function PaymentsPage() {
             </h2>
             <div className="flex items-center gap-3">
               <span className="text-2xl font-bold text-gray-900">{planLabel}</span>
-              {isPlanActiveNow && isPaidPlan && (
+              {isPlanActiveNow && (user?.effectivePlan || user?.plan) !== 'free' && (
                 <span className="px-2 py-1 bg-blue-100 text-blue-700 text-xs font-medium rounded-full">
                   {t('payments.status.active', 'Aktywny')}
                 </span>
               )}
-              {isPaidPlan && isExpired && (
+              {isPaidPlan && isExpired && !user?.inheritedFromParent && (
                 <span className="px-2 py-1 bg-red-100 text-red-700 text-xs font-medium rounded-full">
                   {t('payments.status.expired', 'Wygasł')}
                 </span>
@@ -124,17 +124,26 @@ export default function PaymentsPage() {
             </div>
 
             <div className="mt-2 space-y-1">
-              {isPaidPlan && expiresDate && !isExpired && expiryDateFormatted && (
-                <p className="text-sm font-medium text-blue-600">
-                  {t('payments.validUntil', 'Ważny do')}: {expiryDateFormatted}
+              {user?.inheritedFromParent ? (
+                <p className="text-sm font-medium text-indigo-600">
+                  {t('payments.plan.inherited', 'Dostęp od rodzica')} 
+                  {user.sourcePlanExpiresAt && ` (${t('payments.validUntil', 'ważny do')}: ${new Intl.DateTimeFormat(i18n.language === 'pl' ? 'pl-PL' : 'en-US').format(new Date(user.sourcePlanExpiresAt))})`}
                 </p>
+              ) : (
+                <>
+                  {isPaidPlan && expiresDate && !isExpired && expiryDateFormatted && (
+                    <p className="text-sm font-medium text-blue-600">
+                      {t('payments.validUntil', 'Ważny do')}: {expiryDateFormatted}
+                    </p>
+                  )}
+                  {isPaidPlan && isExpired && expiryDateFormatted && (
+                    <p className="text-sm font-medium text-red-500">
+                      {t('payments.expiredNotice', 'Twój plan wygasł. Obecnie korzystasz z planu Darmowego.')}
+                    </p>
+                  )}
+                </>
               )}
-              {isPaidPlan && isExpired && expiryDateFormatted && (
-                <p className="text-sm font-medium text-red-500">
-                  {t('payments.expiredNotice', 'Twój plan wygasł. Obecnie korzystasz z planu Darmowego.')}
-                </p>
-              )}
-              {hasNoExpiryDate && (
+              {hasNoExpiryDate && !user?.inheritedFromParent && (
                 <p className="text-sm text-amber-600 font-medium">
                   {t('payments.noExpiryDate', 'Plan aktywny. Brak zapisanej daty wygaśnięcia — skontaktuj się z obsługą.')}
                 </p>

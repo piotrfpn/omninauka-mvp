@@ -102,8 +102,9 @@ export default function ProfilePage() {
   // Plan formatting
   const getPlanLabel = (user: any) => {
     const active = isPlanActive(user);
-    if (user?.plan === 'premium' && active) return t('appShell.plan.premium', 'Premium');
-    if (user?.plan === 'family' && active) return t('payments.plan.family', 'Rodzinny');
+    const planToUse = user?.effectivePlan || user?.plan;
+    if (planToUse === 'premium' && active) return t('appShell.plan.premium', 'Premium');
+    if (planToUse === 'family' && active) return t('payments.plan.family', 'Rodzinny');
     return t('appShell.plan.free', 'Darmowy');
   };
 
@@ -221,7 +222,18 @@ export default function ProfilePage() {
             <p className="text-lg font-semibold text-[var(--omni-text)] mt-1">
               {getPlanLabel(user)}
             </p>
-            {user?.plan && user.plan !== 'free' && user.planExpiresAt && (
+            {user?.inheritedFromParent ? (
+              <div className="mt-1">
+                <p className="text-xs font-semibold text-[var(--omni-primary)]">
+                  {t('payments.plan.inherited', 'Dostęp od rodzica')}
+                </p>
+                {user.sourcePlanExpiresAt && (
+                  <p className="text-[10px] text-[var(--omni-text-muted)] mt-0.5">
+                    {t('payments.validUntil', 'Ważny do')}: {new Intl.DateTimeFormat(currentLocale).format(new Date(user.sourcePlanExpiresAt))}
+                  </p>
+                )}
+              </div>
+            ) : user?.plan && user.plan !== 'free' && user.planExpiresAt && (
               <p className={`text-xs font-medium mt-1 ${isPlanActive(user) ? 'text-blue-600' : 'text-red-500'}`}>
                 {isPlanActive(user) 
                   ? `${t('payments.validUntil', 'Ważny do')}: ${new Intl.DateTimeFormat(currentLocale).format(new Date(user.planExpiresAt))}`

@@ -156,7 +156,7 @@ export function AppShell({ children }: AppShellProps) {
                 {getEffectivePlan(user) === 'premium' 
                   ? t('appShell.plan.premium', 'Premium') 
                   : getEffectivePlan(user) === 'family'
-                    ? t('appShell.plan.family', 'Rodzinny')
+                    ? (user?.inheritedFromParent ? t('appShell.plan.familyInherited', 'Rodzinny (od rodzica)') : t('appShell.plan.family', 'Rodzinny'))
                     : t('appShell.plan.free', 'Darmowy')}
               </p>
             </div>

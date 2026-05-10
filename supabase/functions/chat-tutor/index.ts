@@ -73,19 +73,20 @@ serve(async (req) => {
       });
     }
 
-    // ── 3. Plan Verification ──────────────────────────────────────────────────
-    const { data: profile } = await adminClient
-      .from('profiles')
-      .select('plan, plan_expires_at')
-      .eq('id', userId)
-      .single();
-
-    const now = new Date();
+    // ── 3. Plan Verification (Sprint 23A) ────────────────────────────────────
+    // We use get_my_effective_plan() to respect inherited family plans.
     let effectivePlan = 'free';
-    if (profile?.plan === 'premium' || profile?.plan === 'family') {
-      if (!profile.plan_expires_at || new Date(profile.plan_expires_at) > now) {
-        effectivePlan = profile.plan;
+    try {
+      const { data: effectiveData, error: planError } = await supabaseClient
+        .rpc('get_my_effective_plan');
+
+      if (planError) {
+        console.warn('[chat-tutor] get_my_effective_plan failed, falling back to free plan', planError);
+      } else if (effectiveData?.effective_plan) {
+        effectivePlan = effectiveData.effective_plan;
       }
+    } catch (err) {
+      console.warn('[chat-tutor] get_my_effective_plan threw, falling back to free plan', err);
     }
 
     // ── 4. Usage Guard ────────────────────────────────────────────────────────

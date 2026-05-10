@@ -9,6 +9,9 @@ export function isPlanActive(user: User | null): boolean {
   // Free plan is always "active" (as a base)
   if (user.plan === 'free') return true;
   
+  // If inherited from parent, it's active (the RPC already checked expiration)
+  if (user.inheritedFromParent) return true;
+
   // Paid plans (premium, family)
   const expiresAt = user.planExpiresAt;
   if (!expiresAt) {
@@ -29,6 +32,13 @@ export function isPlanActive(user: User | null): boolean {
  */
 export function getEffectivePlan(user: User | null): 'free' | 'premium' | 'family' {
   if (!user) return 'free';
+  
+  // If effective plan was already calculated by RPC (Sprint 23A)
+  if (user.effectivePlan) {
+    return user.effectivePlan;
+  }
+
+  // Fallback to old logic
   if (user.plan === 'free') return 'free';
   
   if (isPlanActive(user)) {

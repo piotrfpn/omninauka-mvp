@@ -382,6 +382,8 @@
     "user": "Użytkownik",
     "plan": {
       "premium": "Premium",
+      "family": "Rodzinny",
+      "familyInherited": "Rodzinny (od rodzica)",
       "free": "Darmowy"
     },
     "logout": "Wyloguj"
@@ -976,7 +978,8 @@
     "plan": {
       "free": "Darmowy",
       "premium": "Premium",
-      "family": "Rodzinny"
+      "family": "Rodzinny",
+      "inherited": "Dostęp od rodzica"
     },
     "premium": {
       "cta": {

@@ -382,6 +382,8 @@
     "user": "User",
     "plan": {
       "premium": "Premium",
+      "family": "Family",
+      "familyInherited": "Family (from parent)",
       "free": "Free"
     },
     "logout": "Logout"
@@ -977,7 +979,8 @@
     "plan": {
       "free": "Free",
       "premium": "Premium",
-      "family": "Family"
+      "family": "Family",
+      "inherited": "Access from parent"
     },
     "premium": {
       "cta": {

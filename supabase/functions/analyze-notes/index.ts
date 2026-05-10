@@ -108,22 +108,23 @@ serve(async (req) => {
       });
     }
 
-    // --- USAGE LIMITS GUARD ---
-    const now = new Date();
+    // --- USAGE LIMITS GUARD (Sprint 23A) ---
+    // We use get_my_effective_plan() to respect inherited family plans.
     let effectivePlan = 'free';
-    if (profile.plan === 'premium' || profile.plan === 'family') {
-      // If plan_expires_at is null, we treat as active (manual management fallback)
-      if (!profile.plan_expires_at || new Date(profile.plan_expires_at) > now) {
-        effectivePlan = profile.plan;
-      }
-    }
+    try {
+      const { data: effectiveData, error: planError } = await supabaseClient
+        .rpc('get_my_effective_plan');
 
-    const limits = {
-      free: 2,
-      premium: 10,
-      family: 10
-    };
-    const dailyLimit = limits[effectivePlan as keyof typeof limits] || 2;
+      if (planError) {
+        console.warn('[analyze-notes] get_my_effective_plan failed, falling back to free plan', planError);
+      } else if (effectiveData?.effective_plan) {
+        effectivePlan = effectiveData.effective_plan;
+      }
+    } catch (err) {
+      console.warn('[analyze-notes] get_my_effective_plan threw, falling back to free plan', err);
+    }
+    const dailyLimit = (effectivePlan === 'premium' || effectivePlan === 'family') ? 10 : 2;
+    const maxCards = (effectivePlan === 'premium' || effectivePlan === 'family') ? 20 : 5;
 
     // Count today's lessons (UTC)
     const startOfToday = new Date();
@@ -410,9 +411,10 @@ ZASADY FISZEK — KRYTYCZNE, MUSZĄ BYĆ BEZWZGLĘDNIE PRZESTRZEGANE:
    Nie generuj wyłącznie fiszek typu definicja.
 
 3. DYNAMICZNA ILOŚĆ:
+   - Maksymalna liczba fiszek dla tego użytkownika: ${maxCards}.
    - Jeśli materiał jest krótki (< 200 słów): wygeneruj 3–5 fiszek.
-   - Jeśli materiał jest średni (200–600 słów): wygeneruj 6–10 fiszek.
-   - Jeśli materiał jest długi (> 600 słów): wygeneruj 10–15 fiszek.
+   - Jeśli materiał jest średni (200–600 słów): wygeneruj 6–${Math.min(10, maxCards)} fiszek.
+   - Jeśli materiał jest długi (> 600 słów): wygeneruj 10–${maxCards} fiszek.
    - NIE twórz "zapychaczy" tylko po to, żeby dobić do limitu.
    - Jakość i unikalność > ilość.
 

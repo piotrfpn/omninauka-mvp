@@ -18,6 +18,11 @@ export interface User {
   lastLoginAt?: Date;
   planExpiresAt?: string | null;
   planUpdatedAt?: string | null;
+  // Effective plan fields (Sprint 23A)
+  effectivePlan?: 'free' | 'premium' | 'family';
+  planSource?: 'own' | 'parent_family';
+  inheritedFromParent?: boolean;
+  sourcePlanExpiresAt?: string | null;
 }
 
 export interface Folder {

@@ -108,20 +108,40 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
   }, [isDemoMode]);
 
-  // Best-effort: fetch profile from DB and merge into state.
+  // Best-effort: fetch profile and effective plan from DB and merge into state.
   // If this fails for any reason, the user remains logged in from Auth data.
   const fetchAndMergeProfile = async (sbUser: any) => {
     try {
-      const { data: dbProfile } = await supabase
-        .from('profiles')
-        .select('id, email, name, plan, plan_expires_at, plan_updated_at, age_band, account_status, user_role, school_type, education_level, grade_level, postal_code, profile_completed, profile_completed_at, pending_preapproval_since')
-        .eq('id', sbUser.id)
-        .maybeSingle();
+      // Fetch both profile and effective plan in parallel
+      const [profileRes, effectivePlanRes] = await Promise.all([
+        supabase
+          .from('profiles')
+          .select('id, email, name, plan, plan_expires_at, plan_updated_at, age_band, account_status, user_role, school_type, education_level, grade_level, postal_code, profile_completed, profile_completed_at, pending_preapproval_since')
+          .eq('id', sbUser.id)
+          .maybeSingle(),
+        supabase.rpc('get_my_effective_plan')
+      ]);
+
+      const dbProfile = profileRes.data;
+      const effectiveData = effectivePlanRes.data;
 
       if (dbProfile) {
+        let user = mapSupabaseUser(sbUser, dbProfile);
+        
+        // Merge effective plan data if available
+        if (effectiveData && !effectiveData.error) {
+          user = {
+            ...user,
+            effectivePlan: effectiveData.effective_plan,
+            planSource: effectiveData.plan_source,
+            inheritedFromParent: effectiveData.inherited_from_parent,
+            sourcePlanExpiresAt: effectiveData.source_plan_expires_at
+          };
+        }
+
         setState(prev => ({
           ...prev,
-          user: mapSupabaseUser(sbUser, dbProfile),
+          user,
         }));
       }
     } catch {
@@ -215,15 +235,33 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const { data: { user: sbUser } } = await supabase.auth.getUser();
       if (!sbUser) return;
 
-      const { data: dbProfile } = await supabase
-        .from('profiles')
-        .select('id, email, name, plan, plan_expires_at, plan_updated_at, age_band, account_status, user_role, school_type, education_level, grade_level, postal_code, profile_completed, profile_completed_at, pending_preapproval_since')
-        .eq('id', sbUser.id)
-        .maybeSingle();
+      const [profileRes, effectivePlanRes] = await Promise.all([
+        supabase
+          .from('profiles')
+          .select('id, email, name, plan, plan_expires_at, plan_updated_at, age_band, account_status, user_role, school_type, education_level, grade_level, postal_code, profile_completed, profile_completed_at, pending_preapproval_since')
+          .eq('id', sbUser.id)
+          .maybeSingle(),
+        supabase.rpc('get_my_effective_plan')
+      ]);
+
+      const dbProfile = profileRes.data;
+      const effectiveData = effectivePlanRes.data;
+
+      let user = mapSupabaseUser(sbUser, dbProfile ?? undefined);
+      
+      if (effectiveData && !effectiveData.error) {
+        user = {
+          ...user,
+          effectivePlan: effectiveData.effective_plan,
+          planSource: effectiveData.plan_source,
+          inheritedFromParent: effectiveData.inherited_from_parent,
+          sourcePlanExpiresAt: effectiveData.source_plan_expires_at
+        };
+      }
 
       setState(prev => ({
         ...prev,
-        user: mapSupabaseUser(sbUser, dbProfile ?? undefined)
+        user
       }));
     } catch (error) {
       console.error("Refresh User Error:", error);
