@@ -140,14 +140,14 @@ export default function PaymentsPage() {
                 </p>
               )}
               <p className="text-xs text-gray-500">
-                {t('payments.currentPlanNote', 'Po płatności aktywacja planu może potrwać do 24 godzin.')}
+                {t('payments.currentPlanNote', 'Twój plan Premium powinien zostać aktywowany automatycznie w ciągu kilku minut od płatności.')}
               </p>
             </div>
           </div>
           <div className="bg-white p-3 rounded-lg border border-blue-100 max-w-xs flex items-start gap-3 shadow-sm">
             <AlertCircle className="w-5 h-5 text-blue-500 shrink-0 mt-0.5" />
             <p className="text-xs text-gray-600 leading-relaxed">
-              {t('payments.mvpNote', 'To rozwiązanie MVP. Plan aktywujemy ręcznie po potwierdzeniu płatności.')}
+              {t('payments.mvpNote', 'Plan aktywujemy automatycznie przez Stripe. W razie opóźnień odśwież stronę lub skontaktuj się z obsługą.')}
             </p>
           </div>
         </div>

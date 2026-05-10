@@ -955,18 +955,18 @@
   },
   "paymentSuccess": {
     "title": "Thank you for your purchase!",
-    "desc1": "Your plan will be activated manually within 24 hours, usually much faster.",
-    "desc2": "If the payment was made with a different email address than your OmniNauka account, please contact us so we can assign the payment to the correct account.",
-    "mvpNote": "This is a temporary MVP process. Full automatic plan activation will be implemented in the next stage.",
+    "desc1": "Your Premium plan should be activated automatically within a few minutes.",
+    "desc2": "If your plan status does not update immediately, refresh the “Payments and plan” page after a moment. If there is a problem, contact us — we can verify the payment manually.",
+    "mvpNote": "Premium activation is handled automatically by Stripe. The admin panel remains available as a fallback in case of payment processing issues.",
     "backToDashboard": "Back to dashboard",
-    "goToSettings": "Go to settings"
+    "goToSettings": "Check plan status"
   },
   "payments": {
     "title": "Payments & Plan",
     "subtitle": "Check available Premium options and extra AI lesson packs here.",
     "currentPlanLabel": "Your current plan",
-    "currentPlanNote": "Plan activation can take up to 24 hours after payment.",
-    "mvpNote": "This is an MVP solution. We activate the plan manually after confirming the payment.",
+    "currentPlanNote": "Your Premium plan should be activated automatically within a few minutes after payment.",
+    "mvpNote": "Activation is automatic via Stripe. If it's delayed, refresh the page or contact support.",
     "validUntil": "Valid until",
     "expiredNotice": "Your plan has expired. You are currently using the Free plan.",
     "noExpiryDate": "Plan active. No expiry date recorded — please contact support.",

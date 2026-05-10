@@ -954,18 +954,18 @@
   },
   "paymentSuccess": {
     "title": "Dziękujemy za zakup!",
-    "desc1": "Twój plan zostanie aktywowany ręcznie w ciągu 24 godzin, zwykle znacznie szybciej.",
-    "desc2": "Jeżeli płatność została wykonana innym adresem e-mail niż konto w OmniNauka, skontaktuj się z nami, abyśmy mogli przypisać płatność do właściwego konta.",
-    "mvpNote": "To tymczasowy proces MVP. Pełna automatyczna aktywacja planu zostanie wdrożona w kolejnym etapie.",
-    "backToDashboard": "Wróć do dashboardu",
-    "goToSettings": "Przejdź do ustawień"
+    "desc1": "Twój plan Premium powinien zostać aktywowany automatycznie w ciągu kilku minut.",
+    "desc2": "Jeśli status planu nie zmieni się od razu, odśwież stronę „Płatności i plan” po chwili. W razie problemu skontaktuj się z nami — sprawdzimy płatność ręcznie.",
+    "mvpNote": "Automatyczna aktywacja Premium działa przez Stripe. Panel administratora pozostaje zabezpieczeniem na wypadek problemów technicznych z płatnością.",
+    "backToDashboard": "Wróć do Panelu głównego",
+    "goToSettings": "Sprawdź status planu"
   },
   "payments": {
     "title": "Płatności i plan",
     "subtitle": "Tutaj sprawdzisz dostępne opcje Premium i pakiety dodatkowych lekcji AI.",
     "currentPlanLabel": "Twój obecny plan",
-    "currentPlanNote": "Po płatności aktywacja planu może potrwać do 24 godzin.",
-    "mvpNote": "To rozwiązanie MVP. Plan aktywujemy ręcznie po potwierdzeniu płatności.",
+    "currentPlanNote": "Twój plan Premium powinien zostać aktywowany automatycznie w ciągu kilku minut od płatności.",
+    "mvpNote": "Plan aktywujemy automatycznie przez Stripe. W razie opóźnień odśwież stronę lub skontaktuj się z obsługą.",
     "validUntil": "Ważny do",
     "expiredNotice": "Twój plan wygasł. Obecnie korzystasz z planu Darmowego.",
     "noExpiryDate": "Plan aktywny. Brak zapisanej daty wygaśnięcia — skontaktuj się z obsługą.",

@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { CheckCircle, ArrowRight, Settings } from 'lucide-react';
+import { CheckCircle, ArrowRight } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
 export default function PaymentSuccessPage() {
@@ -13,38 +13,37 @@ export default function PaymentSuccessPage() {
         </div>
         
         <h1 className="omni-heading-2 text-[var(--omni-text)] mb-4">
-          {t('paymentSuccess.title', 'Płatność została rozpoczęta lub zakończona')}
+          {t('paymentSuccess.title', 'Dziękujemy za zakup!')}
         </h1>
         
         <div className="space-y-4 text-[var(--omni-text-muted)] text-lg mb-8">
           <p>
-            {t('paymentSuccess.desc1', 'Jeśli płatność została poprawnie opłacona, aktywujemy plan ręcznie po potwierdzeniu płatności. Aktywacja planu może potrwać do 24 godzin.')}
+            {t('paymentSuccess.desc1', 'Twój plan Premium powinien zostać aktywowany automatycznie w ciągu kilku minut.')}
           </p>
           <p className="text-sm">
-            {t('paymentSuccess.desc2', 'Jeżeli płatność została wykonana innym adresem e-mail niż konto w OmniNauka, skontaktuj się z nami, abyśmy mogli przypisać płatność do właściwego konta.')}
+            {t('paymentSuccess.desc2', 'Jeśli status planu nie zmieni się od razu, odśwież stronę „Płatności i plan” po chwili. W razie problemu skontaktuj się z nami — sprawdzimy płatność ręcznie.')}
           </p>
         </div>
 
         <div className="p-4 bg-blue-50 border border-blue-100 rounded-xl text-sm text-blue-800 w-full text-left mb-10">
           <p className="italic">
-            {t('paymentSuccess.mvpNote', 'To tymczasowy proces MVP. Pełna automatyczna aktywacja planu zostanie wdrożona w kolejnym etapie.')}
+            {t('paymentSuccess.mvpNote', 'Automatyczna aktywacja Premium działa przez Stripe. Panel administratora pozostaje zabezpieczeniem na wypadek problemów technicznych z płatnością.')}
           </p>
         </div>
 
         <div className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto">
           <Link 
-            to="/app/dashboard" 
+            to="/app/payments" 
             className="omni-btn-primary flex items-center justify-center gap-2"
           >
-            {t('paymentSuccess.backToDashboard', 'Wróć do dashboardu')}
+            {t('paymentSuccess.goToSettings', 'Sprawdź status planu')}
             <ArrowRight className="w-4 h-4" />
           </Link>
           <Link 
-            to="/app/payments" 
+            to="/app/dashboard" 
             className="px-6 py-3 border border-gray-200 text-[var(--omni-text-muted)] rounded-xl font-medium hover:bg-gray-50 transition-colors flex items-center justify-center gap-2"
           >
-            <Settings className="w-4 h-4" />
-            {t('paymentSuccess.goToSettings', 'Zobacz płatności i plan')}
+            {t('paymentSuccess.backToDashboard', 'Wróć do Panelu głównego')}
           </Link>
         </div>
       </div>
