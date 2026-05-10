@@ -24,6 +24,27 @@ export default function PaymentsPage() {
   const isPlanActiveNow = isPlanActive(user);
   const hasNoExpiryDate = isPaidPlan && !user?.planExpiresAt;
 
+  /**
+   * Helper to append client_reference_id (Supabase User ID) to Stripe Payment Links.
+   * This is critical for the webhook to identify the user for auto-activation.
+   */
+  const buildStripePaymentUrl = (baseUrl: string | undefined, userId: string | undefined): string | undefined => {
+    if (!baseUrl || !userId) return undefined;
+    try {
+      const url = new URL(baseUrl);
+      url.searchParams.set('client_reference_id', userId);
+      return url.toString();
+    } catch (e) {
+      console.error('Invalid Stripe URL:', baseUrl);
+      return baseUrl;
+    }
+  };
+
+  const premium30Url = buildStripePaymentUrl(premium30Link, user?.id);
+  const family30Url = buildStripePaymentUrl(family30Link, user?.id);
+  const premiumSubUrl = buildStripePaymentUrl(premiumSubLink, user?.id);
+  const familySubUrl = buildStripePaymentUrl(familySubLink, user?.id);
+
   const planLabel = user?.plan === 'premium' && isPlanActiveNow
     ? t('payments.plan.premium', 'Premium')
     : user?.plan === 'family' && isPlanActiveNow
@@ -181,9 +202,9 @@ export default function PaymentsPage() {
               <button disabled className="w-full inline-flex items-center justify-center whitespace-nowrap px-4 py-3 rounded-xl transition-all bg-gray-100 text-gray-400 font-semibold cursor-not-allowed">
                 {premiumCTA}
               </button>
-            ) : premium30Link ? (
+            ) : premium30Url ? (
               <a
-                href={premium30Link}
+                href={premium30Url}
                 className="w-full inline-flex items-center justify-center whitespace-nowrap px-4 py-3 rounded-xl transition-all bg-[var(--omni-accent)] text-white font-bold hover:shadow-lg gap-2"
               >
                 {premiumCTA}
@@ -236,9 +257,9 @@ export default function PaymentsPage() {
             ))}
           </ul>
           <div className="mt-auto">
-            {family30Link ? (
+            {family30Url ? (
               <a
-                href={family30Link}
+                href={family30Url}
                 className="w-full inline-flex items-center justify-center whitespace-nowrap px-4 py-3 rounded-xl transition-all bg-indigo-50 text-indigo-700 font-semibold hover:bg-indigo-100 gap-2"
               >
                 Kup Rodzinny na 30 dni
@@ -279,8 +300,8 @@ export default function PaymentsPage() {
                 <span className="text-[var(--omni-text-muted)] text-sm ml-1" aria-hidden="true">/ miesiąc</span>
               </div>
               <div className="mt-auto">
-                {premiumSubLink ? (
-                  <a href={premiumSubLink} className="w-full py-2.5 px-4 rounded-lg bg-white border border-gray-300 text-gray-700 font-medium text-center block hover:bg-gray-50 transition-colors">
+                {premiumSubUrl ? (
+                  <a href={premiumSubUrl} className="w-full py-2.5 px-4 rounded-lg bg-white border border-gray-300 text-gray-700 font-medium text-center block hover:bg-gray-50 transition-colors">
                     Włącz subskrypcję
                   </a>
                 ) : (
@@ -298,8 +319,8 @@ export default function PaymentsPage() {
                 <span className="text-[var(--omni-text-muted)] text-sm ml-1" aria-hidden="true">/ miesiąc</span>
               </div>
               <div className="mt-auto">
-                {familySubLink ? (
-                  <a href={familySubLink} className="w-full py-2.5 px-4 rounded-lg bg-white border border-gray-300 text-gray-700 font-medium text-center block hover:bg-gray-50 transition-colors">
+                {familySubUrl ? (
+                  <a href={familySubUrl} className="w-full py-2.5 px-4 rounded-lg bg-white border border-gray-300 text-gray-700 font-medium text-center block hover:bg-gray-50 transition-colors">
                     Włącz subskrypcję
                   </a>
                 ) : (
@@ -340,7 +361,7 @@ export default function PaymentsPage() {
               </div>
               <div className="mt-auto">
                 {item.link ? (
-                  <a href={item.link} className="w-full py-2 px-4 rounded-lg bg-blue-50 text-blue-600 font-medium inline-block hover:bg-blue-100 transition-colors">
+                  <a href={buildStripePaymentUrl(item.link, user?.id)} className="w-full py-2 px-4 rounded-lg bg-blue-50 text-blue-600 font-medium inline-block hover:bg-blue-100 transition-colors">
                     Kup pakiet
                   </a>
                 ) : (

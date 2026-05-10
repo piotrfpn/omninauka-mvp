@@ -8,3 +8,5 @@ verify_jwt = false
 verify_jwt = false
 [functions.send-consent-email]
 verify_jwt = false
+[functions.stripe-webhook]
+verify_jwt = false
