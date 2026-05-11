@@ -16,7 +16,6 @@ serve(async (req) => {
     console.log("--- ANALYZE-NOTES INVOCATION START ---");
     
     const authHeader = req.headers.get('Authorization') || req.headers.get('authorization');
-
     if (!authHeader) {
       console.error("[analyze-notes] 401: Missing Authorization header");
       return new Response(JSON.stringify({ error: 'Unauthorized: missing authorization header' }), {
@@ -25,59 +24,38 @@ serve(async (req) => {
       });
     }
 
-    const parts = authHeader.trim().split(/\s+/);
-
-    if (parts.length !== 2 || parts[0].toLowerCase() !== 'bearer') {
-      console.error("[analyze-notes] 401: Invalid bearer format");
-      return new Response(JSON.stringify({ error: 'Unauthorized: invalid authorization format' }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 401,
-      });
-    }
-
-    const token = parts[1].trim();
-
-    if (!token) {
-      console.error("[analyze-notes] 401: Empty token");
-      return new Response(JSON.stringify({ error: 'Unauthorized: empty bearer token' }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 401,
-      });
-    }
-
-    // Verify JWT via official Supabase JWKS pattern
     const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? '';
-    if (!supabaseUrl) {
-      console.error("[analyze-notes] 500: SUPABASE_URL missing");
+    const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY') ?? '';
+    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
+
+    if (!supabaseUrl || !supabaseServiceKey) {
+      console.error("[analyze-notes] 500: Server configuration missing");
       return new Response(JSON.stringify({ error: 'Server misconfiguration' }), {
          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
          status: 500,
       });
     }
 
-    const JWKS = createRemoteJWKSet(new URL(`${supabaseUrl}/auth/v1/.well-known/jwks.json`));
+    // User client for plan check + RLS context
+    const supabaseClient = createClient(supabaseUrl, supabaseAnonKey, {
+      global: { headers: { Authorization: authHeader } }
+    });
 
-    let userId: string;
-    try {
-      const { payload } = await jwtVerify(token, JWKS, {
-        issuer: `${supabaseUrl}/auth/v1`,
-      });
-      if (!payload.sub) throw new Error("Missing sub claim");
-      userId = payload.sub;
-    } catch (err: any) {
-      console.error("[analyze-notes] 401: JWT verification failed ->", err?.message);
+    // Admin client for profile + storage + DB access (bypasses RLS)
+    const adminClient = createClient(supabaseUrl, supabaseServiceKey, {
+      auth: { persistSession: false }
+    });
+
+    // Verify user identity
+    const { data: { user }, error: authError } = await supabaseClient.auth.getUser();
+    if (authError || !user) {
+      console.error("[analyze-notes] 401: Auth verification failed", authError);
       return new Response(JSON.stringify({ error: 'Unauthorized: token validation failed' }), {
          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
          status: 401,
       });
     }
-
-    // Admin client for profile + storage + DB access
-    const adminClient = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
-      { auth: { persistSession: false } }
-    );
+    const userId = user.id;
 
     // Verify user account status and plan
     const { data: profile, error: profileError } = await adminClient
@@ -116,12 +94,12 @@ serve(async (req) => {
         .rpc('get_my_effective_plan');
 
       if (planError) {
-        console.warn('[analyze-notes] get_my_effective_plan failed, falling back to free plan', planError);
+        console.warn('[analyze-notes] get_my_effective_plan failed in analyze-notes, falling back to free', planError);
       } else if (effectiveData?.effective_plan) {
         effectivePlan = effectiveData.effective_plan;
       }
     } catch (err) {
-      console.warn('[analyze-notes] get_my_effective_plan threw, falling back to free plan', err);
+      console.warn('[analyze-notes] get_my_effective_plan threw in analyze-notes, falling back to free', err);
     }
     const dailyLimit = (effectivePlan === 'premium' || effectivePlan === 'family') ? 10 : 2;
     const maxCards = (effectivePlan === 'premium' || effectivePlan === 'family') ? 20 : 5;
@@ -168,13 +146,6 @@ serve(async (req) => {
          status: 400
       });
     }
-
-    // Admin client for storage + DB access (bypasses RLS)
-    const adminClient = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
-      { auth: { persistSession: false } }
-    );
 
     const { data: sessionData, error: dbError } = await adminClient
       .from('study_sessions')
