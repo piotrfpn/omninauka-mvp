@@ -511,26 +511,25 @@ export default function UploadPage() {
       setImages(newImages);
       setActiveIdx(newImages.length - toAdd.length);
 
-      // MOBILE NO-CROP: Trigger direct processing immediately for the new images
+      // MOBILE NO-CROP: Trigger direct processing/pass-through
       if (isMobile) {
         toAdd.forEach(async (img) => {
           if (!img.file) return;
 
+          // If file is small, still try to get Base64 for recovery safety
           if (img.file.size <= MOBILE_DIRECT_DATA_URL_MAX_BYTES) {
-            uploadDebug('Mobile: direct FileReader start', { id: img.id, size: img.file.size });
+            uploadDebug('Mobile: direct FileReader start (for recovery)', { id: img.id, size: img.file.size });
             try {
               const dataUrl = await readFileAsDataUrl(img.file);
               uploadDebug('Mobile: direct FileReader success', { id: img.id, len: dataUrl.length });
               setImages(prev => prev.map(p => p.id === img.id ? { ...p, compressedBase64: dataUrl } : p));
             } catch (err) {
-              uploadDebug('Mobile: direct FileReader failed', err);
-              setError(t('upload.errors.imageReadError') || 'Błąd odczytu zdjęcia');
+              uploadDebug('Mobile: direct FileReader failed (non-fatal)', err);
             }
           } else {
-            uploadDebug('Mobile: file too large for direct DataURL', { size: img.file.size });
-            setError('Zdjęcie jest zbyt duże do szybkiego przetworzenia na telefonie. Spróbuj zrobić zdjęcie w niższej jakości albo wybierz mniejszy plik.');
-            // Remove the too large image from state
-            setImages(prev => prev.filter(p => p.id !== img.id));
+            uploadDebug('Mobile: using File pass-through for large image', { size: img.file.size });
+            // For large files, we don't set compressedBase64, 
+            // but the image is "ready" because isMobile && !!file && !isCropping is true.
           }
         });
       }
@@ -720,9 +719,9 @@ export default function UploadPage() {
     }
 
     // ── IMAGE FLOW ──
-    const ready = images.filter(im => !!im.compressedBase64);
-    uploadDebug('Image flow starting', { ready: ready.length });
-    if (ready.length === 0) {
+    const readyImages = images.filter(im => !!im.compressedBase64 || (isMobileUploadDevice() && !!im.file && !im.isCropping));
+    uploadDebug('Image flow starting', { ready: readyImages.length });
+    if (readyImages.length === 0) {
       uploadDebug('No ready images found');
       setIsAnalyzing(false);
       return;
@@ -730,7 +729,9 @@ export default function UploadPage() {
 
     if (!user || isDemoMode) {
       uploadDebug('Demo analysis (images) starting');
-      sessionStorage.setItem('demoImageBase64', ready[0].compressedBase64!);
+      // Use compressedBase64 if available, otherwise previewUrl (not perfect for demo but won't crash)
+      const demoSource = readyImages[0].compressedBase64 || readyImages[0].previewUrl;
+      sessionStorage.setItem('demoImageBase64', demoSource);
       sessionStorage.setItem('currentSessionId', 'demo-session');
       await new Promise(r => setTimeout(r, 2000));
       uploadDebug('Navigating to analysis (demo)');
@@ -741,16 +742,39 @@ export default function UploadPage() {
     try {
       const uploadedPaths: string[] = [];
       uploadDebug('Uploading images...');
-      for (const img of ready) {
-        const res = await fetch(img.compressedBase64!);
-        const blob = await res.blob();
-        const fileExt = blob.type.split('/')[1] || 'jpg';
-        const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
-        const filePath = `uploads/${fileName}`;
+      
+      const { data: sessionData, error: dbError } = await supabase
+        .from('study_sessions')
+        .insert({ user_id: user.id, image_url: '', folder_id: null })
+        .select()
+        .single();
+      if (dbError || !sessionData) throw new Error('Failed to create session');
+      const sessionId = sessionData.id;
+
+      for (let i = 0; i < readyImages.length; i++) {
+        const img = readyImages[i];
+        const fileExt = img.file ? img.file.name.split('.').pop() : 'jpg';
+        const filePath = `${user.id}/${sessionId}/img_${i}.${fileExt}`;
+
+        let uploadBody: Blob | File;
+        
+        if (img.compressedBase64) {
+          uploadDebug('Uploading Base64 blob', { id: img.id });
+          const res = await fetch(img.compressedBase64);
+          uploadBody = await res.blob();
+        } else if (img.file) {
+          uploadDebug('Uploading original File (pass-through)', { id: img.id, size: img.file.size });
+          uploadBody = img.file;
+        } else {
+          throw new Error('No upload source for image');
+        }
 
         const { data: uploadData, error: uploadError } = await supabase.storage
           .from('study-materials')
-          .upload(filePath, blob, { cacheControl: '3600', upsert: false });
+          .upload(filePath, uploadBody, {
+            cacheControl: '3600',
+            upsert: false
+          });
 
         if (uploadError || !uploadData) {
           if (uploadedPaths.length > 0) {
@@ -761,25 +785,19 @@ export default function UploadPage() {
         uploadedPaths.push(uploadData.path);
       }
 
-      uploadDebug('Inserting image session to DB');
-      const { data: sessionData, error: dbError } = await supabase
+      const { error: updateError } = await supabase
         .from('study_sessions')
-        .insert({
-          user_id: user.id,
-          image_url: uploadedPaths[0],
-          folder_id: null,
-        })
-        .select()
-        .single();
+        .update({ image_url: uploadedPaths[0] })
+        .eq('id', sessionId);
 
-      if (dbError || !sessionData) {
+      if (updateError) {
         await supabase.storage.from('study-materials').remove(uploadedPaths);
-        throw new Error(`DB Insert failed: ${dbError?.message}`);
+        throw new Error(`DB update failed: ${updateError.message}`);
       }
 
       if (uploadedPaths.length > 0) {
         const imageRows = uploadedPaths.map((path, position) => ({
-          session_id: sessionData.id,
+          session_id: sessionId,
           image_url: path,
           position,
         }));
@@ -789,15 +807,15 @@ export default function UploadPage() {
 
         if (imgInsertError) {
           uploadDebug('session_images insert failed', imgInsertError);
-          await supabase.from('study_sessions').delete().eq('id', sessionData.id);
+          await supabase.from('study_sessions').delete().eq('id', sessionId);
           await supabase.storage.from('study-materials').remove(uploadedPaths);
           throw new Error(`session_images insert failed: ${imgInsertError.message}`);
         }
       }
 
-      sessionStorage.setItem('currentSessionId', sessionData.id);
+      sessionStorage.setItem('currentSessionId', sessionId);
       sessionStorage.removeItem('omninauka_upload_recovery');
-      uploadDebug('Image analyze success, navigating', sessionData.id);
+      uploadDebug('Image analyze success, navigating', sessionId);
       navigate('/app/analysis');
 
     } catch (err: any) {
@@ -811,8 +829,9 @@ export default function UploadPage() {
   // ── derived state ─────────────────────────────────────────────────────────
 
   const activeImage = images[activeIdx] ?? null;
-  const readyCount = images.filter(im => !!im.compressedBase64).length;
-  const allReady = images.length > 0 && readyCount === images.length;
+  const readyImages = images.filter(im => !!im.compressedBase64 || (isMobileUploadDevice() && !!im.file && !im.isCropping));
+  const allReady = images.length > 0 && readyImages.length === images.length;
+  const readyCount = readyImages.length;
   const someReady = readyCount > 0;
   const currentlyCropping = activeImage?.isCropping && !activeImage?.compressedBase64;
 
@@ -1041,7 +1060,7 @@ export default function UploadPage() {
           )}
 
           {/* Preview for processed image */}
-          {activeImage && !currentlyCropping && activeImage.compressedBase64 && (
+          {activeImage && !currentlyCropping && (activeImage.compressedBase64 || (isMobileUploadDevice() && activeImage.file)) && (
             <div className="omni-card p-4 lg:p-6">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="font-semibold text-[var(--omni-text)] flex items-center gap-2">
@@ -1059,7 +1078,7 @@ export default function UploadPage() {
               </div>
               <div className="relative rounded-xl overflow-hidden mb-4 bg-gray-100 flex items-center justify-center min-h-[180px]">
                 <img
-                  src={activeImage.compressedBase64}
+                  src={activeImage.compressedBase64 ?? activeImage.previewUrl}
                   alt="Preview"
                   className="w-full max-h-[360px] object-contain"
                 />
