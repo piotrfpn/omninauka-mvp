@@ -19,7 +19,9 @@ import {
   Trash2,
   FileText,
   Loader2,
-  ShieldCheck
+  ShieldCheck,
+  Clipboard,
+  Trash
 } from 'lucide-react';
 
 import * as pdfjsLib from 'pdfjs-dist';
@@ -216,24 +218,60 @@ export default function UploadPage() {
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const [hasRestoredUploadRecovery, setHasRestoredUploadRecovery] = useState(false);
 
-  // Diagnostic Logs
+  // ── Debug Diagnostics ──────────────────────────────────────────────────────
+  const isUploadDebugEnabled = new URLSearchParams(window.location.search).get('uploadDebug') === '1';
+  const [uploadDebugEvents, setUploadDebugEvents] = useState<string[]>([]);
+
+  const uploadDebug = useCallback((message: string, data?: unknown) => {
+    if (!isUploadDebugEnabled) {
+      console.log('[upload-debug]', message, data);
+      return;
+    }
+
+    const timestamp = new Date().toLocaleTimeString();
+    const dataStr = data ? ' | ' + (typeof data === 'object' ? JSON.stringify(data) : String(data)) : '';
+    const line = `[${timestamp}] ${message}${dataStr}`;
+
+    console.log('[upload-debug]', message, data);
+
+    setUploadDebugEvents(prev => {
+      const next = [...prev, line].slice(-50);
+      try {
+        sessionStorage.setItem('omninauka_upload_debug_events', JSON.stringify(next));
+      } catch { /* ignore */ }
+      return next;
+    });
+  }, [isUploadDebugEnabled]);
+
+  // Restore debug events on mount
   useEffect(() => {
-    console.log('[upload-debug] UploadPage mounted', {
+    if (isUploadDebugEnabled) {
+      try {
+        const saved = sessionStorage.getItem('omninauka_upload_debug_events');
+        if (saved) setUploadDebugEvents(JSON.parse(saved));
+      } catch { /* ignore */ }
+    }
+  }, [isUploadDebugEnabled]);
+
+  // Lifecycle logs
+  useEffect(() => {
+    uploadDebug('UploadPage mounted', {
       pathname: window.location.pathname,
       href: window.location.href,
-      navigation: (performance.getEntriesByType?.('navigation')[0] as any)?.type || 'unknown',
+      userAgent: navigator.userAgent,
+      isMobile: isMobileUploadDevice(),
     });
 
     const onBeforeUnload = () => {
-      console.log('[upload-debug] beforeunload');
+      uploadDebug('beforeunload event detected');
     };
 
     const onPageShow = (event: PageTransitionEvent) => {
-      console.log('[upload-debug] pageshow', { persisted: event.persisted });
+      uploadDebug('pageshow event', { persisted: event.persisted });
     };
 
     const onVisibilityChange = () => {
-      console.log('[upload-debug] visibilitychange', document.visibilityState);
+      uploadDebug('visibilitychange', document.visibilityState);
     };
 
     window.addEventListener('beforeunload', onBeforeUnload);
@@ -241,12 +279,12 @@ export default function UploadPage() {
     document.addEventListener('visibilitychange', onVisibilityChange);
 
     return () => {
-      console.log('[upload-debug] UploadPage unmounted');
+      uploadDebug('UploadPage unmounted');
       window.removeEventListener('beforeunload', onBeforeUnload);
       window.removeEventListener('pageshow', onPageShow);
       document.removeEventListener('visibilitychange', onVisibilityChange);
     };
-  }, []);
+  }, [uploadDebug]);
 
   // Recovery: restore from sessionStorage on mount
   useEffect(() => {
@@ -271,13 +309,14 @@ export default function UploadPage() {
             }));
 
           if (restored.length > 0) {
+            uploadDebug('Restored images from recovery', restored.length);
             setImages(restored);
             setActiveIdx(0);
           }
         }
       }
     } catch (e) {
-      console.warn('Upload recovery restore failed:', e);
+      uploadDebug('Recovery restore failed', e);
       try {
         sessionStorage.removeItem('omninauka_upload_recovery');
       } catch {
@@ -286,7 +325,7 @@ export default function UploadPage() {
     } finally {
       setHasRestoredUploadRecovery(true);
     }
-  }, []);
+  }, [uploadDebug]);
 
   // Recovery: save to sessionStorage after restore is complete
   useEffect(() => {
@@ -307,6 +346,7 @@ export default function UploadPage() {
           }));
 
         if (lightweightState.length > 0) {
+          uploadDebug('Saving state to recovery storage', lightweightState.length);
           sessionStorage.setItem('omninauka_upload_recovery', JSON.stringify(lightweightState));
         } else {
           sessionStorage.removeItem('omninauka_upload_recovery');
@@ -315,15 +355,16 @@ export default function UploadPage() {
         sessionStorage.removeItem('omninauka_upload_recovery');
       }
     } catch (e) {
-      console.warn('Upload recovery save failed:', e);
+      uploadDebug('Recovery save failed', e);
     }
-  }, [images, hasRestoredUploadRecovery]);
+  }, [images, hasRestoredUploadRecovery, uploadDebug]);
 
   // ── helpers ────────────────────────────────────────────────────────────────
 
   const handleDocumentUpload = async (file: File) => {
     setIsExtractingText(true);
     setError(null);
+    uploadDebug('Starting document upload/extraction', { name: file.name, size: file.size });
     try {
       let extractedText = '';
       const arrayBuffer = await file.arrayBuffer();
@@ -356,6 +397,7 @@ export default function UploadPage() {
 
       setDocumentFile({ file, text: extractedText });
     } catch (err) {
+      uploadDebug('Doc extraction failed', err);
       console.error('Doc extraction error:', err);
       setError(t('upload.errors.docRead'));
     } finally {
@@ -407,7 +449,7 @@ export default function UploadPage() {
       const toAdd: QueuedImage[] = [];
       const isMobile = isMobileUploadDevice();
 
-      console.log('[upload-debug] addFiles called', {
+      uploadDebug('addFiles triggered', {
         count: droppedImages.length,
         isMobile,
         files: droppedImages.map(f => ({
@@ -437,12 +479,15 @@ export default function UploadPage() {
         });
       }
 
-      if (toAdd.length === 0) return;
+      if (toAdd.length === 0) {
+        uploadDebug('No valid files to add');
+        return;
+      }
       const newImages = [...images, ...toAdd];
-      console.log('[upload-debug] setting images', {
-        previous: images.length,
-        adding: toAdd.length,
+      uploadDebug('Updating images state', {
+        prev: images.length,
         next: newImages.length,
+        mobilePath: isMobile
       });
       setImages(newImages);
       setActiveIdx(newImages.length - toAdd.length);
@@ -450,17 +495,18 @@ export default function UploadPage() {
       // MOBILE NO-CROP: Trigger compression immediately for the new images
       if (isMobile) {
         toAdd.forEach(async (img) => {
-          console.log('[upload-debug] triggering auto-compression for mobile', img.id);
+          uploadDebug('Mobile: starting auto-compression', img.id);
           const result = await compressAndStore(img.previewUrl, null, img.file);
           if (result) {
+            uploadDebug('Mobile: auto-compression success', { id: img.id, len: result.length });
             setImages(prev => prev.map(p => p.id === img.id ? { ...p, compressedBase64: result } : p));
           } else {
-            console.error('[upload-debug] auto-compression failed', img.id);
+            uploadDebug('Mobile: auto-compression failed', img.id);
           }
         });
       }
     }
-  }, [images, documentFile]);
+  }, [images, documentFile, uploadDebug]);
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop: addFiles,
@@ -492,6 +538,7 @@ export default function UploadPage() {
 
   const compressAndStore = async (imageUrl: string, area?: CropArea | null, originalFile?: File): Promise<string | null> => {
     setIsCompressing(true);
+    uploadDebug('compressAndStore start', { hasArea: !!area, hasFile: !!originalFile });
     try {
       const compressionOptions = {
         maxSizeMB: 0.5,
@@ -507,11 +554,12 @@ export default function UploadPage() {
             reader.readAsDataURL(compressed);
             reader.onloadend = () => {
               const b64 = reader.result as string;
+              uploadDebug('Compression complete (direct)', { len: b64.length });
               resolve(b64.length > 4_500_000 ? null : b64);
             };
           });
         } catch (err) {
-          console.error("Direct compression failed", err);
+          uploadDebug('Direct compression failed', err);
         }
       }
 
@@ -542,11 +590,15 @@ export default function UploadPage() {
             reader.readAsDataURL(compressed);
             reader.onloadend = () => {
               const b64 = reader.result as string;
+              uploadDebug('Compression complete (canvas)', { len: b64.length });
               resolve(b64.length > 4_500_000 ? null : b64);
             };
           } catch { reject(new Error('Compression failed')); }
         }, 'image/jpeg', 0.95);
       });
+    } catch (err) {
+      uploadDebug('Compression failed', err);
+      return null;
     } finally {
       setIsCompressing(false);
     }
@@ -555,6 +607,7 @@ export default function UploadPage() {
   const handleConfirmCrop = async () => {
     const img = images[activeIdx];
     if (!img) return;
+    uploadDebug('handleConfirmCrop clicked', { id: img.id });
     const result = await compressAndStore(img.previewUrl, img.croppedArea, img.file);
     if (!result) { setError(t('upload.errors.compressionError')); return; }
     updateImage(activeIdx, { compressedBase64: result, isCropping: false });
@@ -566,6 +619,7 @@ export default function UploadPage() {
   const handleSkipCrop = async () => {
     const img = images[activeIdx];
     if (!img) return;
+    uploadDebug('handleSkipCrop clicked', { id: img.id });
     const result = await compressAndStore(img.previewUrl, null, img.file);
     if (!result) { setError(t('upload.errors.compressionError')); return; }
     updateImage(activeIdx, { compressedBase64: result, isCropping: false });
@@ -580,13 +634,16 @@ export default function UploadPage() {
 
     setIsAnalyzing(true);
     setError(null);
+    uploadDebug('handleAnalyze clicked', { images: images.length, hasDoc: !!documentFile });
 
     // ── DOCUMENT FLOW ──
     if (documentFile) {
       if (!user || isDemoMode) {
+        uploadDebug('Demo analysis (doc) starting');
         sessionStorage.setItem('demoImageBase64', 'document_placeholder');
         sessionStorage.setItem('currentSessionId', 'demo-session');
         await new Promise(r => setTimeout(r, 2000));
+        uploadDebug('Navigating to analysis (demo)');
         navigate('/app/analysis');
         return;
       }
@@ -596,12 +653,14 @@ export default function UploadPage() {
         const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
         const filePath = `uploads/${fileName}`;
 
+        uploadDebug('Uploading document to storage', filePath);
         const { data: uploadData, error: uploadError } = await supabase.storage
           .from('study-materials')
           .upload(filePath, documentFile.file, { cacheControl: '3600', upsert: false });
 
         if (uploadError || !uploadData) throw new Error(`Upload failed: ${uploadError.message}`);
 
+        uploadDebug('Inserting session to DB');
         const { data: sessionData, error: dbError } = await supabase
           .from('study_sessions')
           .insert({
@@ -620,8 +679,10 @@ export default function UploadPage() {
 
         sessionStorage.setItem('currentSessionId', sessionData.id);
         sessionStorage.removeItem('omninauka_upload_recovery');
+        uploadDebug('Document analyze success, navigating', sessionData.id);
         navigate('/app/analysis');
       } catch (err: any) {
+        uploadDebug('Document analyze failed', err);
         console.error('Document upload error:', err);
         setError(t('upload.errors.docSaveError'));
         setIsAnalyzing(false);
@@ -631,18 +692,26 @@ export default function UploadPage() {
 
     // ── IMAGE FLOW ──
     const ready = images.filter(im => !!im.compressedBase64);
-    if (ready.length === 0) return;
+    uploadDebug('Image flow starting', { ready: ready.length });
+    if (ready.length === 0) {
+      uploadDebug('No ready images found');
+      setIsAnalyzing(false);
+      return;
+    }
 
     if (!user || isDemoMode) {
+      uploadDebug('Demo analysis (images) starting');
       sessionStorage.setItem('demoImageBase64', ready[0].compressedBase64!);
       sessionStorage.setItem('currentSessionId', 'demo-session');
       await new Promise(r => setTimeout(r, 2000));
+      uploadDebug('Navigating to analysis (demo)');
       navigate('/app/analysis');
       return;
     }
 
     try {
       const uploadedPaths: string[] = [];
+      uploadDebug('Uploading images...');
       for (const img of ready) {
         const res = await fetch(img.compressedBase64!);
         const blob = await res.blob();
@@ -663,6 +732,7 @@ export default function UploadPage() {
         uploadedPaths.push(uploadData.path);
       }
 
+      uploadDebug('Inserting image session to DB');
       const { data: sessionData, error: dbError } = await supabase
         .from('study_sessions')
         .insert({
@@ -689,7 +759,7 @@ export default function UploadPage() {
           .insert(imageRows);
 
         if (imgInsertError) {
-          console.error('[upload] session_images insert failed:', imgInsertError.message, imgInsertError.code);
+          uploadDebug('session_images insert failed', imgInsertError);
           await supabase.from('study_sessions').delete().eq('id', sessionData.id);
           await supabase.storage.from('study-materials').remove(uploadedPaths);
           throw new Error(`session_images insert failed: ${imgInsertError.message}`);
@@ -698,9 +768,11 @@ export default function UploadPage() {
 
       sessionStorage.setItem('currentSessionId', sessionData.id);
       sessionStorage.removeItem('omninauka_upload_recovery');
+      uploadDebug('Image analyze success, navigating', sessionData.id);
       navigate('/app/analysis');
 
     } catch (err: any) {
+      uploadDebug('Image analyze failed', err);
       console.error('Upload error:', err);
       setError(t('upload.errors.imageSaveError'));
       setIsAnalyzing(false);
@@ -807,7 +879,7 @@ export default function UploadPage() {
             <button
               type="button"
               onClick={() => {
-                console.log('[upload-debug] camera button clicked');
+                uploadDebug('Camera button clicked');
                 cameraInputRef.current?.click();
               }}
               className="w-full omni-btn-primary flex items-center justify-center gap-3 py-5 text-lg rounded-2xl shadow-lg active:scale-[0.98] transition-all"
@@ -994,25 +1066,58 @@ export default function UploadPage() {
       </div>
 
       {/* Safety/Privacy Notice */}
-      <div className="omni-card p-4 lg:p-6 bg-blue-50/50 border-blue-100/50">
-        <div className="flex gap-4">
-          <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0">
-            <ShieldCheck className="w-6 h-6 text-blue-600" />
-          </div>
-          <div className="flex-1">
-            <h4 className="font-semibold text-blue-900 mb-1">{t('upload.safety.title')}</h4>
-            <div className="text-sm text-blue-800/80 space-y-2 leading-relaxed">
-              <p>
-                {t('upload.safety.line1')}
-              </p>
-              <p>
-                {t('upload.safety.line2')}
-              </p>
-            </div>
-          </div>
-        </div>
+      <div className="flex items-center justify-center gap-2 text-xs text-[var(--omni-text-muted)]">
+        <ShieldCheck className="w-3.5 h-3.5" />
+        <span>Twoje dane są bezpieczne i szyfrowane</span>
       </div>
 
+      {/* ── Debug Panel (only if ?uploadDebug=1) ── */}
+      {isUploadDebugEnabled && (
+        <div className="fixed bottom-4 left-4 right-4 z-[9999] max-h-80 overflow-hidden flex flex-col rounded-2xl bg-black/90 backdrop-blur-md text-white text-[10px] shadow-2xl border border-white/20">
+          <div className="p-3 border-b border-white/10 flex items-center justify-between bg-black/50">
+            <div className="flex items-center gap-2">
+              <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
+              <span className="font-bold tracking-wider uppercase text-[10px]">Upload Diagnostics</span>
+            </div>
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  navigator.clipboard.writeText(uploadDebugEvents.join('\n'));
+                  alert('Logi skopiowane!');
+                }}
+                className="p-1.5 hover:bg-white/10 rounded-lg transition-colors"
+                title="Kopiuj logi"
+              >
+                <Clipboard className="w-3.5 h-3.5" />
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setUploadDebugEvents([]);
+                  sessionStorage.removeItem('omninauka_upload_debug_events');
+                }}
+                className="p-1.5 hover:bg-white/10 rounded-lg transition-colors text-red-400"
+                title="Wyczyść logi"
+              >
+                <Trash className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          </div>
+          <div className="flex-1 overflow-auto p-3 font-mono leading-relaxed">
+            {uploadDebugEvents.length === 0 ? (
+              <div className="text-white/30 italic">No events logged yet...</div>
+            ) : (
+              uploadDebugEvents.map((line, idx) => (
+                <div key={idx} className="mb-1 last:mb-0 break-words">
+                  {line}
+                </div>
+              ))
+            )}
+            <div id="debug-bottom" />
+          </div>
+        </div>
+      )}
     </div>
   );
 }
