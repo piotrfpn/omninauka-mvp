@@ -23,8 +23,13 @@ interface ConsentGuardProps {
  *      → Show blocked screen
  */
 export function ConsentGuard({ children, requireApproval = true }: ConsentGuardProps) {
-  const { user, isLoading, refreshUser, logout } = useAuth();
+  const { user, isLoading, isProfileLoading, refreshUser, logout } = useAuth();
   const { t } = useTranslation('common');
+
+  const debugEnabled = new URLSearchParams(window.location.search).get('uploadDebug') === '1';
+  const consentDebug = (msg: string, data?: any) => {
+    if (debugEnabled) console.log('[consent-debug]', msg, data);
+  };
 
   // State for retroactive link attempt (under_13 who logs in after parent adds their email)
   const [isLinking, setIsLinking] = useState(false);
@@ -43,12 +48,15 @@ export function ConsentGuard({ children, requireApproval = true }: ConsentGuardP
     const attemptLink = async () => {
       setIsLinking(true);
       try {
+        consentDebug('Attempting retroactive link for under_13');
         const { data } = await supabase.rpc('link_child_account');
         if (data?.linked === true) {
+          consentDebug('Link successful, refreshing user');
           // Success: refresh profile so account_status becomes 'active'
           await refreshUser();
         }
-      } catch {
+      } catch (err) {
+        consentDebug('Link attempt failed', err);
         // Non-fatal — user stays blocked
       } finally {
         setIsLinking(false);
@@ -59,7 +67,17 @@ export function ConsentGuard({ children, requireApproval = true }: ConsentGuardP
     attemptLink();
   }, [isUnder13Pending, linkAttempted, refreshUser]);
 
-  if (isLoading) return null;
+  // ANTI-FLICKER: Don't make decisions until profile is fully resolved
+  if (isLoading || isProfileLoading) {
+    consentDebug('Waiting for profile resolution...', { isLoading, isProfileLoading });
+    return null;
+  }
+
+  consentDebug('Deciding on status', { 
+    id: user?.id, 
+    status: user?.accountStatus, 
+    age: user?.ageBand 
+  });
 
   // ── Case 1: 13-15 pending consent ────────────────────────────────────────
   if (
@@ -127,14 +145,26 @@ export function ConsentGuard({ children, requireApproval = true }: ConsentGuardP
     );
   }
 
-  // ── Case 3: consent withdrawn ─────────────────────────────────────────────
-  if (user?.accountStatus === 'parent_withdrawn') {
+  // ── Case 3: blocked/withdrawn ─────────────────────────────────────────────
+  const blockingStatuses = ['parent_withdrawn', 'suspended', 'withdrawn', 'under_13'];
+  if (user?.accountStatus && blockingStatuses.includes(user.accountStatus)) {
+    consentDebug('Blocking access due to status', user.accountStatus);
     return (
-      <div className="p-8 bg-red-50 border border-red-200 rounded-2xl text-center">
-        <h2 className="text-xl font-bold text-red-800 mb-2">Dostęp zablokowany</h2>
-        <p className="text-red-700">
-          Twoja zgoda rodzicielska została wycofana. Skontaktuj się z rodzicem lub administratorem.
-        </p>
+      <div className="min-h-screen flex items-center justify-center bg-[var(--omni-bg)] px-6">
+        <div className="omni-card p-8 bg-red-50 border border-red-200 rounded-2xl text-center max-w-md">
+          <ShieldAlert className="w-12 h-12 text-red-600 mx-auto mb-4" />
+          <h2 className="text-xl font-bold text-red-800 mb-2">Dostęp zablokowany</h2>
+          <p className="text-red-700 mb-6">
+            Twoje konto jest obecnie zablokowane lub zgoda rodzicielska została wycofana (Status: {user.accountStatus}).
+          </p>
+          <button
+            onClick={() => logout()}
+            className="omni-btn-secondary w-full flex items-center justify-center gap-2"
+          >
+            <LogOut className="w-4 h-4" />
+            Wyloguj się
+          </button>
+        </div>
       </div>
     );
   }

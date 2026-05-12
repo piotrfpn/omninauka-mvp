@@ -46,9 +46,9 @@ const SuspenseFallback = () => (
 
 // Protected route wrapper
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
-  const { isAuthenticated, isLoading } = useAuth();
+  const { isAuthenticated, isLoading, isProfileLoading } = useAuth();
 
-  if (isLoading) {
+  if (isLoading || isProfileLoading) {
     return <SuspenseFallback />;
   }
 
@@ -61,12 +61,17 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
 
 // App routes with shell
 function AppRoutes() {
-  const { user } = useAuth();
-  const needsConsent = user?.ageBand === '13_15' && user?.accountStatus === 'pending_parent_consent';
+  const { user, isProfileLoading } = useAuth();
+  
+  const needsConsent = 
+    !isProfileLoading && 
+    user?.ageBand === '13_15' && 
+    user?.accountStatus === 'pending_parent_consent';
 
   console.log('[app-debug] rendering AppRoutes', {
     pathname: window.location.pathname,
     isAuthenticated: !!user,
+    isProfileLoading
   });
 
   return (

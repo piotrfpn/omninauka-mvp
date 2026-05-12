@@ -11,6 +11,7 @@ interface AuthContextType extends AuthState {
   updateProfile: (updates: any) => Promise<{ success: boolean; error?: string }>;
   refreshUser: () => Promise<void>;
   isDemoMode: boolean;
+  isProfileLoading: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -42,8 +43,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     isLoading: true,
   });
 
-  // Track if user is explicitly in demo mode
+  const [isProfileLoading, setIsProfileLoading] = useState(true);
   const [isDemoMode, setIsDemoMode] = useState(false);
+
+  // Debug helper
+  const authDebug = (msg: string, data?: any) => {
+    if (new URLSearchParams(window.location.search).get('uploadDebug') === '1') {
+      console.log('[auth-debug]', msg, data);
+    }
+  };
 
   useEffect(() => {
     // AUTH FIRST, DATA SECOND pattern:
@@ -56,6 +64,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const { data: { session } } = await supabase.auth.getSession();
 
         if (session && session.user && !isDemoMode) {
+          authDebug('Session detected, initializing state');
           // Step 1: Set authenticated state immediately
           setState({
             user: mapSupabaseUser(session.user),
@@ -66,12 +75,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           // Step 2: Enrich with profile data non-blocking (best-effort)
           void fetchAndMergeProfile(session.user);
         } else if (!isDemoMode) {
+          authDebug('No session detected');
           setState(prev => ({ ...prev, isLoading: false }));
+          setIsProfileLoading(false);
         }
       } catch (error) {
+        authDebug('Auth session error', error);
         console.error("Auth session error:", error);
         if (!isDemoMode) {
           setState(prev => ({ ...prev, isLoading: false }));
+          setIsProfileLoading(false);
         }
       }
     };
@@ -84,6 +97,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (isDemoMode) return;
 
         if (session && session.user) {
+          authDebug('Auth state changed: SIGNED_IN');
           // Step 1: Set authenticated state immediately from Auth data
           setState({
             user: mapSupabaseUser(session.user),
@@ -94,11 +108,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           // Step 2: Enrich with profile data non-blocking (best-effort)
           void fetchAndMergeProfile(session.user);
         } else {
+          authDebug('Auth state changed: SIGNED_OUT');
           setState({
             user: null,
             isAuthenticated: false,
             isLoading: false,
           });
+          setIsProfileLoading(false);
         }
       }
     );
@@ -111,7 +127,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // Best-effort: fetch profile and effective plan from DB and merge into state.
   // If this fails for any reason, the user remains logged in from Auth data.
   const fetchAndMergeProfile = async (sbUser: any) => {
+    setIsProfileLoading(true);
     try {
+      authDebug('Fetching profile from DB', sbUser.id);
       // Fetch both profile and effective plan in parallel
       const [profileRes, effectivePlanRes] = await Promise.all([
         supabase
@@ -126,6 +144,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const effectiveData = effectivePlanRes.data;
 
       if (dbProfile) {
+        authDebug('Profile loaded', { status: dbProfile.account_status });
         let user = mapSupabaseUser(sbUser, dbProfile);
         
         // Merge effective plan data if available
@@ -143,9 +162,30 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           ...prev,
           user,
         }));
+
+        // ── Self-Healing Metadata ───────────────────────────────────────────
+        // If DB says we are active, but metadata is still stuck in pending, update metadata.
+        const activeStatuses = ['active', 'parent_approved'];
+        const currentMetaStatus = sbUser.user_metadata?.accountStatus;
+        
+        if (
+          activeStatuses.includes(dbProfile.account_status) && 
+          currentMetaStatus !== dbProfile.account_status &&
+          currentMetaStatus !== 'active' // don't flip 'active' to 'parent_approved' back and forth
+        ) {
+          authDebug('Self-healing metadata', { from: currentMetaStatus, to: dbProfile.account_status });
+          void supabase.auth.updateUser({
+            data: { accountStatus: dbProfile.account_status }
+          }).catch(err => authDebug('Self-healing failed', err));
+        }
+      } else {
+        authDebug('No profile record found in DB');
       }
-    } catch {
+    } catch (err) {
+      authDebug('Profile fetch failed', err);
       // Profile fetch failure is non-fatal. User stays logged in.
+    } finally {
+      setIsProfileLoading(false);
     }
   };
 
@@ -226,6 +266,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       isAuthenticated: true,
       isLoading: false,
     });
+    setIsProfileLoading(false);
   };
 
   const refreshUser = async () => {
@@ -352,6 +393,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         updateProfile,
         refreshUser,
         isDemoMode,
+        isProfileLoading,
       }}
     >
       {children}
