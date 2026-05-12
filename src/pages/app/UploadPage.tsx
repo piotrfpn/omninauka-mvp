@@ -48,7 +48,12 @@ interface QueuedImage {
   croppedArea: CropArea | null;
 }
 
-const MAX_IMAGES = 5;
+const MAX_IMAGES = 10;
+
+// Simple helper for mobile detection
+const isMobileUploadDevice = () => {
+  return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+};
 
 // ─── Per-image crop panel ─────────────────────────────────────────────────────
 
@@ -211,6 +216,38 @@ export default function UploadPage() {
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const [hasRestoredUploadRecovery, setHasRestoredUploadRecovery] = useState(false);
 
+  // Diagnostic Logs
+  useEffect(() => {
+    console.log('[upload-debug] UploadPage mounted', {
+      pathname: window.location.pathname,
+      href: window.location.href,
+      navigation: (performance.getEntriesByType?.('navigation')[0] as any)?.type || 'unknown',
+    });
+
+    const onBeforeUnload = () => {
+      console.log('[upload-debug] beforeunload');
+    };
+
+    const onPageShow = (event: PageTransitionEvent) => {
+      console.log('[upload-debug] pageshow', { persisted: event.persisted });
+    };
+
+    const onVisibilityChange = () => {
+      console.log('[upload-debug] visibilitychange', document.visibilityState);
+    };
+
+    window.addEventListener('beforeunload', onBeforeUnload);
+    window.addEventListener('pageshow', onPageShow);
+    document.addEventListener('visibilitychange', onVisibilityChange);
+
+    return () => {
+      console.log('[upload-debug] UploadPage unmounted');
+      window.removeEventListener('beforeunload', onBeforeUnload);
+      window.removeEventListener('pageshow', onPageShow);
+      document.removeEventListener('visibilitychange', onVisibilityChange);
+    };
+  }, []);
+
   // Recovery: restore from sessionStorage on mount
   useEffect(() => {
     try {
@@ -368,18 +405,32 @@ export default function UploadPage() {
 
       const available = MAX_IMAGES - images.length;
       const toAdd: QueuedImage[] = [];
+      const isMobile = isMobileUploadDevice();
+
+      console.log('[upload-debug] addFiles called', {
+        count: droppedImages.length,
+        isMobile,
+        files: droppedImages.map(f => ({
+          name: f.name,
+          type: f.type,
+          size: f.size,
+        })),
+      });
+
       for (const f of droppedImages.slice(0, available)) {
         if (f.size > 10 * 1024 * 1024) {
           setError(t('upload.errors.imageTooLarge'));
           continue;
         }
+
+        const newId = `img-${Date.now()}-${Math.random().toString(36).slice(2)}`;
         toAdd.push({
-          id: `img-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+          id: newId,
           file: f,
           previewUrl: URL.createObjectURL(f),
           compressedBase64: null,
           name: f.name,
-          isCropping: true,
+          isCropping: !isMobile, // MOBILE NO-CROP: Skip cropper on mobile
           crop: { x: 0, y: 0 },
           zoom: 1,
           croppedArea: null,
@@ -388,8 +439,26 @@ export default function UploadPage() {
 
       if (toAdd.length === 0) return;
       const newImages = [...images, ...toAdd];
+      console.log('[upload-debug] setting images', {
+        previous: images.length,
+        adding: toAdd.length,
+        next: newImages.length,
+      });
       setImages(newImages);
       setActiveIdx(newImages.length - toAdd.length);
+
+      // MOBILE NO-CROP: Trigger compression immediately for the new images
+      if (isMobile) {
+        toAdd.forEach(async (img) => {
+          console.log('[upload-debug] triggering auto-compression for mobile', img.id);
+          const result = await compressAndStore(img.previewUrl, null, img.file);
+          if (result) {
+            setImages(prev => prev.map(p => p.id === img.id ? { ...p, compressedBase64: result } : p));
+          } else {
+            console.error('[upload-debug] auto-compression failed', img.id);
+          }
+        });
+      }
     }
   }, [images, documentFile]);
 
@@ -737,20 +806,32 @@ export default function UploadPage() {
           <div>
             <button
               type="button"
-              onClick={() => cameraInputRef.current?.click()}
+              onClick={() => {
+                console.log('[upload-debug] camera button clicked');
+                cameraInputRef.current?.click();
+              }}
               className="w-full omni-btn-primary flex items-center justify-center gap-3 py-5 text-lg rounded-2xl shadow-lg active:scale-[0.98] transition-all"
             >
               <Camera className="w-7 h-7" />
               {t('upload.cameraCta')}
             </button>
             <input
-              type="file"
-              accept="image/*"
-              capture="environment"
-              ref={cameraInputRef}
-              onChange={e => { if (e.target.files) addFiles(Array.from(e.target.files)); }}
-              className="hidden"
-            />
+            type="file"
+            ref={cameraInputRef}
+            className="hidden"
+            accept="image/*"
+            capture="environment"
+            onChange={(e) => {
+              console.log('[upload-debug] camera input change', {
+                filesLength: e.target.files?.length,
+                firstName: e.target.files?.[0]?.name,
+                firstType: e.target.files?.[0]?.type,
+                firstSize: e.target.files?.[0]?.size,
+              });
+              const files = Array.from(e.target.files || []);
+              if (files.length > 0) addFiles(files);
+            }}
+          />
           </div>
 
           {/* Divider */}

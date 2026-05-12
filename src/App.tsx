@@ -21,8 +21,6 @@ import { AppShell } from './components/layout/app-shell';
 import './App.css';
 
 // Lazy load protected app pages
-// ... (rest of lazy loads)
-// [CUT FOR CONCISE REPLACE]
 const DashboardPage = lazy(() => import('./pages/app/DashboardPage'));
 const UploadPage = lazy(() => import('./pages/app/UploadPage'));
 const AnalysisPage = lazy(() => import('./pages/app/AnalysisPage'));
@@ -65,6 +63,11 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
 function AppRoutes() {
   const { user } = useAuth();
   const needsConsent = user?.ageBand === '13_15' && user?.accountStatus === 'pending_parent_consent';
+
+  console.log('[app-debug] rendering AppRoutes', {
+    pathname: window.location.pathname,
+    isAuthenticated: !!user,
+  });
 
   return (
     <Routes>
