@@ -21,7 +21,8 @@ import {
   Loader2,
   ShieldCheck,
   Clipboard,
-  Trash
+  Trash,
+  Upload
 } from 'lucide-react';
 
 import * as pdfjsLib from 'pdfjs-dist';
@@ -903,11 +904,11 @@ export default function UploadPage() {
       {images.length === 0 && !documentFile && !isExtractingText && (
         <div className="space-y-4 flex flex-col-reverse md:flex-col gap-4 md:gap-0 md:space-y-4">
           {/* Camera — PRIMARY on mobile (rendered last in DOM but shown first via col-reverse) */}
-          <div>
+          <div className="space-y-4">
             <button
               type="button"
               onClick={() => {
-                uploadDebug('Camera button clicked');
+                uploadDebug('Camera button clicked - triggering native input');
                 cameraInputRef.current?.click();
               }}
               className="w-full omni-btn-primary flex items-center justify-center gap-3 py-5 text-lg rounded-2xl shadow-lg active:scale-[0.98] transition-all"
@@ -915,23 +916,50 @@ export default function UploadPage() {
               <Camera className="w-7 h-7" />
               {t('upload.cameraCta')}
             </button>
+
+            {/* Stable Native Mobile Input - Visible but styled as a fallback link or small button if needed */}
+            {isMobileUploadDevice() && (
+              <div className="flex flex-col items-center gap-2">
+                <p className="text-[10px] text-[var(--omni-text-muted)] opacity-50">
+                  Problemy z aparatem? Użyj przycisku poniżej:
+                </p>
+                <label className="omni-btn-secondary py-3 px-6 rounded-xl text-sm flex items-center gap-2 cursor-pointer border-dashed">
+                  <Upload className="w-4 h-4" />
+                  <span>Wybierz z galerii</span>
+                  <input
+                    type="file"
+                    className="hidden"
+                    accept="image/*"
+                    onChange={(e) => {
+                      uploadDebug('Native stable input change detected', {
+                        filesLength: e.target.files?.length,
+                        firstName: e.target.files?.[0]?.name,
+                      });
+                      const files = Array.from(e.target.files || []);
+                      if (files.length > 0) addFiles(files);
+                    }}
+                  />
+                </label>
+              </div>
+            )}
+
             <input
-            type="file"
-            ref={cameraInputRef}
-            className="hidden"
-            accept="image/*"
-            capture="environment"
-            onChange={(e) => {
-              console.log('[upload-debug] camera input change', {
-                filesLength: e.target.files?.length,
-                firstName: e.target.files?.[0]?.name,
-                firstType: e.target.files?.[0]?.type,
-                firstSize: e.target.files?.[0]?.size,
-              });
-              const files = Array.from(e.target.files || []);
-              if (files.length > 0) addFiles(files);
-            }}
-          />
+              type="file"
+              ref={cameraInputRef}
+              className="hidden"
+              accept="image/*"
+              capture="environment"
+              onChange={(e) => {
+                uploadDebug('Camera input change detected', {
+                  filesLength: e.target.files?.length,
+                  firstName: e.target.files?.[0]?.name,
+                  firstType: e.target.files?.[0]?.type,
+                  firstSize: e.target.files?.[0]?.size,
+                });
+                const files = Array.from(e.target.files || []);
+                if (files.length > 0) addFiles(files);
+              }}
+            />
           </div>
 
           {/* Divider */}

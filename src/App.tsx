@@ -46,9 +46,20 @@ const SuspenseFallback = () => (
 
 // Protected route wrapper
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
-  const { isAuthenticated, isLoading, isProfileLoading } = useAuth();
+  const { isAuthenticated, isLoading, isProfileLoading, user } = useAuth();
+  
+  const isDebug = new URLSearchParams(window.location.search).get('uploadDebug') === '1';
+  if (isDebug) {
+    console.log('[app-debug] ProtectedRoute check', { 
+      path: window.location.pathname, 
+      isLoading, 
+      isProfileLoading, 
+      hasUser: !!user 
+    });
+  }
 
-  if (isLoading || isProfileLoading) {
+  // Only block with loader if we don't have a user record yet
+  if (isLoading || (isProfileLoading && !user)) {
     return <SuspenseFallback />;
   }
 

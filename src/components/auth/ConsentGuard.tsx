@@ -67,16 +67,17 @@ export function ConsentGuard({ children, requireApproval = true }: ConsentGuardP
     attemptLink();
   }, [isUnder13Pending, linkAttempted, refreshUser]);
 
-  // ANTI-FLICKER: Don't make decisions until profile is fully resolved
-  if (isLoading || isProfileLoading) {
-    consentDebug('Waiting for profile resolution...', { isLoading, isProfileLoading });
+  // ANTI-FLICKER: Don't make decisions until INITIAL profile is fully resolved
+  // BUT: Do not unmount if we already have a user (prevents remount on background refresh)
+  if (isLoading || (isProfileLoading && !user)) {
+    consentDebug('Waiting for INITIAL profile resolution...', { isLoading, isProfileLoading, hasUser: !!user });
     return null;
   }
 
-  consentDebug('Deciding on status', { 
-    id: user?.id, 
+  consentDebug('Consent decision logic', { 
+    pathname: window.location.pathname,
     status: user?.accountStatus, 
-    age: user?.ageBand 
+    isProfileLoading 
   });
 
   // ── Case 1: 13-15 pending consent ────────────────────────────────────────

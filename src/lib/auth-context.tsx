@@ -73,7 +73,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           });
 
           // Step 2: Enrich with profile data non-blocking (best-effort)
-          void fetchAndMergeProfile(session.user);
+          // INITIAL load if we just mounted
+          void fetchAndMergeProfile(session.user, true);
         } else if (!isDemoMode) {
           authDebug('No session detected');
           setState(prev => ({ ...prev, isLoading: false }));
@@ -106,7 +107,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           });
 
           // Step 2: Enrich with profile data non-blocking (best-effort)
-          void fetchAndMergeProfile(session.user);
+          // BACKGROUND refresh if user already exists
+          void fetchAndMergeProfile(session.user, false);
         } else {
           authDebug('Auth state changed: SIGNED_OUT');
           setState({
@@ -126,10 +128,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   // Best-effort: fetch profile and effective plan from DB and merge into state.
   // If this fails for any reason, the user remains logged in from Auth data.
-  const fetchAndMergeProfile = async (sbUser: any) => {
-    setIsProfileLoading(true);
+  const fetchAndMergeProfile = async (sbUser: any, isInitial = false) => {
+    if (isInitial) {
+      setIsProfileLoading(true);
+      authDebug('Starting INITIAL profile fetch', sbUser.id);
+    } else {
+      authDebug('Starting BACKGROUND profile refresh', sbUser.id);
+    }
+
     try {
-      authDebug('Fetching profile from DB', sbUser.id);
       // Fetch both profile and effective plan in parallel
       const [profileRes, effectivePlanRes] = await Promise.all([
         supabase
@@ -144,7 +151,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const effectiveData = effectivePlanRes.data;
 
       if (dbProfile) {
-        authDebug('Profile loaded', { status: dbProfile.account_status });
+        authDebug('Profile loaded from DB', { status: dbProfile.account_status, isInitial });
         let user = mapSupabaseUser(sbUser, dbProfile);
         
         // Merge effective plan data if available
@@ -164,28 +171,31 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }));
 
         // ── Self-Healing Metadata ───────────────────────────────────────────
-        // If DB says we are active, but metadata is still stuck in pending, update metadata.
         const activeStatuses = ['active', 'parent_approved'];
         const currentMetaStatus = sbUser.user_metadata?.accountStatus;
         
         if (
           activeStatuses.includes(dbProfile.account_status) && 
           currentMetaStatus !== dbProfile.account_status &&
-          currentMetaStatus !== 'active' // don't flip 'active' to 'parent_approved' back and forth
+          currentMetaStatus !== 'active'
         ) {
-          authDebug('Self-healing metadata', { from: currentMetaStatus, to: dbProfile.account_status });
+          authDebug('Self-healing metadata detected', { from: currentMetaStatus, to: dbProfile.account_status });
           void supabase.auth.updateUser({
             data: { accountStatus: dbProfile.account_status }
-          }).catch(err => authDebug('Self-healing failed', err));
+          }).catch(err => authDebug('Self-healing update failed', err));
         }
       } else {
-        authDebug('No profile record found in DB');
+        authDebug('No profile record found in DB during merge');
       }
     } catch (err) {
-      authDebug('Profile fetch failed', err);
-      // Profile fetch failure is non-fatal. User stays logged in.
+      authDebug('Profile fetch/merge encountered an error', err);
     } finally {
-      setIsProfileLoading(false);
+      if (isInitial) {
+        setIsProfileLoading(false);
+        authDebug('INITIAL profile fetch complete');
+      } else {
+        authDebug('BACKGROUND profile refresh complete');
+      }
     }
   };
 
