@@ -222,6 +222,24 @@ export default function UploadPage() {
   const isUploadDebugEnabled = new URLSearchParams(window.location.search).get('uploadDebug') === '1';
   const [uploadDebugEvents, setUploadDebugEvents] = useState<string[]>([]);
 
+  // ── Mobile Stability Constants ───────────────────────────────────────────
+  const MOBILE_DIRECT_DATA_URL_MAX_BYTES = 3_200_000;
+
+  const readFileAsDataUrl = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        if (typeof reader.result === 'string') {
+          resolve(reader.result);
+        } else {
+          reject(new Error('FileReader did not return a string'));
+        }
+      };
+      reader.onerror = () => reject(reader.error ?? new Error('FileReader failed'));
+      reader.readAsDataURL(file);
+    });
+  };
+
   const uploadDebug = useCallback((message: string, data?: unknown) => {
     if (!isUploadDebugEnabled) {
       console.log('[upload-debug]', message, data);
@@ -492,21 +510,31 @@ export default function UploadPage() {
       setImages(newImages);
       setActiveIdx(newImages.length - toAdd.length);
 
-      // MOBILE NO-CROP: Trigger compression immediately for the new images
+      // MOBILE NO-CROP: Trigger direct processing immediately for the new images
       if (isMobile) {
         toAdd.forEach(async (img) => {
-          uploadDebug('Mobile: starting auto-compression', img.id);
-          const result = await compressAndStore(img.previewUrl, null, img.file);
-          if (result) {
-            uploadDebug('Mobile: auto-compression success', { id: img.id, len: result.length });
-            setImages(prev => prev.map(p => p.id === img.id ? { ...p, compressedBase64: result } : p));
+          if (!img.file) return;
+
+          if (img.file.size <= MOBILE_DIRECT_DATA_URL_MAX_BYTES) {
+            uploadDebug('Mobile: direct FileReader start', { id: img.id, size: img.file.size });
+            try {
+              const dataUrl = await readFileAsDataUrl(img.file);
+              uploadDebug('Mobile: direct FileReader success', { id: img.id, len: dataUrl.length });
+              setImages(prev => prev.map(p => p.id === img.id ? { ...p, compressedBase64: dataUrl } : p));
+            } catch (err) {
+              uploadDebug('Mobile: direct FileReader failed', err);
+              setError(t('upload.errors.imageReadError') || 'Błąd odczytu zdjęcia');
+            }
           } else {
-            uploadDebug('Mobile: auto-compression failed', img.id);
+            uploadDebug('Mobile: file too large for direct DataURL', { size: img.file.size });
+            setError('Zdjęcie jest zbyt duże do szybkiego przetworzenia na telefonie. Spróbuj zrobić zdjęcie w niższej jakości albo wybierz mniejszy plik.');
+            // Remove the too large image from state
+            setImages(prev => prev.filter(p => p.id !== img.id));
           }
         });
       }
     }
-  }, [images, documentFile, uploadDebug]);
+  }, [images, documentFile, uploadDebug, t]);
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop: addFiles,
