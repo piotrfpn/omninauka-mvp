@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useDropzone } from 'react-dropzone';
 import Cropper from 'react-easy-crop';
@@ -38,6 +38,7 @@ interface CropArea {
 
 interface QueuedImage {
   id: string;
+  file?: File;                // Original file for optimized compression
   previewUrl: string;          // object URL for display / cropper
   compressedBase64: string | null;  // null = not yet processed
   name: string;
@@ -109,6 +110,7 @@ function ImageCropPanel({
 
       <div className="flex flex-col sm:flex-row gap-3">
         <button
+          type="button"
           onClick={onConfirm}
           disabled={isCompressing}
           className="flex-1 omni-btn-primary disabled:opacity-50 disabled:cursor-wait"
@@ -119,6 +121,7 @@ function ImageCropPanel({
           {isCompressing ? t('upload.cropPanel.processing') : t('upload.cropPanel.confirm')}
         </button>
         <button
+          type="button"
           onClick={onSkip}
           disabled={isCompressing}
           className="omni-btn-secondary disabled:opacity-50 disabled:cursor-wait"
@@ -178,6 +181,7 @@ function ThumbnailStrip({
 
           {/* Remove button */}
           <button
+            type="button"
             onClick={e => { e.stopPropagation(); onRemove(idx); }}
             className="absolute top-0.5 right-0.5 opacity-0 group-hover:opacity-100 transition-opacity bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center shadow"
             title={t('upload.actions.remove')}
@@ -205,6 +209,78 @@ export default function UploadPage() {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
+  const [hasRestoredUploadRecovery, setHasRestoredUploadRecovery] = useState(false);
+
+  // Recovery: restore from sessionStorage on mount
+  useEffect(() => {
+    try {
+      const saved = sessionStorage.getItem('omninauka_upload_recovery');
+
+      if (saved) {
+        const parsed = JSON.parse(saved);
+
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          const restored: QueuedImage[] = parsed
+            .filter(img => img?.id && img?.name && img?.compressedBase64)
+            .map(img => ({
+              id: img.id,
+              name: img.name,
+              compressedBase64: img.compressedBase64,
+              previewUrl: img.compressedBase64,
+              isCropping: false,
+              crop: img.crop ?? { x: 0, y: 0 },
+              zoom: img.zoom ?? 1,
+              croppedArea: img.croppedArea ?? null,
+            }));
+
+          if (restored.length > 0) {
+            setImages(restored);
+            setActiveIdx(0);
+          }
+        }
+      }
+    } catch (e) {
+      console.warn('Upload recovery restore failed:', e);
+      try {
+        sessionStorage.removeItem('omninauka_upload_recovery');
+      } catch {
+        // ignore cleanup failure
+      }
+    } finally {
+      setHasRestoredUploadRecovery(true);
+    }
+  }, []);
+
+  // Recovery: save to sessionStorage after restore is complete
+  useEffect(() => {
+    if (!hasRestoredUploadRecovery) return;
+
+    try {
+      if (images.length > 0) {
+        const lightweightState = images
+          .filter(img => img.compressedBase64)
+          .map(img => ({
+            id: img.id,
+            name: img.name,
+            compressedBase64: img.compressedBase64,
+            isCropping: false,
+            crop: img.crop,
+            zoom: img.zoom,
+            croppedArea: img.croppedArea,
+          }));
+
+        if (lightweightState.length > 0) {
+          sessionStorage.setItem('omninauka_upload_recovery', JSON.stringify(lightweightState));
+        } else {
+          sessionStorage.removeItem('omninauka_upload_recovery');
+        }
+      } else {
+        sessionStorage.removeItem('omninauka_upload_recovery');
+      }
+    } catch (e) {
+      console.warn('Upload recovery save failed:', e);
+    }
+  }, [images, hasRestoredUploadRecovery]);
 
   // ── helpers ────────────────────────────────────────────────────────────────
 
@@ -289,7 +365,7 @@ export default function UploadPage() {
         setError(t('upload.errors.docExists'));
         return;
       }
-      
+
       const available = MAX_IMAGES - images.length;
       const toAdd: QueuedImage[] = [];
       for (const f of droppedImages.slice(0, available)) {
@@ -299,6 +375,7 @@ export default function UploadPage() {
         }
         toAdd.push({
           id: `img-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+          file: f,
           previewUrl: URL.createObjectURL(f),
           compressedBase64: null,
           name: f.name,
@@ -318,9 +395,9 @@ export default function UploadPage() {
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop: addFiles,
-    accept: { 
-      'image/jpeg': ['.jpg', '.jpeg'], 
-      'image/png': ['.png'], 
+    accept: {
+      'image/jpeg': ['.jpg', '.jpeg'],
+      'image/png': ['.png'],
       'image/webp': ['.webp'],
       'application/pdf': ['.pdf'],
       'application/vnd.openxmlformats-officedocument.wordprocessingml.document': ['.docx']
@@ -344,9 +421,31 @@ export default function UploadPage() {
 
   // ── compression ───────────────────────────────────────────────────────────
 
-  const compressAndStore = async (imageUrl: string, area?: CropArea | null): Promise<string | null> => {
+  const compressAndStore = async (imageUrl: string, area?: CropArea | null, originalFile?: File): Promise<string | null> => {
     setIsCompressing(true);
     try {
+      const compressionOptions = {
+        maxSizeMB: 0.5,
+        maxWidthOrHeight: 1600,
+        useWebWorker: true,
+      };
+
+      if (!area && originalFile) {
+        try {
+          const compressed = await imageCompression(originalFile, compressionOptions);
+          return await new Promise<string | null>((resolve) => {
+            const reader = new FileReader();
+            reader.readAsDataURL(compressed);
+            reader.onloadend = () => {
+              const b64 = reader.result as string;
+              resolve(b64.length > 4_500_000 ? null : b64);
+            };
+          });
+        } catch (err) {
+          console.error("Direct compression failed", err);
+        }
+      }
+
       const image = new Image();
       image.src = imageUrl;
       await new Promise(resolve => { image.onload = resolve; });
@@ -369,17 +468,12 @@ export default function UploadPage() {
         canvas.toBlob(async blob => {
           if (!blob) { resolve(null); return; }
           try {
-            const compressed = await imageCompression(blob as File, {
-              maxSizeMB: 0.5,
-              maxWidthOrHeight: 1600,
-              useWebWorker: true,
-            });
+            const compressed = await imageCompression(blob as File, compressionOptions);
             const reader = new FileReader();
             reader.readAsDataURL(compressed);
             reader.onloadend = () => {
               const b64 = reader.result as string;
-              if (b64.length > 4_500_000) { resolve(null); return; }
-              resolve(b64);
+              resolve(b64.length > 4_500_000 ? null : b64);
             };
           } catch { reject(new Error('Compression failed')); }
         }, 'image/jpeg', 0.95);
@@ -392,7 +486,7 @@ export default function UploadPage() {
   const handleConfirmCrop = async () => {
     const img = images[activeIdx];
     if (!img) return;
-    const result = await compressAndStore(img.previewUrl, img.croppedArea);
+    const result = await compressAndStore(img.previewUrl, img.croppedArea, img.file);
     if (!result) { setError(t('upload.errors.compressionError')); return; }
     updateImage(activeIdx, { compressedBase64: result, isCropping: false });
     // Auto-advance to next unprocessed image
@@ -403,7 +497,7 @@ export default function UploadPage() {
   const handleSkipCrop = async () => {
     const img = images[activeIdx];
     if (!img) return;
-    const result = await compressAndStore(img.previewUrl, null);
+    const result = await compressAndStore(img.previewUrl, null, img.file);
     if (!result) { setError(t('upload.errors.compressionError')); return; }
     updateImage(activeIdx, { compressedBase64: result, isCropping: false });
     const nextUnprocessed = images.findIndex((im, i) => i > activeIdx && !im.compressedBase64);
@@ -456,6 +550,7 @@ export default function UploadPage() {
         }
 
         sessionStorage.setItem('currentSessionId', sessionData.id);
+        sessionStorage.removeItem('omninauka_upload_recovery');
         navigate('/app/analysis');
       } catch (err: any) {
         console.error('Document upload error:', err);
@@ -533,6 +628,7 @@ export default function UploadPage() {
       }
 
       sessionStorage.setItem('currentSessionId', sessionData.id);
+      sessionStorage.removeItem('omninauka_upload_recovery');
       navigate('/app/analysis');
 
     } catch (err: any) {
@@ -579,9 +675,9 @@ export default function UploadPage() {
       {/* Loading state for document extraction */}
       {isExtractingText && (
         <div className="omni-card p-12 flex flex-col items-center justify-center text-center">
-           <Loader2 className="w-10 h-10 text-[var(--omni-accent)] animate-spin mb-4" />
-           <h3 className="font-medium text-lg text-[var(--omni-text)] mb-2">{t('upload.states.extractingDoc')}</h3>
-           <p className="text-sm text-[var(--omni-text-muted)]">{t('upload.states.justAMoment')}</p>
+          <Loader2 className="w-10 h-10 text-[var(--omni-accent)] animate-spin mb-4" />
+          <h3 className="font-medium text-lg text-[var(--omni-text)] mb-2">{t('upload.states.extractingDoc')}</h3>
+          <p className="text-sm text-[var(--omni-text-muted)]">{t('upload.states.justAMoment')}</p>
         </div>
       )}
 
@@ -594,6 +690,7 @@ export default function UploadPage() {
               {t('upload.states.selectedDoc')}
             </h3>
             <button
+              type="button"
               onClick={() => setDocumentFile(null)}
               disabled={isAnalyzing}
               className="p-2 text-[var(--omni-text-muted)] hover:text-red-500 transition-colors disabled:opacity-50"
@@ -601,7 +698,7 @@ export default function UploadPage() {
               <Trash2 className="w-5 h-5" />
             </button>
           </div>
-          
+
           <div className="p-4 bg-gray-50 rounded-xl border border-gray-200 mb-6 flex items-center gap-4">
             <div className="w-12 h-12 bg-white rounded-lg shadow-sm border border-gray-100 flex items-center justify-center flex-shrink-0">
               <FileText className="w-6 h-6 text-indigo-500" />
@@ -613,6 +710,7 @@ export default function UploadPage() {
           </div>
 
           <button
+            type="button"
             onClick={handleAnalyze}
             disabled={isAnalyzing}
             className="w-full omni-btn-primary disabled:opacity-50"
@@ -638,6 +736,7 @@ export default function UploadPage() {
           {/* Camera — PRIMARY on mobile (rendered last in DOM but shown first via col-reverse) */}
           <div>
             <button
+              type="button"
               onClick={() => cameraInputRef.current?.click()}
               className="w-full omni-btn-primary flex items-center justify-center gap-3 py-5 text-lg rounded-2xl shadow-lg active:scale-[0.98] transition-all"
             >
@@ -664,11 +763,10 @@ export default function UploadPage() {
           {/* Drop zone — PRIMARY on desktop, SECONDARY on mobile */}
           <div
             {...getRootProps()}
-            className={`border-2 border-dashed rounded-2xl p-8 lg:p-12 text-center cursor-pointer transition-all ${
-              isDragActive
-                ? 'border-[var(--omni-accent)] bg-[var(--omni-accent)]/5'
-                : 'border-gray-300 hover:border-gray-400'
-            }`}
+            className={`border-2 border-dashed rounded-2xl p-8 lg:p-12 text-center cursor-pointer transition-all ${isDragActive
+              ? 'border-[var(--omni-accent)] bg-[var(--omni-accent)]/5'
+              : 'border-gray-300 hover:border-gray-400'
+              }`}
           >
             <input {...getInputProps()} />
             <div className="w-14 h-14 bg-[var(--omni-lavender)] rounded-2xl flex items-center justify-center mx-auto mb-4">
@@ -742,6 +840,7 @@ export default function UploadPage() {
                   {t('upload.states.previewIndex', { index: activeIdx + 1 })}
                 </h3>
                 <button
+                  type="button"
                   onClick={() => removeImage(activeIdx)}
                   disabled={isAnalyzing}
                   className="p-2 text-[var(--omni-text-muted)] hover:text-red-500 transition-colors disabled:opacity-50"
@@ -772,6 +871,7 @@ export default function UploadPage() {
                 </p>
               )}
               <button
+                type="button"
                 onClick={handleAnalyze}
                 disabled={isAnalyzing || !allReady}
                 className="w-full omni-btn-primary disabled:opacity-50"
@@ -811,7 +911,7 @@ export default function UploadPage() {
           </li>
         </ul>
       </div>
-      
+
       {/* Safety/Privacy Notice */}
       <div className="omni-card p-4 lg:p-6 bg-blue-50/50 border-blue-100/50">
         <div className="flex gap-4">
