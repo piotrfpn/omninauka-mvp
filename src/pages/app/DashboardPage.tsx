@@ -326,7 +326,7 @@ export default function DashboardPage() {
                           <button
                             onClick={e => handleDeleteSession(e, session.id)}
                             disabled={deletingId === session.id}
-                            className="p-2.5 rounded-xl text-red-400 hover:text-red-600 hover:bg-red-50 active:scale-95 transition-all disabled:opacity-50 opacity-0 group-hover:opacity-100"
+                            className="p-2.5 rounded-xl text-red-400 hover:text-red-600 hover:bg-red-50 active:scale-95 transition-all disabled:opacity-50 opacity-100 md:opacity-0 md:group-hover:opacity-100"
                             title={t('dashboard.deleteSession', 'Usuń sesję')}
                           >
                             {deletingId === session.id

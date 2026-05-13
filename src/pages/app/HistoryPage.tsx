@@ -792,7 +792,7 @@ export default function HistoryPage() {
               className="omni-card p-4 flex flex-col items-center gap-3 group/folder hover:border-indigo-300 dark:hover:border-indigo-800 transition-all text-center relative"
               onClick={() => setCurrentFolderId(folder.id)}
             >
-              <div className="absolute top-2 right-2 flex items-center gap-1 opacity-0 group-hover/folder:opacity-100 transition-opacity">
+              <div className="absolute top-2 right-2 flex items-center gap-1 opacity-100 md:opacity-0 md:group-hover/folder:opacity-100 transition-opacity">
                  <button 
                    onClick={e => { e.stopPropagation(); setConfirmDeleteFolderId(folder.id); }}
                    className="p-1.5 rounded-lg text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors"
