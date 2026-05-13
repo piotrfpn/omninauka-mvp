@@ -48,7 +48,11 @@ const SuspenseFallback = () => (
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, isLoading, isProfileLoading, user } = useAuth();
   
-  const isDebug = new URLSearchParams(window.location.search).get('uploadDebug') === '1';
+  const DEBUG_ALLOWED_EMAILS = ['bojki@tlen.pl'];
+  const hasParam = new URLSearchParams(window.location.search).get('uploadDebug') === '1';
+  const isAllowed = !!user?.email && DEBUG_ALLOWED_EMAILS.includes(user.email.toLowerCase());
+  const isDebug = import.meta.env.DEV || (hasParam && isAllowed);
+
   if (isDebug) {
     console.log('[app-debug] ProtectedRoute check', { 
       path: window.location.pathname, 
@@ -79,11 +83,18 @@ function AppRoutes() {
     user?.ageBand === '13_15' && 
     user?.accountStatus === 'pending_parent_consent';
 
-  console.log('[app-debug] rendering AppRoutes', {
-    pathname: window.location.pathname,
-    isAuthenticated: !!user,
-    isProfileLoading
-  });
+  const DEBUG_ALLOWED_EMAILS = ['bojki@tlen.pl'];
+  const hasParam = new URLSearchParams(window.location.search).get('uploadDebug') === '1';
+  const isAllowed = !!user?.email && DEBUG_ALLOWED_EMAILS.includes(user.email.toLowerCase());
+  const isDebug = import.meta.env.DEV || (hasParam && isAllowed);
+
+  if (isDebug) {
+    console.log('[app-debug] rendering AppRoutes', {
+      pathname: window.location.pathname,
+      isAuthenticated: !!user,
+      isProfileLoading
+    });
+  }
 
   return (
     <Routes>

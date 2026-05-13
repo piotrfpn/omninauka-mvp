@@ -26,7 +26,11 @@ export function ConsentGuard({ children, requireApproval = true }: ConsentGuardP
   const { user, isLoading, isProfileLoading, refreshUser, logout } = useAuth();
   const { t } = useTranslation('common');
 
-  const debugEnabled = new URLSearchParams(window.location.search).get('uploadDebug') === '1';
+  const DEBUG_ALLOWED_EMAILS = ['bojki@tlen.pl'];
+  const hasParam = new URLSearchParams(window.location.search).get('uploadDebug') === '1';
+  const isAllowed = !!user?.email && DEBUG_ALLOWED_EMAILS.includes(user.email.toLowerCase());
+  const debugEnabled = import.meta.env.DEV || (hasParam && isAllowed);
+
   const consentDebug = (msg: string, data?: any) => {
     if (debugEnabled) console.log('[consent-debug]', msg, data);
   };

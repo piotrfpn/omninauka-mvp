@@ -48,7 +48,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   // Debug helper
   const authDebug = (msg: string, data?: any) => {
-    if (new URLSearchParams(window.location.search).get('uploadDebug') === '1') {
+    const DEBUG_ALLOWED_EMAILS = ['bojki@tlen.pl'];
+    const hasParam = new URLSearchParams(window.location.search).get('uploadDebug') === '1';
+    const isAllowed = !!state.user?.email && DEBUG_ALLOWED_EMAILS.includes(state.user.email.toLowerCase());
+    
+    if (import.meta.env.DEV || (hasParam && isAllowed)) {
       console.log('[auth-debug]', msg, data);
     }
   };

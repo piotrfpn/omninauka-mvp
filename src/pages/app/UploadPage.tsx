@@ -220,7 +220,11 @@ export default function UploadPage() {
   const [hasRestoredUploadRecovery, setHasRestoredUploadRecovery] = useState(false);
 
   // ── Debug Diagnostics ──────────────────────────────────────────────────────
-  const isUploadDebugEnabled = new URLSearchParams(window.location.search).get('uploadDebug') === '1';
+  const hasUploadDebugParam = new URLSearchParams(window.location.search).get('uploadDebug') === '1';
+  const DEBUG_ALLOWED_EMAILS = ['bojki@tlen.pl'];
+  const isAllowedUser = !!user?.email && DEBUG_ALLOWED_EMAILS.includes(user.email.toLowerCase());
+  const isUploadDebugEnabled = import.meta.env.DEV || (hasUploadDebugParam && isAllowedUser);
+  
   const [uploadDebugEvents, setUploadDebugEvents] = useState<string[]>([]);
 
   // ── Mobile Stability Constants ───────────────────────────────────────────
