@@ -31,6 +31,18 @@ export class ErrorBoundary extends Component<Props, State> {
 
   public render() {
     if (this.state.hasError) {
+      const isDynamicImportError = this.state.error?.message?.includes('dynamically imported module') ||
+        this.state.error?.message?.includes('Failed to fetch dynamically imported module') ||
+        this.state.error?.message?.includes('error loading dynamically imported module') ||
+        this.state.error?.message?.includes('Importing a module script failed');
+
+      const errorTitle = isDynamicImportError
+        ? "Aplikacja została zaktualizowana"
+        : "Coś poszło nie tak";
+      const errorDesc = isDynamicImportError
+        ? "Aplikacja została zaktualizowana. Odśwież stronę, aby pobrać najnowszą wersję."
+        : "Niestety wystąpił nieoczekiwany błąd aplikacji. Przepraszamy za utrudnienia.";
+
       return (
         <div className="min-h-screen flex items-center justify-center bg-[var(--omni-bg)] p-4">
           <div className="max-w-md w-full bg-white rounded-2xl p-8 shadow-xl text-center">
@@ -38,17 +50,17 @@ export class ErrorBoundary extends Component<Props, State> {
               <AlertCircle className="w-8 h-8 text-red-500" />
             </div>
             <h2 className="omni-heading-3 text-slate-900 mb-3">
-              Coś poszło nie tak
+              {errorTitle}
             </h2>
             <p className="text-slate-600 mb-6 text-sm">
-              Niestety wystąpił nieoczekiwany błąd aplikacji. Przepraszamy za utrudnienia.
+              {errorDesc}
             </p>
             {this.state.error && (
               <div className="p-3 bg-red-50 text-red-700 rounded-lg text-xs text-left overflow-auto mb-6 max-h-32">
                 <code>{this.state.error.message}</code>
               </div>
             )}
-            <button 
+            <button
               onClick={this.handleReload}
               className="w-full omni-btn-primary flex items-center justify-center gap-2"
             >

@@ -13,6 +13,23 @@ if (savedTheme === 'dark' || (!savedTheme && window.matchMedia('(prefers-color-s
   document.documentElement.classList.remove('dark');
 }
 
+// Vite Dynamic Import Reload Recovery (Hotfix 23B.2)
+window.addEventListener("vite:preloadError", (event) => {
+  event.preventDefault();
+  const key = "omninauka_vite_preload_reloaded";
+  if (sessionStorage.getItem(key) === "1") {
+    return;
+  }
+  sessionStorage.setItem(key, "1");
+  window.location.reload();
+});
+
+// Clear the flag after successful load
+const preloadKey = "omninauka_vite_preload_reloaded";
+if (sessionStorage.getItem(preloadKey) === "1") {
+  setTimeout(() => sessionStorage.removeItem(preloadKey), 5000);
+}
+
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <BrowserRouter>
