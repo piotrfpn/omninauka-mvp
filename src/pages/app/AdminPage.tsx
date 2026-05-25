@@ -3,7 +3,7 @@ import { useAuth } from '../../lib/auth-context';
 import { supabase } from '../../lib/supabase';
 import {
   Search, Shield, ShieldOff, AlertTriangle, Loader2,
-  User, Calendar, Crown, FileText, Activity, History
+  User, Calendar, Crown, FileText, Activity, History, Users
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -44,10 +44,36 @@ interface AdminUsageEvent {
   details: unknown;
 }
 
+interface AdminChild {
+  id: string;
+  status: string;
+  child_user_id: string | null;
+  child_email: string;
+  display_name: string;
+  created_at: string;
+  plan: string;
+  account_status: string;
+}
+
+interface AdminConsent {
+  id: string;
+  consent_status: string;
+  child_user_id: string;
+  parent_email: string;
+  last_email_sent_at: string | null;
+  email_send_count: number | null;
+  email_last_status: string | null;
+  email_last_error: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
 interface AdminData {
   user: AdminUserProfile | null;
   auditLogs: AdminPlanAction[];
   usageEvents: AdminUsageEvent[];
+  familyChildren: AdminChild[];
+  parentalConsents: AdminConsent[];
 }
 
 type ActionType = 'activate_premium_30' | 'extend_premium_30' | 'activate_family_30' | 'set_free';
@@ -156,7 +182,9 @@ export default function AdminPage() {
         setAdminData({
           user: result.user as AdminUserProfile,
           auditLogs: result.auditLogs as AdminPlanAction[] ?? [],
-          usageEvents: result.usageEvents as AdminUsageEvent[] ?? []
+          usageEvents: result.usageEvents as AdminUsageEvent[] ?? [],
+          familyChildren: result.familyChildren as AdminChild[] ?? [],
+          parentalConsents: result.parentalConsents as AdminConsent[] ?? []
         });
         setNotFound(false);
       } else {
@@ -186,9 +214,12 @@ export default function AdminPage() {
     }
 
     if (action === 'set_free') {
-      const confirmed = window.confirm(
-        'Ta akcja ustawi konto użytkownika jako Free. Kontynuować?'
-      );
+      const isFamilyDowngrade = adminData.user.plan === 'family';
+      const confirmMessage = isFamilyDowngrade
+        ? 'Ta akcja zakończy dostęp Family dla rodzica. Dzieci pozostaną powiązane z rodzicem i zachowają zgodę rodzicielską, ale ich effective plan spadnie do Free. Historia nauki i konta dzieci nie zostaną usunięte. Kontynuować?'
+        : 'Ta akcja ustawi konto użytkownika jako Free. Kontynuować?';
+
+      const confirmed = window.confirm(confirmMessage);
       if (!confirmed) return;
     }
 
@@ -210,7 +241,9 @@ export default function AdminPage() {
           setAdminData({
             user: refreshResult.user as AdminUserProfile,
             auditLogs: refreshResult.auditLogs as AdminPlanAction[] ?? [],
-            usageEvents: refreshResult.usageEvents as AdminUsageEvent[] ?? []
+            usageEvents: refreshResult.usageEvents as AdminUsageEvent[] ?? [],
+            familyChildren: refreshResult.familyChildren as AdminChild[] ?? [],
+            parentalConsents: refreshResult.parentalConsents as AdminConsent[] ?? []
           });
         } else {
            setAdminData(prev => prev ? { ...prev, user: result.user as AdminUserProfile } : null);
@@ -422,18 +455,14 @@ export default function AdminPage() {
                     </Button>
 
                     {isFamily ? (
-                      <div className="col-span-1" title="Family plan downgrade requires cascade cleanup. (Sprint 24B)">
-                        <Button
-                          variant="destructive"
-                          disabled={true}
-                          className="w-full"
-                        >
-                          Ustaw Free
-                        </Button>
-                        <p className="text-[10px] text-muted-foreground mt-1 text-center leading-tight">
-                          Zablokowane dla Family (Sprint 24B)
-                        </p>
-                      </div>
+                      <Button
+                        variant="destructive"
+                        onClick={() => handleAction('set_free', 'Ustaw Free')}
+                        disabled={isUpdatingPlan || reason.trim().length < 3}
+                        className="w-full"
+                      >
+                        Ustaw Free
+                      </Button>
                     ) : (
                       <Button
                         variant="destructive"
@@ -448,6 +477,114 @@ export default function AdminPage() {
               </Card>
 
             </div>
+
+            {/* Family & Consents Section */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-lg">
+                  <Users className="w-5 h-5" />
+                  Family i zgody rodzicielskie
+                </CardTitle>
+                <CardDescription>
+                  Podgląd relacji parent-child oraz statusów zgód na przetwarzanie danych.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                {adminData.familyChildren.length === 0 && adminData.parentalConsents.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">Brak powiązanych dzieci lub zgód rodzicielskich dla tego użytkownika.</p>
+                ) : (
+                  <div className="space-y-6">
+                    {/* Sekcja Dzieci */}
+                    {adminData.familyChildren.length > 0 && (
+                      <div>
+                        <h4 className="text-sm font-semibold mb-3 flex items-center gap-2">
+                          Dzieci powiązane z tym kontem <Badge variant="outline">{adminData.familyChildren.length}</Badge>
+                        </h4>
+                        <div className="overflow-x-auto">
+                          <Table>
+                            <TableHeader>
+                              <TableRow>
+                                <TableHead>Imię</TableHead>
+                                <TableHead>E-mail</TableHead>
+                                <TableHead>Status Konta</TableHead>
+                                <TableHead>Relacja</TableHead>
+                                <TableHead>Plan</TableHead>
+                              </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                              {adminData.familyChildren.map((child) => (
+                                <TableRow key={child.id}>
+                                  <TableCell className="text-xs font-medium">{child.display_name}</TableCell>
+                                  <TableCell className="text-xs">{child.child_email}</TableCell>
+                                  <TableCell>
+                                    <Badge variant="outline" className="text-[10px] whitespace-nowrap">
+                                      {child.account_status}
+                                    </Badge>
+                                  </TableCell>
+                                  <TableCell>
+                                    <Badge variant={child.status === 'active' || child.status === 'linked' ? 'default' : 'secondary'} className="text-[10px]">
+                                      {child.status}
+                                    </Badge>
+                                  </TableCell>
+                                  <TableCell>
+                                    <Badge variant="outline" className="text-[10px]">
+                                      {child.plan}
+                                    </Badge>
+                                  </TableCell>
+                                </TableRow>
+                              ))}
+                            </TableBody>
+                          </Table>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Sekcja Zgód */}
+                    {adminData.parentalConsents.length > 0 && (
+                      <div>
+                        <h4 className="text-sm font-semibold mb-3 flex items-center gap-2">
+                          Zgody na przetwarzanie danych (RODO) <Badge variant="outline">{adminData.parentalConsents.length}</Badge>
+                        </h4>
+                        <div className="overflow-x-auto">
+                          <Table>
+                            <TableHeader>
+                              <TableRow>
+                                <TableHead>Status Zgody</TableHead>
+                                <TableHead>E-mail Rodzica</TableHead>
+                                <TableHead>Wysłane e-maile</TableHead>
+                                <TableHead>Ostatnia wysyłka</TableHead>
+                                <TableHead>Status E-mail</TableHead>
+                              </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                              {adminData.parentalConsents.map((consent) => (
+                                <TableRow key={consent.id}>
+                                  <TableCell>
+                                    <Badge variant={consent.consent_status === 'approved' ? 'default' : 'secondary'} className={consent.consent_status === 'approved' ? 'bg-green-600 hover:bg-green-700 text-white' : 'text-[10px]'}>
+                                      {consent.consent_status}
+                                    </Badge>
+                                  </TableCell>
+                                  <TableCell className="text-xs">{consent.parent_email}</TableCell>
+                                  <TableCell className="text-xs text-center">{consent.email_send_count || 0}</TableCell>
+                                  <TableCell className="text-xs text-muted-foreground">{formatDate(consent.last_email_sent_at)}</TableCell>
+                                  <TableCell>
+                                    {consent.email_last_status && (
+                                      <Badge variant="outline" className={`text-[10px] ${consent.email_last_status === 'success' ? 'text-green-600 border-green-200' : 'text-red-600 border-red-200'}`}>
+                                        {consent.email_last_status}
+                                      </Badge>
+                                    )}
+                                  </TableCell>
+                                </TableRow>
+                              ))}
+                            </TableBody>
+                          </Table>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {/* Audit Logs Card */}

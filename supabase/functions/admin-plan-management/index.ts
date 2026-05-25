@@ -171,10 +171,42 @@ serve(async (req) => {
         .order('created_at', { ascending: false })
         .limit(10);
 
+      // Fetch family children
+      const { data: familyChildrenRaw } = await adminClient
+        .from('child_profiles')
+        .select('id, status, child_user_id, child_email, display_name, created_at')
+        .eq('parent_user_id', userProfile.id)
+        .limit(10);
+
+      const childUserIds = familyChildrenRaw?.map(c => c.child_user_id).filter(Boolean) || [];
+      let childrenProfiles = [];
+      if (childUserIds.length > 0) {
+        const { data } = await adminClient.from('profiles').select('id, plan, account_status').in('id', childUserIds);
+        if (data) childrenProfiles = data;
+      }
+
+      const safeFamilyChildren = familyChildrenRaw?.map(child => {
+        const prof = childrenProfiles.find(p => p.id === child.child_user_id);
+        return {
+          ...child,
+          plan: prof?.plan || 'free',
+          account_status: prof?.account_status || 'unknown'
+        };
+      }) || [];
+
+      // Fetch parental consents
+      const { data: parentalConsents } = await adminClient
+        .from('parental_consents')
+        .select('id, consent_status, child_user_id, parent_email, last_email_sent_at, email_send_count, email_last_status, email_last_error, created_at, updated_at')
+        .or(`parent_email.eq.${normalizedEmail},child_user_id.eq.${userProfile.id}`)
+        .limit(10);
+
       return jsonResponse({
         user: userProfile,
         auditLogs: auditLogs ?? [],
-        usageEvents: usageEvents ?? []
+        usageEvents: usageEvents ?? [],
+        familyChildren: safeFamilyChildren,
+        parentalConsents: parentalConsents ?? []
       });
     }
 
