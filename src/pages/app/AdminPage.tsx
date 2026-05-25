@@ -264,6 +264,51 @@ export default function AdminPage() {
     }
   };
 
+  const handleResendConsent = async (consentId: string) => {
+    if (!adminData?.user) return;
+
+    const trimmedReason = reason.trim();
+    if (trimmedReason.length < 3) {
+      toast.error('Powód zmiany jest wymagany (minimum 3 znaki).');
+      return;
+    }
+
+    setIsUpdatingPlan(true);
+
+    try {
+      const result = await callAdminFunction({
+        action: 'resend_parent_consent_email',
+        consentId,
+        reason: trimmedReason,
+      });
+
+      if (result.success) {
+        toast.success(`✓ E-mail zgody został wysłany ponownie.`);
+
+        // Refresh data
+        const refreshResult = await callAdminFunction({ action: 'search_user', email: adminData.user.email });
+        if (refreshResult.user) {
+          setAdminData({
+            user: refreshResult.user as AdminUserProfile,
+            auditLogs: refreshResult.auditLogs as AdminPlanAction[] ?? [],
+            usageEvents: refreshResult.usageEvents as AdminUsageEvent[] ?? [],
+            familyChildren: refreshResult.familyChildren as AdminChild[] ?? [],
+            parentalConsents: refreshResult.parentalConsents as AdminConsent[] ?? []
+          });
+        }
+        setReason('');
+      }
+    } catch (err: unknown) {
+      if (err instanceof Error && err.message === 'forbidden') {
+        toast.error('Nie masz uprawnień administratora.');
+      } else {
+        toast.error(err instanceof Error ? err.message : 'Błąd podczas wysyłania zgody.');
+      }
+    } finally {
+      setIsUpdatingPlan(false);
+    }
+  };
+
   // ── Render ─────────────────────────────────────────────────────────────────
 
   return (
@@ -554,6 +599,7 @@ export default function AdminPage() {
                                 <TableHead>Wysłane e-maile</TableHead>
                                 <TableHead>Ostatnia wysyłka</TableHead>
                                 <TableHead>Status E-mail</TableHead>
+                                <TableHead className="text-right">Akcje</TableHead>
                               </TableRow>
                             </TableHeader>
                             <TableBody>
@@ -574,11 +620,26 @@ export default function AdminPage() {
                                       </Badge>
                                     )}
                                   </TableCell>
+                                  <TableCell className="text-right">
+                                    {consent.consent_status === 'pending' && (
+                                      <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() => handleResendConsent(consent.id)}
+                                        disabled={isUpdatingPlan || reason.trim().length < 3}
+                                      >
+                                        Wyślij ponownie
+                                      </Button>
+                                    )}
+                                  </TableCell>
                                 </TableRow>
                               ))}
                             </TableBody>
                           </Table>
                         </div>
+                        <p className="text-xs text-muted-foreground mt-3">
+                          Link zgody zostanie wysłany ponownie na e-mail rodzica. Token nie jest pokazywany w panelu administratora. Wymaga podania powodu w formularzu powyżej.
+                        </p>
                       </div>
                     )}
                   </div>

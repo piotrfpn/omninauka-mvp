@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { generateConsentEmailHtml } from "../_shared/consent-email-template.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -362,6 +363,115 @@ serve(async (req) => {
       });
 
       return jsonResponse({ success: true, user: updatedUser });
+    }
+
+    if (action === 'resend_parent_consent_email') {
+      const { consentId } = body;
+      if (!consentId || typeof consentId !== 'string') {
+        return jsonResponse({ error: 'Missing consentId parameter' }, 400);
+      }
+
+      const { data: consent, error: consentErr } = await adminClient
+        .from('parental_consents')
+        .select('*')
+        .eq('id', consentId)
+        .maybeSingle();
+
+      if (consentErr || !consent) {
+        return jsonResponse({ error: 'Zgoda nie znaleziona' }, 404);
+      }
+
+      if (consent.consent_status !== 'pending') {
+        return jsonResponse({ error: `Nie można wysłać ponownie dla statusu: ${consent.consent_status}` }, 400);
+      }
+
+      if (consent.last_email_sent_at) {
+        const lastSent = new Date(consent.last_email_sent_at).getTime();
+        const diffSecs = (Date.now() - lastSent) / 1000;
+        if (diffSecs < 900) {
+          return jsonResponse({ error: `Musisz odczekać jeszcze ${Math.ceil((900 - diffSecs) / 60)} minut przed kolejną wysyłką.` }, 429);
+        }
+      }
+
+      const { data: childProfile } = await adminClient
+        .from('profiles')
+        .select('name')
+        .eq('id', consent.child_user_id)
+        .single();
+      const profileName = childProfile?.name || 'Uczeń';
+
+      const resendApiKey = Deno.env.get('RESEND_API_KEY');
+      const resendFromEmail = Deno.env.get('RESEND_FROM_EMAIL');
+      const appBaseUrl = Deno.env.get('APP_BASE_URL');
+      if (!resendApiKey || !resendFromEmail || !appBaseUrl) {
+        return jsonResponse({ error: 'Błąd konfiguracji e-mail na serwerze.' }, 500);
+      }
+
+      const rawToken = Array.from(crypto.getRandomValues(new Uint8Array(36)))
+        .map(b => b.toString(16).padStart(2, '0'))
+        .join('');
+
+      const encoder = new TextEncoder();
+      const data = encoder.encode(rawToken);
+      const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+      const hashArray = Array.from(new Uint8Array(hashBuffer));
+      const newTokenHash = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+
+      const expiresAt = new Date();
+      expiresAt.setHours(expiresAt.getHours() + 48);
+
+      const { error: updateErr } = await adminClient
+        .from('parental_consents')
+        .update({
+          token_hash: newTokenHash,
+          token_expires_at: expiresAt.toISOString(),
+          last_email_sent_at: new Date().toISOString(),
+          email_send_count: (consent.email_send_count || 0) + 1,
+          email_last_status: 'sending',
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', consentId);
+
+      if (updateErr) {
+        return jsonResponse({ error: 'Nie udało się zaktualizować zgody' }, 500);
+      }
+
+      const consentLink = `${appBaseUrl}/consent/${rawToken}`;
+
+      const resendRes = await fetch('https://api.resend.com/emails', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${resendApiKey}`,
+        },
+        body: JSON.stringify({
+          from: resendFromEmail,
+          to: consent.parent_email,
+          subject: 'Zgoda na korzystanie z OmniNauka przez dziecko',
+          html: generateConsentEmailHtml(profileName, consentLink, appBaseUrl),
+        }),
+      });
+
+      const resendData = await resendRes.json().catch(() => ({}));
+
+      if (!resendRes.ok) {
+        await adminClient
+          .from('parental_consents')
+          .update({
+            email_last_status: 'error',
+            email_last_error: JSON.stringify({ status: resendRes.status, ...resendData })
+          })
+          .eq('id', consentId);
+
+        return jsonResponse({ error: 'Błąd dostawcy wysyłki e-mail.' }, 500);
+      }
+
+      await adminClient
+        .from('parental_consents')
+        .update({ email_last_status: 'success' })
+        .eq('id', consentId);
+
+      return jsonResponse({ success: true });
     }
 
     // Unknown action
