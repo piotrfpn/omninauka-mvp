@@ -37,10 +37,10 @@ export class ErrorBoundary extends Component<Props, State> {
             <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-6">
               <AlertCircle className="w-8 h-8 text-red-500" />
             </div>
-            <h2 className="omni-heading-3 text-[var(--omni-text)] mb-3">
+            <h2 className="omni-heading-3 text-slate-900 mb-3">
               Coś poszło nie tak
             </h2>
-            <p className="text-[var(--omni-text-muted)] mb-6 text-sm">
+            <p className="text-slate-600 mb-6 text-sm">
               Niestety wystąpił nieoczekiwany błąd aplikacji. Przepraszamy za utrudnienia.
             </p>
             {this.state.error && (

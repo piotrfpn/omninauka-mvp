@@ -25,21 +25,34 @@ export default function RegisterPage() {
 
   // Redirect if already logged in
   useEffect(() => {
+    let timeoutId: number;
     if (isAuthenticated && user) {
       // under_13 flow manages its own redirect after link check
       if (under13LinkResult !== null) return;
-      if (user.userRole === 'parent' || user.userRole === 'guardian') {
-        navigate('/app/parent');
-      } else {
-        navigate('/app/dashboard');
-      }
+      
+      // Zabezpieczenie przed race condition / DOMException removeChild na Chrome Android
+      timeoutId = window.setTimeout(() => {
+        if (user.userRole === 'parent' || user.userRole === 'guardian') {
+          navigate('/app/parent', { replace: true });
+        } else {
+          navigate('/app/dashboard', { replace: true });
+        }
+      }, 75);
     }
+    return () => {
+      if (timeoutId) window.clearTimeout(timeoutId);
+    };
   }, [isAuthenticated, user, navigate, under13LinkResult]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     setIsLoading(true);
+
+    // Stabilizacja Chrome Password Manager przed rejestracją
+    if (document.activeElement instanceof HTMLElement) {
+      document.activeElement.blur();
+    }
 
     if (!userRole) {
       setError(t('auth.register.error.noRole'));
@@ -173,7 +186,10 @@ export default function RegisterPage() {
               <div className="relative">
                 <User className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
                 <input
+                  id="name"
+                  name="name"
                   type="text"
+                  autoComplete="name"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   placeholder={t('auth.register.namePlaceholder')}
@@ -239,7 +255,11 @@ export default function RegisterPage() {
               <div className="relative">
                 <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
                 <input
+                  id="email"
+                  name="email"
                   type="email"
+                  inputMode="email"
+                  autoComplete="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="twoj@email.pl"
@@ -256,7 +276,10 @@ export default function RegisterPage() {
               <div className="relative">
                 <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
                 <input
+                  id="password"
+                  name="password"
                   type={showPassword ? 'text' : 'password'}
+                  autoComplete="new-password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="••••••••"
