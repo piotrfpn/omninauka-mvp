@@ -12,11 +12,12 @@ const jsonResponse = (data: unknown, status = 200) =>
     headers: { ...corsHeaders, 'Content-Type': 'application/json' },
   });
 
-/** Sanitize optional reason string: trim, max 500 chars, empty → null. */
+/** Sanitize optional reason string: trim, max 500 chars. Return null if empty. */
 const sanitizeReason = (raw: unknown): string | null => {
   if (typeof raw !== 'string') return null;
-  const trimmed = raw.trim().substring(0, 500);
-  return trimmed.length > 0 ? trimmed : null;
+  const trimmed = raw.trim();
+  if (trimmed.length === 0) return null;
+  return trimmed.substring(0, 500);
 };
 
 serve(async (req) => {
@@ -139,18 +140,42 @@ serve(async (req) => {
         return jsonResponse({ error: 'Invalid email format' }, 400);
       }
 
-      const { data, error } = await adminClient
+      const { data: userProfile, error: userError } = await adminClient
         .from('profiles')
         .select('id, email, plan, plan_expires_at, plan_updated_at, created_at')
         .eq('email', normalizedEmail)
         .maybeSingle();
 
-      if (error) {
-        console.error('[admin-plan-management] search_user error:', error.message);
+      if (userError) {
+        console.error('[admin-plan-management] search_user error:', userError.message);
         return jsonResponse({ error: 'Database query error' }, 500);
       }
 
-      return jsonResponse({ user: data ?? null });
+      if (!userProfile) {
+        return jsonResponse({ user: null });
+      }
+
+      // Fetch audit logs safely using service role
+      const { data: auditLogs } = await adminClient
+        .from('admin_plan_actions')
+        .select('id, created_at, action_type, admin_email, target_email, old_plan, new_plan, reason')
+        .eq('target_user_id', userProfile.id)
+        .order('created_at', { ascending: false })
+        .limit(10);
+
+      // Fetch usage events safely using service role
+      const { data: usageEvents } = await adminClient
+        .from('usage_events')
+        .select('id, created_at, event_type, value, details')
+        .eq('user_id', userProfile.id)
+        .order('created_at', { ascending: false })
+        .limit(10);
+
+      return jsonResponse({
+        user: userProfile,
+        auditLogs: auditLogs ?? [],
+        usageEvents: usageEvents ?? []
+      });
     }
 
     // ── 8. Plan management actions (all require userId + optional reason) ───────
@@ -165,6 +190,9 @@ serve(async (req) => {
     }
 
     const sanitizedReason = sanitizeReason(body.reason);
+    if (!sanitizedReason || sanitizedReason.length < 3) {
+      return jsonResponse({ error: 'Powód zmiany jest wymagany (min. 3 znaki)' }, 400);
+    }
 
     console.log("Admin plan action requested", { action });
 

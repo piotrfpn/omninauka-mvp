@@ -165,11 +165,14 @@ function AppRoutes() {
   );
 }
 
+import { Toaster } from './components/ui/sonner';
+
 function App() {
   return (
     <ErrorBoundary>
       <AuthProvider>
         <AppRoutes />
+        <Toaster />
       </AuthProvider>
     </ErrorBoundary>
   );

@@ -1,10 +1,18 @@
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { useAuth } from '../../lib/auth-context';
 import { supabase } from '../../lib/supabase';
 import {
-  Search, Shield, ShieldOff, CheckCircle, AlertTriangle,
-  Loader2, User, Calendar, Crown, Users, FileText,
+  Search, Shield, ShieldOff, AlertTriangle, Loader2,
+  User, Calendar, Crown, FileText, Activity, History
 } from 'lucide-react';
+import { toast } from 'sonner';
+
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../components/ui/card';
+import { Button } from '../../components/ui/button';
+import { Input } from '../../components/ui/input';
+import { Textarea } from '../../components/ui/textarea';
+import { Badge } from '../../components/ui/badge';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../components/ui/table';
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
@@ -17,7 +25,32 @@ interface AdminUserProfile {
   created_at?: string | null;
 }
 
-type ActionStatus = 'idle' | 'loading' | 'success' | 'error';
+interface AdminPlanAction {
+  id: string;
+  created_at: string;
+  action_type: string;
+  admin_email: string;
+  target_email: string;
+  old_plan: string | null;
+  new_plan: string | null;
+  reason: string | null;
+}
+
+interface AdminUsageEvent {
+  id: string;
+  created_at: string;
+  event_type: string;
+  value: number;
+  details: unknown;
+}
+
+interface AdminData {
+  user: AdminUserProfile | null;
+  auditLogs: AdminPlanAction[];
+  usageEvents: AdminUsageEvent[];
+}
+
+type ActionType = 'activate_premium_30' | 'extend_premium_30' | 'activate_family_30' | 'set_free';
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
 
@@ -43,26 +76,15 @@ function getPlanLabel(plan: string): string {
   }
 }
 
-/** Returns true when a paid plan is expired (plan_expires_at in the past). */
 function isPlanExpired(plan: string, plan_expires_at: string | null): boolean {
   if (plan === 'free') return false;
   if (!plan_expires_at) return false;
   return new Date(plan_expires_at) <= new Date();
 }
 
-/** Effective plan: premium/family with past expiry → behaves as free. */
 function getEffectivePlanLabel(plan: string, plan_expires_at: string | null): string {
   if (isPlanExpired(plan, plan_expires_at)) return 'Darmowy (plan wygasł)';
   return getPlanLabel(plan);
-}
-
-function getPlanBadgeClass(plan: string, expired: boolean): string {
-  if (expired) return 'bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400';
-  switch (plan) {
-    case 'premium': return 'bg-indigo-100 text-indigo-800 dark:bg-indigo-900/40 dark:text-indigo-300';
-    case 'family':  return 'bg-violet-100 text-violet-800 dark:bg-violet-900/40 dark:text-violet-300';
-    default:        return 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300';
-  }
 }
 
 // ── Main Component ─────────────────────────────────────────────────────────────
@@ -71,21 +93,16 @@ export default function AdminPage() {
   const { user } = useAuth();
 
   // Search state
-  const [searchEmail, setSearchEmail]   = useState('');
-  const [searchStatus, setSearchStatus] = useState<ActionStatus>('idle');
-  const [searchError, setSearchError]   = useState<string | null>(null);
-  const [isForbidden, setIsForbidden]   = useState(false);
+  const [searchEmail, setSearchEmail] = useState('');
+  const [isSearching, setIsSearching] = useState(false);
+  const [isForbidden, setIsForbidden] = useState(false);
+  const [notFound, setNotFound] = useState(false);
 
-  // Found user state
-  const [foundUser, setFoundUser] = useState<AdminUserProfile | null>(null);
-  const [notFound, setNotFound]   = useState(false);
+  // Data state
+  const [adminData, setAdminData] = useState<AdminData | null>(null);
 
   // Action state
-  const [actionStatus, setActionStatus]   = useState<ActionStatus>('idle');
-  const [actionMessage, setActionMessage] = useState<string | null>(null);
-  const [actionError, setActionError]     = useState<string | null>(null);
-
-  // Reason field
+  const [isUpdatingPlan, setIsUpdatingPlan] = useState(false);
   const [reason, setReason] = useState('');
 
   // ── API call helper ────────────────────────────────────────────────────────
@@ -123,43 +140,50 @@ export default function AdminPage() {
     e.preventDefault();
     const email = searchEmail.trim().toLowerCase();
     if (!email || !email.includes('@')) {
-      setSearchError('Wpisz poprawny adres e-mail.');
+      toast.error('Wpisz poprawny adres e-mail.');
       return;
     }
 
-    setSearchStatus('loading');
-    setSearchError(null);
-    setFoundUser(null);
+    setIsSearching(true);
+    setAdminData(null);
     setNotFound(false);
     setIsForbidden(false);
-    setActionMessage(null);
-    setActionError(null);
     setReason('');
 
     try {
       const result = await callAdminFunction({ action: 'search_user', email });
       if (result.user) {
-        setFoundUser(result.user);
+        setAdminData({
+          user: result.user as AdminUserProfile,
+          auditLogs: result.auditLogs as AdminPlanAction[] ?? [],
+          usageEvents: result.usageEvents as AdminUsageEvent[] ?? []
+        });
         setNotFound(false);
       } else {
-        setFoundUser(null);
+        setAdminData(null);
         setNotFound(true);
       }
-      setSearchStatus('idle');
-    } catch (err: any) {
-      if (err.message === 'forbidden') {
-        setSearchStatus('idle');
+    } catch (err: unknown) {
+      if (err instanceof Error && err.message === 'forbidden') {
+        // Handled by state
       } else {
-        setSearchError(err.message || 'Błąd wyszukiwania.');
-        setSearchStatus('error');
+        toast.error(err instanceof Error ? err.message : 'Błąd wyszukiwania.');
       }
+    } finally {
+      setIsSearching(false);
     }
   };
 
   // ── Action handler ─────────────────────────────────────────────────────────
 
-  const handleAction = async (action: string, label: string) => {
-    if (!foundUser) return;
+  const handleAction = async (action: ActionType, label: string) => {
+    if (!adminData?.user) return;
+
+    const trimmedReason = reason.trim();
+    if (trimmedReason.length < 3) {
+      toast.error('Powód zmiany jest wymagany (minimum 3 znaki).');
+      return;
+    }
 
     if (action === 'set_free') {
       const confirmed = window.confirm(
@@ -168,40 +192,49 @@ export default function AdminPage() {
       if (!confirmed) return;
     }
 
-    setActionStatus('loading');
-    setActionMessage(null);
-    setActionError(null);
+    setIsUpdatingPlan(true);
 
     try {
       const result = await callAdminFunction({
         action,
-        userId: foundUser.id,
-        reason: reason.trim() || null, // Explicit null instead of undefined
+        userId: adminData.user.id,
+        reason: trimmedReason,
       });
 
       if (result.success && result.user) {
-        setFoundUser(result.user);
-        setActionMessage(`✓ ${label} — plan został zaktualizowany.`);
-        setActionStatus('success');
+        toast.success(`✓ ${label} — plan został zaktualizowany.`);
+
+        // Refresh data to get new audit logs
+        const refreshResult = await callAdminFunction({ action: 'search_user', email: adminData.user.email });
+        if (refreshResult.user) {
+          setAdminData({
+            user: refreshResult.user as AdminUserProfile,
+            auditLogs: refreshResult.auditLogs as AdminPlanAction[] ?? [],
+            usageEvents: refreshResult.usageEvents as AdminUsageEvent[] ?? []
+          });
+        } else {
+           setAdminData(prev => prev ? { ...prev, user: result.user as AdminUserProfile } : null);
+        }
+
         setReason(''); // wyczyść powód po sukcesie
       } else {
         throw new Error('Nieoczekiwana odpowiedź z serwera.');
       }
-    } catch (err: any) {
-      if (err.message === 'forbidden') {
-        setActionError('Nie masz uprawnień administratora.');
+    } catch (err: unknown) {
+      if (err instanceof Error && err.message === 'forbidden') {
+        toast.error('Nie masz uprawnień administratora.');
       } else {
-        setActionError(err.message || 'Błąd podczas aktualizacji planu.');
+        toast.error(err instanceof Error ? err.message : 'Błąd podczas aktualizacji planu.');
       }
-      setActionStatus('error');
-      // NIE czyść reason przy błędzie — admin może chcieć spróbować ponownie
+    } finally {
+      setIsUpdatingPlan(false);
     }
   };
 
   // ── Render ─────────────────────────────────────────────────────────────────
 
   return (
-    <div className="max-w-2xl mx-auto space-y-8 animate-in fade-in duration-300">
+    <div className="max-w-4xl mx-auto space-y-8 animate-in fade-in duration-300 pb-12">
 
       {/* Header */}
       <header>
@@ -212,7 +245,7 @@ export default function AdminPage() {
           <div>
             <h1 className="text-2xl font-bold text-foreground">Panel administratora</h1>
             <p className="text-sm text-muted-foreground">
-              Ręczna aktywacja i zarządzanie planem użytkownika
+              Zarządzanie użytkownikami, planami i audytem
             </p>
           </div>
         </div>
@@ -242,227 +275,257 @@ export default function AdminPage() {
       )}
 
       {/* Search Section */}
-      <section className="omni-card p-6 space-y-4">
-        <h2 className="font-semibold text-foreground flex items-center gap-2">
-          <Search className="w-4 h-4" />
-          Wyszukaj użytkownika
-        </h2>
-        <form onSubmit={handleSearch} className="flex gap-2">
-          <input
-            id="admin-search-email"
-            type="email"
-            value={searchEmail}
-            onChange={(e) => setSearchEmail(e.target.value)}
-            placeholder="email@uzytkownika.pl"
-            autoComplete="off"
-            className="flex-1 bg-muted border-none outline-none text-sm text-foreground placeholder:text-muted-foreground px-4 py-3 rounded-xl focus:ring-2 focus:ring-[var(--omni-accent)]/30 transition-all"
-          />
-          <button
-            id="admin-search-btn"
-            type="submit"
-            disabled={searchStatus === 'loading'}
-            className="px-5 py-3 bg-[var(--omni-accent)] text-white font-semibold rounded-xl disabled:opacity-50 hover:opacity-90 transition-all flex items-center gap-2 whitespace-nowrap"
-          >
-            {searchStatus === 'loading'
-              ? <Loader2 className="w-4 h-4 animate-spin" />
-              : <Search className="w-4 h-4" />}
-            Szukaj
-          </button>
-        </form>
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Search className="w-5 h-5" />
+            Wyszukaj użytkownika
+          </CardTitle>
+          <CardDescription>
+            Wpisz dokładny adres e-mail, aby zobaczyć profil, plany i historię.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={handleSearch} className="flex gap-2">
+            <Input
+              id="admin-search-email"
+              type="email"
+              value={searchEmail}
+              onChange={(e) => setSearchEmail(e.target.value)}
+              placeholder="email@uzytkownika.pl"
+              autoComplete="off"
+              className="flex-1"
+            />
+            <Button
+              id="admin-search-btn"
+              type="submit"
+              disabled={isSearching}
+              className="min-w-[120px]"
+            >
+              {isSearching ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Search className="w-4 h-4 mr-2" />}
+              Szukaj
+            </Button>
+          </form>
 
-        {searchError && (
-          <p className="text-sm text-red-600 dark:text-red-400 flex items-center gap-1.5">
-            <AlertTriangle className="w-3.5 h-3.5" />
-            {searchError}
-          </p>
-        )}
-        {notFound && (
-          <p className="text-sm text-muted-foreground flex items-center gap-1.5">
-            <User className="w-3.5 h-3.5" />
-            Nie znaleziono użytkownika o podanym adresie e-mail.
-          </p>
-        )}
-      </section>
+          {notFound && (
+            <p className="text-sm text-muted-foreground flex items-center gap-1.5 mt-4">
+              <User className="w-4 h-4" />
+              Nie znaleziono użytkownika o podanym adresie e-mail.
+            </p>
+          )}
+        </CardContent>
+      </Card>
 
-      {/* Found User Card */}
-      {foundUser && (() => {
+      {/* Found User Section */}
+      {adminData?.user && (() => {
+        const foundUser = adminData.user;
         const expired = isPlanExpired(foundUser.plan, foundUser.plan_expires_at);
         const effectiveLabel = getEffectivePlanLabel(foundUser.plan, foundUser.plan_expires_at);
-        const badgeClass = getPlanBadgeClass(foundUser.plan, expired);
+        const isFamily = foundUser.plan === 'family';
 
         return (
-          <section className="omni-card p-6 space-y-6">
+          <div className="space-y-6 mt-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
 
-            {/* ── User Info ── */}
-            <div className="space-y-3">
-              <h2 className="font-semibold text-foreground flex items-center gap-2">
-                <User className="w-4 h-4" />
-                Użytkownik
-              </h2>
+              {/* User Details Card */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 text-lg">
+                    <User className="w-5 h-5" />
+                    Szczegóły użytkownika
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div>
+                    <p className="text-sm text-muted-foreground mb-1">E-mail</p>
+                    <p className="font-medium break-all">{foundUser.email}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground mb-1">Status planu</p>
+                    <div className="flex items-center gap-2">
+                      <Badge variant={expired || foundUser.plan === 'free' ? 'secondary' : 'default'} className={foundUser.plan === 'premium' ? 'bg-indigo-600 hover:bg-indigo-600' : foundUser.plan === 'family' ? 'bg-violet-600 hover:bg-violet-600' : ''}>
+                        {getPlanLabel(foundUser.plan)}
+                        {expired && ' (wygasły)'}
+                      </Badge>
+                      {expired && (
+                        <span className="text-xs text-amber-600 dark:text-amber-400 font-medium">
+                          Efektywnie: {effectiveLabel}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <p className="text-sm text-muted-foreground mb-1 flex items-center gap-1">
+                        <Calendar className="w-3.5 h-3.5" /> Ważny do
+                      </p>
+                      <p className={`text-sm font-medium ${expired ? 'text-red-600' : ''}`}>
+                        {foundUser.plan_expires_at ? formatDate(foundUser.plan_expires_at) : '—'}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-muted-foreground mb-1">Ostatnia zmiana</p>
+                      <p className="text-sm font-medium">
+                        {formatDate(foundUser.plan_updated_at)}
+                      </p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                {/* E-mail */}
-                <div className="bg-muted/50 rounded-xl px-4 py-3">
-                  <p className="text-xs text-muted-foreground mb-0.5">E-mail</p>
-                  <p className="text-sm font-medium text-foreground break-all">{foundUser.email}</p>
-                </div>
+              {/* Plan Actions Card */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 text-lg">
+                    <Crown className="w-5 h-5" />
+                    Akcje planu
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium flex justify-between items-center">
+                      <span className="flex items-center gap-1.5"><FileText className="w-4 h-4"/> Powód zmiany</span>
+                      <span className={`text-xs ${reason.length > 500 ? 'text-red-500' : 'text-muted-foreground'}`}>{reason.length}/500</span>
+                    </label>
+                    <Textarea
+                      value={reason}
+                      onChange={(e) => setReason(e.target.value)}
+                      placeholder="Wymagane: np. płatność ręczna, wsparcie, test (min. 3 znaki)"
+                      className="resize-none"
+                      rows={2}
+                      maxLength={500}
+                    />
+                  </div>
 
-                {/* Plan w bazie + efektywny status */}
-                <div className="bg-muted/50 rounded-xl px-4 py-3 space-y-1.5">
-                  <p className="text-xs text-muted-foreground">Plan w bazie</p>
-                  <span className={`inline-block text-sm font-semibold px-2 py-0.5 rounded-md ${badgeClass}`}>
-                    {getPlanLabel(foundUser.plan)}
-                    {expired && ' (wygasły)'}
-                  </span>
-                  {expired && (
-                    <p className="text-xs text-amber-700 dark:text-amber-400 font-medium flex items-center gap-1 mt-1">
-                      <AlertTriangle className="w-3 h-3" />
-                      Efektywnie: {effectiveLabel}
-                    </p>
+                  <div className="grid grid-cols-2 gap-2">
+                    <Button
+                      variant="default"
+                      className="bg-indigo-600 hover:bg-indigo-700 text-white"
+                      onClick={() => handleAction('activate_premium_30', 'Aktywuj Premium')}
+                      disabled={isUpdatingPlan || reason.trim().length < 3}
+                    >
+                      Aktywuj Premium 30d
+                    </Button>
+                    <Button
+                      variant="outline"
+                      onClick={() => handleAction('extend_premium_30', 'Przedłuż Premium')}
+                      disabled={isUpdatingPlan || reason.trim().length < 3}
+                    >
+                      Przedłuż Premium 30d
+                    </Button>
+                    <Button
+                      variant="outline"
+                      onClick={() => handleAction('activate_family_30', 'Aktywuj Family')}
+                      disabled={isUpdatingPlan || reason.trim().length < 3}
+                    >
+                      Aktywuj Family 30d
+                    </Button>
+
+                    {isFamily ? (
+                      <div className="col-span-1" title="Family plan downgrade requires cascade cleanup. (Sprint 24B)">
+                        <Button
+                          variant="destructive"
+                          disabled={true}
+                          className="w-full"
+                        >
+                          Ustaw Free
+                        </Button>
+                        <p className="text-[10px] text-muted-foreground mt-1 text-center leading-tight">
+                          Zablokowane dla Family (Sprint 24B)
+                        </p>
+                      </div>
+                    ) : (
+                      <Button
+                        variant="destructive"
+                        onClick={() => handleAction('set_free', 'Ustaw Free')}
+                        disabled={isUpdatingPlan || reason.trim().length < 3}
+                      >
+                        Ustaw Free
+                      </Button>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* Audit Logs Card */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 text-lg">
+                    <History className="w-5 h-5" />
+                    Historia operacji (Ostatnie 10)
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {adminData.auditLogs.length > 0 ? (
+                    <div className="overflow-x-auto">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Data</TableHead>
+                            <TableHead>Akcja</TableHead>
+                            <TableHead>Powód</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {adminData.auditLogs.map((log) => (
+                            <TableRow key={log.id}>
+                              <TableCell className="whitespace-nowrap text-xs text-muted-foreground">{formatDate(log.created_at)}</TableCell>
+                              <TableCell className="text-xs font-medium">{log.action_type}</TableCell>
+                              <TableCell className="text-xs">{log.reason || '—'}</TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </div>
+                  ) : (
+                    <p className="text-sm text-muted-foreground">Brak historii operacji.</p>
                   )}
-                </div>
+                </CardContent>
+              </Card>
 
-                {/* Ważny do */}
-                <div className="bg-muted/50 rounded-xl px-4 py-3">
-                  <p className="text-xs text-muted-foreground mb-0.5 flex items-center gap-1">
-                    <Calendar className="w-3 h-3" /> Ważny do
-                  </p>
-                  <p className={`text-sm font-medium ${expired ? 'text-red-600 dark:text-red-400' : 'text-foreground'}`}>
-                    {foundUser.plan_expires_at
-                      ? `${formatDate(foundUser.plan_expires_at)}${expired ? ' ⚠ wygasł' : ''}`
-                      : '—'}
-                  </p>
-                </div>
-
-                {/* Ostatnia zmiana planu */}
-                <div className="bg-muted/50 rounded-xl px-4 py-3">
-                  <p className="text-xs text-muted-foreground mb-0.5">Ostatnia zmiana planu</p>
-                  <p className="text-sm font-medium text-foreground">{formatDate(foundUser.plan_updated_at)}</p>
-                </div>
-              </div>
+              {/* Usage Events Card */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 text-lg">
+                    <Activity className="w-5 h-5" />
+                    Użycie AI (Ostatnie 10)
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {adminData.usageEvents.length > 0 ? (
+                    <div className="overflow-x-auto">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Data</TableHead>
+                            <TableHead>Zdarzenie</TableHead>
+                            <TableHead>Wartość</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {adminData.usageEvents.map((evt) => (
+                            <TableRow key={evt.id}>
+                              <TableCell className="whitespace-nowrap text-xs text-muted-foreground">{formatDate(evt.created_at)}</TableCell>
+                              <TableCell className="text-xs font-medium">{evt.event_type}</TableCell>
+                              <TableCell className="text-xs">{evt.value}</TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </div>
+                  ) : (
+                    <p className="text-sm text-muted-foreground">Brak zarejestrowanego użycia AI.</p>
+                  )}
+                </CardContent>
+              </Card>
             </div>
 
-            {/* ── Powód zmiany ── */}
-            <div className="space-y-1.5">
-              <label
-                htmlFor="admin-reason"
-                className="flex items-center gap-1.5 text-sm font-medium text-foreground"
-              >
-                <FileText className="w-3.5 h-3.5 text-muted-foreground" />
-                Powód zmiany <span className="text-muted-foreground font-normal">(opcjonalnie)</span>
-              </label>
-              <textarea
-                id="admin-reason"
-                value={reason}
-                onChange={(e) => setReason(e.target.value.slice(0, 500))}
-                placeholder="np. płatność ręczna, reklamacja, bonus, test"
-                rows={2}
-                className="w-full bg-muted border-none outline-none text-sm text-foreground placeholder:text-muted-foreground px-4 py-3 rounded-xl focus:ring-2 focus:ring-[var(--omni-accent)]/30 transition-all resize-none"
-              />
-              <p className="text-xs text-muted-foreground flex justify-between items-center mt-1">
-                <span>Powód zostanie zapisany w logu przy następnej operacji planu.</span>
-                <span>{reason.length}/500</span>
-              </p>
-            </div>
-
-            {/* ── Action Feedback ── */}
-            {actionMessage && (
-              <div className="flex items-center gap-2 px-4 py-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-xl text-sm text-green-800 dark:text-green-300 font-medium">
-                <CheckCircle className="w-4 h-4 flex-shrink-0" />
-                {actionMessage}
-              </div>
-            )}
-            {actionError && (
-              <div className="flex items-center gap-2 px-4 py-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl text-sm text-red-800 dark:text-red-300 font-medium">
-                <AlertTriangle className="w-4 h-4 flex-shrink-0" />
-                {actionError}
-              </div>
-            )}
-
-            {/* ── Actions ── */}
-            <div className="space-y-3">
-              <h3 className="font-semibold text-foreground text-sm">Zarządzanie planem</h3>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                <ActionButton
-                  id="admin-activate-premium"
-                  icon={<Crown className="w-4 h-4" />}
-                  label="Aktywuj Premium 30 dni"
-                  description="Nowy okres od dzisiaj"
-                  onClick={() => handleAction('activate_premium_30', 'Aktywuj Premium 30 dni')}
-                  loading={actionStatus === 'loading'}
-                  variant="primary"
-                />
-                <ActionButton
-                  id="admin-extend-premium"
-                  icon={<Crown className="w-4 h-4" />}
-                  label="Przedłuż Premium 30 dni"
-                  description="Nie skróci aktywnego dostępu"
-                  onClick={() => handleAction('extend_premium_30', 'Przedłuż Premium 30 dni')}
-                  loading={actionStatus === 'loading'}
-                  variant="secondary"
-                />
-                <ActionButton
-                  id="admin-activate-family"
-                  icon={<Users className="w-4 h-4" />}
-                  label="Aktywuj Family 30 dni"
-                  description="Nowy okres od dzisiaj"
-                  onClick={() => handleAction('activate_family_30', 'Aktywuj Family 30 dni')}
-                  loading={actionStatus === 'loading'}
-                  variant="secondary"
-                />
-                <ActionButton
-                  id="admin-set-free"
-                  icon={<ShieldOff className="w-4 h-4" />}
-                  label="Ustaw Free"
-                  description="Usuwa daty ważności planu"
-                  onClick={() => handleAction('set_free', 'Ustaw Free')}
-                  loading={actionStatus === 'loading'}
-                  variant="danger"
-                />
-              </div>
-            </div>
-
-          </section>
+          </div>
         );
       })()}
     </div>
-  );
-}
-
-// ── ActionButton Sub-Component ─────────────────────────────────────────────────
-
-interface ActionButtonProps {
-  id: string;
-  icon: React.ReactNode;
-  label: string;
-  description: string;
-  onClick: () => void;
-  loading: boolean;
-  variant: 'primary' | 'secondary' | 'danger';
-}
-
-function ActionButton({ id, icon, label, description, onClick, loading, variant }: ActionButtonProps) {
-  const variantClass = {
-    primary:   'bg-indigo-600 text-white hover:bg-indigo-700',
-    secondary: 'bg-muted text-foreground hover:bg-muted/80 border border-border',
-    danger:    'bg-red-50 text-red-700 hover:bg-red-100 border border-red-200 dark:bg-red-900/20 dark:text-red-300 dark:border-red-800 dark:hover:bg-red-900/40',
-  }[variant];
-
-  return (
-    <button
-      id={id}
-      onClick={onClick}
-      disabled={loading}
-      className={`flex items-start gap-3 px-4 py-3 rounded-xl text-left transition-all disabled:opacity-50 ${variantClass}`}
-    >
-      <div className="mt-0.5 flex-shrink-0">
-        {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : icon}
-      </div>
-      <div>
-        <p className="text-sm font-semibold">{label}</p>
-        <p className="text-xs opacity-70 mt-0.5">{description}</p>
-      </div>
-    </button>
   );
 }
