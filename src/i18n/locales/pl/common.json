@@ -79,20 +79,20 @@
       "submit": "Wyślij link do resetu",
       "backToLogin": "Wróć do logowania",
       "successTitle": "Sprawdź swoją pocztę",
-      "successDesc1": "Jeżeli konto z adresem",
-      "successDesc2": "istnieje w naszym systemie, wysłaliśmy na nie link do resetowania hasła.",
+      "successDesc1": "Jeżeli konto z tym adresem istnieje, wysłaliśmy na nie link do resetowania hasła.",
+      "successDesc2": "Sprawdź też folder spam lub oferty. Jeżeli nie masz jeszcze konta w OmniNauce, możesz je utworzyć.",
       "toastSuccess": "Wysłano link do resetu hasła"
     },
     "reset": {
       "title": "Ustaw nowe hasło",
       "subtitle": "Wybierz silne hasło, które zapamiętasz",
       "newPassword": "Nowe hasło",
-      "newPasswordPlaceholder": "Min. 8 znaków",
+      "newPasswordPlaceholder": "Min. 6 znaków",
       "confirmPassword": "Powtórz hasło",
       "confirmPasswordPlaceholder": "••••••••",
       "submit": "Zmień hasło",
       "error": {
-        "length": "Hasło musi mieć co najmniej 8 znaków",
+        "length": "Hasło musi mieć co najmniej 6 znaków",
         "mismatch": "Hasła nie są identyczne",
         "generic": "Wystąpił błąd podczas zmiany hasła"
       },

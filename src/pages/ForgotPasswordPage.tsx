@@ -53,17 +53,31 @@ export default function ForgotPasswordPage() {
             <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto text-green-600">
               <CheckCircle2 className="w-8 h-8" />
             </div>
-            <h1 className="omni-heading-3">{t('auth.forgot.successTitle')}</h1>
-            <p className="text-[var(--omni-text-muted)]">
-              {t('auth.forgot.successDesc1')} <span className="font-medium text-[var(--omni-text)]">{email}</span> {t('auth.forgot.successDesc2')}
-            </p>
-            <Link
-              to="/login"
-              className="inline-flex items-center gap-2 text-[var(--omni-accent)] hover:underline font-medium"
-            >
-              <ArrowLeft className="w-4 h-4" />
-              {t('auth.forgot.backToLogin')}
-            </Link>
+            {/* The text is intentionally neutral to avoid account enumeration (Hotfix 23B.3) */}
+            <h1 className="omni-heading-3">{t('auth.forgot.successTitle', 'Sprawdź swoją pocztę')}</h1>
+            <div className="space-y-4 text-[var(--omni-text-muted)] text-base">
+              <p>
+                {t('auth.forgot.successDesc1', 'Jeżeli konto z tym adresem istnieje, wysłaliśmy na nie link do resetowania hasła.')}
+              </p>
+              <p className="text-sm">
+                {t('auth.forgot.successDesc2', 'Sprawdź też folder spam lub oferty. Jeżeli nie masz jeszcze konta w OmniNauce, możesz je utworzyć.')}
+              </p>
+            </div>
+            <div className="flex flex-col gap-3 pt-4">
+              <Link
+                to="/login"
+                className="omni-btn-primary w-full flex items-center justify-center gap-2"
+              >
+                <ArrowLeft className="w-4 h-4" />
+                {t('auth.forgot.backToLogin', 'Wróć do logowania')}
+              </Link>
+              <Link
+                to="/register"
+                className="omni-btn-secondary w-full"
+              >
+                Utwórz konto
+              </Link>
+            </div>
           </div>
         </div>
       </div>

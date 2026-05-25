@@ -79,20 +79,20 @@
       "submit": "Send reset link",
       "backToLogin": "Back to login",
       "successTitle": "Check your email",
-      "successDesc1": "If an account with the address",
-      "successDesc2": "exists in our system, we have sent a password reset link to it.",
+      "successDesc1": "If an account with this address exists, we have sent a password reset link to it.",
+      "successDesc2": "Also check your spam or offers folder. If you don't have an OmniNauka account yet, you can create one.",
       "toastSuccess": "Password reset link sent"
     },
     "reset": {
       "title": "Set new password",
       "subtitle": "Choose a strong password that you will remember",
       "newPassword": "New password",
-      "newPasswordPlaceholder": "Min. 8 characters",
+      "newPasswordPlaceholder": "Min. 6 characters",
       "confirmPassword": "Confirm password",
       "confirmPasswordPlaceholder": "••••••••",
       "submit": "Change password",
       "error": {
-        "length": "Password must be at least 8 characters",
+        "length": "Password must be at least 6 characters",
         "mismatch": "Passwords do not match",
         "generic": "An error occurred while changing the password"
       },

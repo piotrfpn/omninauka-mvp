@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+﻿import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { Lock, Eye, EyeOff, Loader2, AlertCircle, CheckCircle2 } from 'lucide-react';
@@ -31,7 +31,7 @@ export default function ResetPasswordPage() {
     e.preventDefault();
     setError(null);
 
-    if (password.length < 8) {
+    if (password.length < 6) {
       setError(t('auth.reset.error.length'));
       return;
     }
@@ -218,3 +218,4 @@ export default function ResetPasswordPage() {
     </div>
   );
 }
+
