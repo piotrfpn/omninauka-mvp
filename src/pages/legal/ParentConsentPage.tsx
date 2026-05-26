@@ -1,18 +1,24 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
+// hashConsentToken is used only in handleSubmit for approve_parental_consent RPC
 import { hashConsentToken } from '../../lib/consent';
 import { ShieldCheck, CheckCircle2, AlertTriangle, Loader2, ArrowRight, ExternalLink } from 'lucide-react';
 import OmniNaukaLogo from '../../components/brand/OmniNaukaLogo';
 import { useTranslation } from 'react-i18next';
 import { LanguageSwitcher } from '../../components/LanguageSwitcher';
 
+// Minimal payload returned by verify_consent_token RPC (Sprint 24A.1)
+interface ConsentVerification {
+  childName: string | null;
+}
+
 export default function ParentConsentPage() {
   const { t } = useTranslation();
   const { token } = useParams<{ token: string }>();
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [consentData, setConsentData] = useState<any>(null);
+  const [consentData, setConsentData] = useState<ConsentVerification | null>(null);
   const [status, setStatus] = useState<'idle' | 'success' | 'expired' | 'invalid'>('idle');
   
   // Consents
@@ -34,28 +40,29 @@ export default function ParentConsentPage() {
       }
 
       try {
-        const tokenHash = await hashConsentToken(token);
-        
-        // Query consent record (using public policy)
-        // We include a join to get the child's name
-        const { data, error } = await supabase
-          .from('parental_consents')
-          .select(`
-            *,
-            profiles:child_user_id (name)
-          `)
-          .eq('token_hash', tokenHash)
-          .single();
+        // Security fix (Sprint 24A.1): Do NOT query parental_consents directly.
+        // Call secure RPC that hashes the token server-side and returns only
+        // a minimal payload — never token_hash, parent_email, or full record.
+        const { data, error } = await supabase.rpc('verify_consent_token', {
+          p_token: token,
+        });
 
         if (error || !data) {
           setStatus('invalid');
-        } else if (data.consent_status === 'approved') {
+          return;
+        }
+
+        const result = data as { status: string; can_approve: boolean; child_name: string | null };
+
+        if (result.status === 'already_approved') {
           setStatus('success');
-          setConsentData(data);
-        } else if (new Date(data.token_expires_at) < new Date()) {
+        } else if (result.status === 'expired') {
           setStatus('expired');
+        } else if (result.status === 'valid' && result.can_approve) {
+          // Store only the minimal payload needed for the form
+          setConsentData({ childName: result.child_name });
         } else {
-          setConsentData(data);
+          setStatus('invalid');
         }
       } catch (err) {
         console.error('Verification error:', err);
@@ -170,7 +177,7 @@ export default function ParentConsentPage() {
             {t('auth.parentConsent.form.title')}
           </h1>
           <p className="text-[var(--omni-text-muted)] mt-2">
-            {t('auth.parentConsent.form.forUser')} <span className="font-bold text-[var(--omni-text)]">{consentData?.profiles?.name}</span>
+            {t('auth.parentConsent.form.forUser')} <span className="font-bold text-[var(--omni-text)]">{consentData?.childName}</span>
           </p>
         </div>
 
@@ -200,7 +207,7 @@ export default function ParentConsentPage() {
                 onChange={e => setConsents(prev => ({ ...prev, isParent: e.target.checked }))}
               />
               <label htmlFor="c-parent" className="text-slate-700 font-medium cursor-pointer">
-                Potwierdzam, że jestem rodzicem lub opiekunem prawnym użytkownika {consentData?.profiles?.name}.
+                Potwierdzam, że jestem rodzicem lub opiekunem prawnym użytkownika {consentData?.childName}.
               </label>
             </div>
 
