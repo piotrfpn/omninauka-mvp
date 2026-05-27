@@ -892,6 +892,13 @@
     "error": "Nie udało się załadować historii nauki:"
   },
   "upload": {
+    "steps": {
+      "preparing": "Przygotowuję materiał...",
+      "compressing": "Kompresuję pliki...",
+      "uploading": "Wysyłam pliki...",
+      "creating_session": "Tworzę sesję lekcji...",
+      "navigating": "Wczytuję podsumowanie..."
+    },
     "title": "Upload materiałów",
     "subtitle": "Dodaj do {{maxImages}} zdjęć notatek lub 1 dokument tekstowy (PDF/DOCX). AI przygotuje lekcję w parę sekund.",
     "demoMode": "Tryb demo — wgrany plik zostanie przetworzony tylko lokalnie.",

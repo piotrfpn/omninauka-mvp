@@ -51,6 +51,15 @@ interface QueuedImage {
   croppedArea: CropArea | null;
 }
 
+type AnalysisStep =
+  | 'idle'
+  | 'preparing'
+  | 'compressing'
+  | 'uploading'
+  | 'creating_session'
+  | 'navigating'
+  | 'error';
+
 const MAX_IMAGES = 10;
 
 // Simple helper for mobile detection
@@ -148,24 +157,30 @@ function ThumbnailStrip({
   activeIdx,
   onSelect,
   onRemove,
+  isProcessing,
 }: {
   images: QueuedImage[];
   activeIdx: number;
   onSelect: (idx: number) => void;
   onRemove: (idx: number) => void;
+  isProcessing?: boolean;
 }) {
   const { t } = useTranslation();
   return (
-    <div className="flex gap-3 flex-wrap">
+    <div className={`flex gap-3 flex-wrap ${isProcessing ? 'opacity-60 pointer-events-none cursor-not-allowed' : ''}`}>
       {images.map((img, idx) => (
         <div
           key={img.id}
-          className={`relative group cursor-pointer rounded-xl overflow-hidden border-2 transition-all
+          className={`relative group rounded-xl overflow-hidden border-2 transition-all
+            ${isProcessing ? 'cursor-not-allowed' : 'cursor-pointer'}
             ${activeIdx === idx
               ? 'border-[var(--omni-accent)] shadow-lg scale-105'
               : 'border-gray-200 hover:border-indigo-300'}`}
           style={{ width: 72, height: 72 }}
-          onClick={() => onSelect(idx)}
+          onClick={() => {
+            if (isProcessing) return;
+            onSelect(idx);
+          }}
         >
           <img src={img.compressedBase64 ?? img.previewUrl} alt="" className="w-full h-full object-cover" />
 
@@ -188,14 +203,16 @@ function ThumbnailStrip({
           </div>
 
           {/* Remove button */}
-          <button
-            type="button"
-            onClick={e => { e.stopPropagation(); onRemove(idx); }}
-            className="absolute top-0.5 right-0.5 opacity-0 group-hover:opacity-100 transition-opacity bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center shadow"
-            title={t('upload.actions.remove')}
-          >
-            <X className="w-3 h-3" />
-          </button>
+          {!isProcessing && (
+            <button
+              type="button"
+              onClick={e => { e.stopPropagation(); onRemove(idx); }}
+              className="absolute top-0.5 right-0.5 opacity-0 group-hover:opacity-100 transition-opacity bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center shadow"
+              title={t('upload.actions.remove')}
+            >
+              <X className="w-3 h-3" />
+            </button>
+          )}
         </div>
       ))}
     </div>
@@ -211,11 +228,13 @@ export default function UploadPage() {
 
   const [images, setImages] = useState<QueuedImage[]>([]);
   const [documentFile, setDocumentFile] = useState<{ file: File, text: string } | null>(null);
-  const [isExtractingText, setIsExtractingText] = useState(false);
+  const [analysisStep, setAnalysisStep] = useState<AnalysisStep>('idle');
   const [activeIdx, setActiveIdx] = useState(0);
-  const [isCompressing, setIsCompressing] = useState(false);
-  const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const isProcessing = analysisStep !== 'idle' && analysisStep !== 'error';
+  const isExtractingText = analysisStep === 'preparing' && !documentFile && images.length === 0;
+  const isCompressing = analysisStep === 'compressing';
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const [hasRestoredUploadRecovery, setHasRestoredUploadRecovery] = useState(false);
 
@@ -246,10 +265,7 @@ export default function UploadPage() {
   };
 
   const uploadDebug = useCallback((message: string, data?: unknown) => {
-    if (!isUploadDebugEnabled) {
-      console.log('[upload-debug]', message, data);
-      return;
-    }
+    if (!isUploadDebugEnabled) return;
 
     const timestamp = new Date().toLocaleTimeString();
     const dataStr = data ? ' | ' + (typeof data === 'object' ? JSON.stringify(data) : String(data)) : '';
@@ -280,8 +296,6 @@ export default function UploadPage() {
   useEffect(() => {
     uploadDebug('UploadPage mounted', {
       pathname: window.location.pathname,
-      href: window.location.href,
-      userAgent: navigator.userAgent,
       isMobile: isMobileUploadDevice(),
     });
 
@@ -339,7 +353,7 @@ export default function UploadPage() {
         }
       }
     } catch (e) {
-      uploadDebug('Recovery restore failed', e);
+      uploadDebug('Recovery restore failed', e instanceof Error ? e.message : String(e));
       try {
         sessionStorage.removeItem('omninauka_upload_recovery');
       } catch {
@@ -378,16 +392,17 @@ export default function UploadPage() {
         sessionStorage.removeItem('omninauka_upload_recovery');
       }
     } catch (e) {
-      uploadDebug('Recovery save failed', e);
+      uploadDebug('Recovery save failed', e instanceof Error ? e.message : String(e));
     }
   }, [images, hasRestoredUploadRecovery, uploadDebug]);
 
   // ── helpers ────────────────────────────────────────────────────────────────
 
   const handleDocumentUpload = async (file: File) => {
-    setIsExtractingText(true);
+    const docStart = performance.now();
+    setAnalysisStep('preparing');
     setError(null);
-    uploadDebug('Starting document upload/extraction', { name: file.name, size: file.size });
+    uploadDebug('Starting document upload/extraction', { fileType: file.type, size: file.size });
     try {
       let extractedText = '';
       const arrayBuffer = await file.arrayBuffer();
@@ -405,7 +420,7 @@ export default function UploadPage() {
 
         if (extractedText.length < 50) {
           setError(t('upload.errors.pdfScan'));
-          setIsExtractingText(false);
+          setAnalysisStep('error');
           return;
         }
       } else if (file.name.endsWith('.docx') || file.type.includes('wordprocessingml')) {
@@ -419,16 +434,19 @@ export default function UploadPage() {
       }
 
       setDocumentFile({ file, text: extractedText });
+      const elapsedMs = performance.now() - docStart;
+      uploadDebug('Document text extraction completed', { elapsedMs: elapsedMs.toFixed(1), textLen: extractedText.length });
+      setAnalysisStep('idle');
     } catch (err) {
-      uploadDebug('Doc extraction failed', err);
+      uploadDebug('Doc extraction failed', err instanceof Error ? err.message : String(err));
       console.error('Doc extraction error:', err);
       setError(t('upload.errors.docRead'));
-    } finally {
-      setIsExtractingText(false);
+      setAnalysisStep('error');
     }
   };
 
   const addFiles = useCallback((rawFiles: File[]) => {
+    if (isProcessing) return;
     setError(null);
     const validImageTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
     const validDocTypes = ['application/pdf', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
@@ -492,7 +510,6 @@ export default function UploadPage() {
         count: droppedImages.length,
         isMobile,
         files: droppedImages.map(f => ({
-          name: f.name,
           type: f.type,
           size: f.size,
         })),
@@ -544,7 +561,7 @@ export default function UploadPage() {
               uploadDebug('Mobile: direct FileReader success', { id: img.id, len: dataUrl.length });
               setImages(prev => prev.map(p => p.id === img.id ? { ...p, compressedBase64: dataUrl } : p));
             } catch (err) {
-              uploadDebug('Mobile: direct FileReader failed (non-fatal)', err);
+              uploadDebug('Mobile: direct FileReader failed (non-fatal)', err instanceof Error ? err.message : String(err));
             }
           } else {
             uploadDebug('Mobile: using File pass-through for large image', { size: img.file.size });
@@ -554,7 +571,7 @@ export default function UploadPage() {
         });
       }
     }
-  }, [images, documentFile, uploadDebug, t]);
+  }, [images, documentFile, uploadDebug, t, isProcessing]);
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop: addFiles,
@@ -567,7 +584,7 @@ export default function UploadPage() {
     },
     maxFiles: MAX_IMAGES,
     multiple: true,
-    disabled: images.length >= MAX_IMAGES || documentFile !== null,
+    disabled: isProcessing || images.length >= MAX_IMAGES || documentFile !== null,
   });
 
   const removeImage = (idx: number) => {
@@ -585,7 +602,8 @@ export default function UploadPage() {
   // ── compression ───────────────────────────────────────────────────────────
 
   const compressAndStore = async (imageUrl: string, area?: CropArea | null, originalFile?: File): Promise<string | null> => {
-    setIsCompressing(true);
+    const compStart = performance.now();
+    setAnalysisStep('compressing');
     uploadDebug('compressAndStore start', { hasArea: !!area, hasFile: !!originalFile });
     try {
       const compressionOptions = {
@@ -594,61 +612,67 @@ export default function UploadPage() {
         useWebWorker: true,
       };
 
+      let b64Result: string | null = null;
+
       if (!area && originalFile) {
         try {
           const compressed = await imageCompression(originalFile, compressionOptions);
-          return await new Promise<string | null>((resolve) => {
+          b64Result = await new Promise<string | null>((resolve) => {
             const reader = new FileReader();
             reader.readAsDataURL(compressed);
             reader.onloadend = () => {
               const b64 = reader.result as string;
-              uploadDebug('Compression complete (direct)', { len: b64.length });
               resolve(b64.length > 4_500_000 ? null : b64);
             };
           });
         } catch (err) {
-          uploadDebug('Direct compression failed', err);
+          uploadDebug('Direct compression failed', err instanceof Error ? err.message : String(err));
         }
       }
 
-      const image = new Image();
-      image.src = imageUrl;
-      await new Promise(resolve => { image.onload = resolve; });
+      if (!b64Result) {
+        const image = new Image();
+        image.src = imageUrl;
+        await new Promise(resolve => { image.onload = resolve; });
 
-      const canvas = document.createElement('canvas');
-      const ctx = canvas.getContext('2d');
-      if (!ctx) throw new Error('No canvas context');
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        if (!ctx) throw new Error('No canvas context');
 
-      if (area) {
-        canvas.width = area.width;
-        canvas.height = area.height;
-        ctx.drawImage(image, area.x, area.y, area.width, area.height, 0, 0, area.width, area.height);
-      } else {
-        canvas.width = image.width;
-        canvas.height = image.height;
-        ctx.drawImage(image, 0, 0);
+        if (area) {
+          canvas.width = area.width;
+          canvas.height = area.height;
+          ctx.drawImage(image, area.x, area.y, area.width, area.height, 0, 0, area.width, area.height);
+        } else {
+          canvas.width = image.width;
+          canvas.height = image.height;
+          ctx.drawImage(image, 0, 0);
+        }
+
+        b64Result = await new Promise<string | null>((resolve, reject) => {
+          canvas.toBlob(async blob => {
+            if (!blob) { resolve(null); return; }
+            try {
+              const compressed = await imageCompression(blob as File, compressionOptions);
+              const reader = new FileReader();
+              reader.readAsDataURL(compressed);
+              reader.onloadend = () => {
+                const b64 = reader.result as string;
+                resolve(b64.length > 4_500_000 ? null : b64);
+              };
+            } catch { reject(new Error('Compression failed')); }
+          }, 'image/jpeg', 0.95);
+        });
       }
 
-      return await new Promise<string | null>((resolve, reject) => {
-        canvas.toBlob(async blob => {
-          if (!blob) { resolve(null); return; }
-          try {
-            const compressed = await imageCompression(blob as File, compressionOptions);
-            const reader = new FileReader();
-            reader.readAsDataURL(compressed);
-            reader.onloadend = () => {
-              const b64 = reader.result as string;
-              uploadDebug('Compression complete (canvas)', { len: b64.length });
-              resolve(b64.length > 4_500_000 ? null : b64);
-            };
-          } catch { reject(new Error('Compression failed')); }
-        }, 'image/jpeg', 0.95);
-      });
+      const elapsedMs = performance.now() - compStart;
+      uploadDebug('Compression complete', { elapsedMs: elapsedMs.toFixed(1), resultLen: b64Result?.length });
+      return b64Result;
     } catch (err) {
-      uploadDebug('Compression failed', err);
+      uploadDebug('Compression failed', err instanceof Error ? err.message : String(err));
       return null;
     } finally {
-      setIsCompressing(false);
+      setAnalysisStep(prev => prev === 'compressing' ? 'idle' : prev);
     }
   };
 
@@ -680,18 +704,25 @@ export default function UploadPage() {
   const handleAnalyze = async () => {
     if (images.length === 0 && !documentFile) return;
 
-    setIsAnalyzing(true);
+    const tStart = performance.now();
+    const logTime = (stepName: string, meta?: any) => {
+      const elapsed = performance.now() - tStart;
+      uploadDebug(`Timing checkpoint: ${stepName}`, { elapsedMs: elapsed.toFixed(1), ...meta });
+    };
+
+    setAnalysisStep('preparing');
     setError(null);
-    uploadDebug('handleAnalyze clicked', { images: images.length, hasDoc: !!documentFile });
+    logTime('prepare_files_start', { images: images.length, hasDoc: !!documentFile });
 
     // ── DOCUMENT FLOW ──
     if (documentFile) {
       if (!user || isDemoMode) {
-        uploadDebug('Demo analysis (doc) starting');
+        logTime('demo_analysis_doc_start');
         sessionStorage.setItem('demoImageBase64', 'document_placeholder');
         sessionStorage.setItem('currentSessionId', 'demo-session');
         await new Promise(r => setTimeout(r, 2000));
-        uploadDebug('Navigating to analysis (demo)');
+        logTime('navigation_start');
+        setAnalysisStep('navigating');
         navigate('/app/analysis');
         return;
       }
@@ -706,14 +737,17 @@ export default function UploadPage() {
         const uniqueFileName = `${Date.now()}_${uniqueId}_${safeName}`;
         const filePath = `${user.id}/uploads/${uniqueFileName}`;
 
-        uploadDebug('Uploading document to storage', filePath);
+        setAnalysisStep('uploading');
+        logTime('storage_upload_start', { kind: 'document' });
         const { data: uploadData, error: uploadError } = await supabase.storage
           .from('study-materials')
           .upload(filePath, documentFile.file, { cacheControl: '3600', upsert: false });
 
         if (uploadError || !uploadData) throw new Error(`Upload failed: ${uploadError.message}`);
+        logTime('storage_upload_done', { kind: 'document' });
 
-        uploadDebug('Inserting session to DB');
+        setAnalysisStep('creating_session');
+        logTime('create_session_start');
         const { data: sessionData, error: dbError } = await supabase
           .from('study_sessions')
           .insert({
@@ -729,45 +763,49 @@ export default function UploadPage() {
           await supabase.storage.from('study-materials').remove([uploadData.path]);
           throw new Error(`DB Insert failed: ${dbError?.message}`);
         }
+        logTime('create_session_done', { sessionId: sessionData.id.substring(0, 8) });
 
         sessionStorage.setItem('currentSessionId', sessionData.id);
         sessionStorage.removeItem('omninauka_upload_recovery');
-        uploadDebug('Document analyze success, navigating', sessionData.id);
+
+        setAnalysisStep('navigating');
+        logTime('navigation_start');
         navigate('/app/analysis');
       } catch (err: any) {
-        uploadDebug('Document analyze failed', err);
+        logTime('analyze_failed', { error: err?.message });
         console.error('Document upload error:', err);
         setError(t('upload.errors.docSaveError'));
-        setIsAnalyzing(false);
+        setAnalysisStep('error');
       }
       return;
     }
 
     // ── IMAGE FLOW ──
     const readyImages = images.filter(im => !!im.compressedBase64 || (isMobileUploadDevice() && !!im.file && !im.isCropping));
-    uploadDebug('Image flow starting', { ready: readyImages.length });
+    logTime('image_flow_start', { ready: readyImages.length });
     if (readyImages.length === 0) {
       uploadDebug('No ready images found');
-      setIsAnalyzing(false);
+      setAnalysisStep('idle');
       return;
     }
 
     if (!user || isDemoMode) {
-      uploadDebug('Demo analysis (images) starting');
-      // Use compressedBase64 if available, otherwise previewUrl (not perfect for demo but won't crash)
+      logTime('demo_analysis_images_start');
       const demoSource = readyImages[0].compressedBase64 || readyImages[0].previewUrl;
       sessionStorage.setItem('demoImageBase64', demoSource);
       sessionStorage.setItem('currentSessionId', 'demo-session');
       await new Promise(r => setTimeout(r, 2000));
-      uploadDebug('Navigating to analysis (demo)');
+      logTime('navigation_start');
+      setAnalysisStep('navigating');
       navigate('/app/analysis');
       return;
     }
 
     try {
       const uploadedPaths: string[] = [];
-      uploadDebug('Uploading images...');
       
+      setAnalysisStep('creating_session');
+      logTime('create_session_start');
       const { data: sessionData, error: dbError } = await supabase
         .from('study_sessions')
         .insert({ user_id: user.id, image_url: '', folder_id: null })
@@ -775,6 +813,10 @@ export default function UploadPage() {
         .single();
       if (dbError || !sessionData) throw new Error('Failed to create session');
       const sessionId = sessionData.id;
+      logTime('create_session_done', { sessionId: sessionId.substring(0, 8) });
+
+      setAnalysisStep('uploading');
+      logTime('storage_upload_start', { count: readyImages.length });
 
       for (let i = 0; i < readyImages.length; i++) {
         const img = readyImages[i];
@@ -808,8 +850,12 @@ export default function UploadPage() {
           throw new Error(`Upload failed: ${uploadError?.message}`);
         }
         uploadedPaths.push(uploadData.path);
+        logTime(`image_upload_${i}_done`, { imageIndex: i });
       }
+      logTime('storage_upload_done', { totalUploaded: uploadedPaths.length });
 
+      setAnalysisStep('creating_session');
+      logTime('session_update_start');
       const { error: updateError } = await supabase
         .from('study_sessions')
         .update({ image_url: uploadedPaths[0] })
@@ -819,8 +865,10 @@ export default function UploadPage() {
         await supabase.storage.from('study-materials').remove(uploadedPaths);
         throw new Error(`DB update failed: ${updateError.message}`);
       }
+      logTime('session_update_done');
 
       if (uploadedPaths.length > 0) {
+        logTime('session_images_insert_start');
         const imageRows = uploadedPaths.map((path, position) => ({
           session_id: sessionId,
           image_url: path,
@@ -831,23 +879,26 @@ export default function UploadPage() {
           .insert(imageRows);
 
         if (imgInsertError) {
-          uploadDebug('session_images insert failed', imgInsertError);
+          uploadDebug('session_images insert failed', imgInsertError instanceof Error ? imgInsertError.message : String(imgInsertError));
           await supabase.from('study_sessions').delete().eq('id', sessionId);
           await supabase.storage.from('study-materials').remove(uploadedPaths);
           throw new Error(`session_images insert failed: ${imgInsertError.message}`);
         }
+        logTime('session_images_insert_done');
       }
 
       sessionStorage.setItem('currentSessionId', sessionId);
       sessionStorage.removeItem('omninauka_upload_recovery');
-      uploadDebug('Image analyze success, navigating', sessionId);
+
+      setAnalysisStep('navigating');
+      logTime('navigation_start');
       navigate('/app/analysis');
 
     } catch (err: any) {
-      uploadDebug('Image analyze failed', err);
+      logTime('analyze_failed', { error: err?.message });
       console.error('Upload error:', err);
       setError(t('upload.errors.imageSaveError'));
-      setIsAnalyzing(false);
+      setAnalysisStep('error');
     }
   };
 
@@ -859,6 +910,22 @@ export default function UploadPage() {
   const readyCount = readyImages.length;
   const someReady = readyCount > 0;
   const currentlyCropping = activeImage?.isCropping && !activeImage?.compressedBase64;
+  const getAnalysisStepText = () => {
+    switch (analysisStep) {
+      case 'preparing':
+        return t('upload.steps.preparing', 'Przygotowuje material...');
+      case 'compressing':
+        return t('upload.steps.compressing', 'Kompresuje pliki...');
+      case 'uploading':
+        return t('upload.steps.uploading', 'Wysylam pliki...');
+      case 'creating_session':
+        return t('upload.steps.creating_session', 'Tworze sesje lekcji...');
+      case 'navigating':
+        return t('upload.steps.navigating', 'Wczytuje podsumowanie...');
+      default:
+        return t('upload.states.uploadingAndAnalyzing', 'Przetwarzam material...');
+    }
+  };
 
   // ── render ────────────────────────────────────────────────────────────────
 
@@ -906,8 +973,8 @@ export default function UploadPage() {
             <button
               type="button"
               onClick={() => setDocumentFile(null)}
-              disabled={isAnalyzing}
-              className="p-2 text-[var(--omni-text-muted)] hover:text-red-500 transition-colors disabled:opacity-50"
+              disabled={isProcessing}
+              className="p-2 text-[var(--omni-text-muted)] hover:text-red-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <Trash2 className="w-5 h-5" />
             </button>
@@ -926,13 +993,13 @@ export default function UploadPage() {
           <button
             type="button"
             onClick={handleAnalyze}
-            disabled={isAnalyzing}
-            className="w-full omni-btn-primary disabled:opacity-50"
+            disabled={isProcessing}
+            className="w-full omni-btn-primary disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {isAnalyzing ? (
+            {isProcessing ? (
               <div className="flex items-center justify-center gap-2">
-                <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin flex-shrink-0" />
-                <span>{t('upload.states.uploadingAndAnalyzing')}</span>
+                <Loader2 className="w-5 h-5 animate-spin flex-shrink-0" />
+                <span>{getAnalysisStepText()}</span>
               </div>
             ) : (
               <div className="flex items-center justify-center gap-2">
@@ -952,10 +1019,12 @@ export default function UploadPage() {
             <button
               type="button"
               onClick={() => {
+                if (isProcessing) return;
                 uploadDebug('Camera button clicked - triggering native input');
                 cameraInputRef.current?.click();
               }}
-              className="w-full omni-btn-primary flex items-center justify-center gap-3 py-5 text-lg rounded-2xl shadow-lg active:scale-[0.98] transition-all"
+              disabled={isProcessing}
+              className="w-full omni-btn-primary flex items-center justify-center gap-3 py-5 text-lg rounded-2xl shadow-lg active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <Camera className="w-7 h-7" />
               {t('upload.cameraCta')}
@@ -967,17 +1036,18 @@ export default function UploadPage() {
                 <p className="text-[10px] text-[var(--omni-text-muted)] opacity-50">
                   Problemy z aparatem? Użyj przycisku poniżej:
                 </p>
-                <label className="omni-btn-secondary py-3 px-6 rounded-xl text-sm flex items-center gap-2 cursor-pointer border-dashed">
+                <label className={`omni-btn-secondary py-3 px-6 rounded-xl text-sm flex items-center gap-2 cursor-pointer border-dashed ${isProcessing ? 'opacity-50 cursor-not-allowed pointer-events-none' : ''}`}>
                   <Upload className="w-4 h-4" />
                   <span>Wybierz z galerii</span>
                   <input
                     type="file"
                     className="hidden"
                     accept="image/*"
+                    disabled={isProcessing}
                     onChange={(e) => {
+                      if (isProcessing) return;
                       uploadDebug('Native stable input change detected', {
                         filesLength: e.target.files?.length,
-                        firstName: e.target.files?.[0]?.name,
                       });
                       const files = Array.from(e.target.files || []);
                       if (files.length > 0) addFiles(files);
@@ -993,10 +1063,11 @@ export default function UploadPage() {
               className="hidden"
               accept="image/*"
               capture="environment"
+              disabled={isProcessing}
               onChange={(e) => {
+                if (isProcessing) return;
                 uploadDebug('Camera input change detected', {
                   filesLength: e.target.files?.length,
-                  firstName: e.target.files?.[0]?.name,
                   firstType: e.target.files?.[0]?.type,
                   firstSize: e.target.files?.[0]?.size,
                 });
@@ -1016,7 +1087,7 @@ export default function UploadPage() {
           {/* Drop zone — PRIMARY on desktop, SECONDARY on mobile */}
           <div
             {...getRootProps()}
-            className={`border-2 border-dashed rounded-2xl p-8 lg:p-12 text-center cursor-pointer transition-all ${isDragActive
+            className={`border-2 border-dashed rounded-2xl p-8 lg:p-12 text-center transition-all ${isProcessing ? 'opacity-50 cursor-not-allowed pointer-events-none border-gray-200 bg-gray-50' : 'cursor-pointer'} ${isDragActive
               ? 'border-[var(--omni-accent)] bg-[var(--omni-accent)]/5'
               : 'border-gray-300 hover:border-gray-400'
               }`}
@@ -1049,7 +1120,7 @@ export default function UploadPage() {
                 {' '}
                 <span className="text-[var(--omni-text-muted)]">{t('upload.states.readyCount', { ready: readyCount })}</span>
               </span>
-              {images.length < MAX_IMAGES && !isAnalyzing && (
+              {images.length < MAX_IMAGES && !isProcessing && (
                 <div {...getRootProps()} className="cursor-pointer">
                   <input {...getInputProps()} />
                   <button
@@ -1068,6 +1139,7 @@ export default function UploadPage() {
               activeIdx={activeIdx}
               onSelect={setActiveIdx}
               onRemove={removeImage}
+              isProcessing={isProcessing}
             />
           </div>
 
@@ -1095,8 +1167,8 @@ export default function UploadPage() {
                 <button
                   type="button"
                   onClick={() => removeImage(activeIdx)}
-                  disabled={isAnalyzing}
-                  className="p-2 text-[var(--omni-text-muted)] hover:text-red-500 transition-colors disabled:opacity-50"
+                  disabled={isProcessing}
+                  className="p-2 text-[var(--omni-text-muted)] hover:text-red-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <Trash2 className="w-4 h-4" />
                 </button>
@@ -1126,13 +1198,13 @@ export default function UploadPage() {
               <button
                 type="button"
                 onClick={handleAnalyze}
-                disabled={isAnalyzing || !allReady}
-                className="w-full omni-btn-primary disabled:opacity-50"
+                disabled={isProcessing || !allReady}
+                className="w-full omni-btn-primary disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {isAnalyzing ? (
+                {isProcessing ? (
                   <div className="flex items-center justify-center gap-2">
-                    <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                    <span>{t('upload.states.uploadingAndAnalyzing')}</span>
+                    <Loader2 className="w-5 h-5 animate-spin flex-shrink-0" />
+                    <span>{getAnalysisStepText()}</span>
                   </div>
                 ) : (
                   <div className="flex items-center justify-center gap-2">

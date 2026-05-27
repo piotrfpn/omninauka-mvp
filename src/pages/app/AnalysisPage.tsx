@@ -51,6 +51,10 @@ export default function AnalysisPage() {
       return;
     }
 
+    let isMounted = true;
+    let timeoutId: any;
+    const controller = new AbortController();
+
     // DEMO BYPASS: We retrieve the explicitly mocked base64
     if (sessionId === 'demo-session') {
       const demoImg = sessionStorage.getItem('demoImageBase64');
@@ -60,14 +64,44 @@ export default function AnalysisPage() {
       }
       
       const timer = setTimeout(() => {
+        if (!isMounted) return;
         const result = getDemoAnalysis();
         setAnalysis(result);
         sessionStorage.setItem('currentAnalysis', JSON.stringify(result));
         setIsLoading(false);
       }, 1500);
       
-      return () => clearTimeout(timer);
+      return () => {
+        isMounted = false;
+        clearTimeout(timer);
+      };
     }
+
+    // Helper mapping DB JSON back to strong React TypeScript Interfaces
+    const applySessionToState = (dbRow: any) => {
+      const result: AnalysisResult = {
+        id: dbRow.id,
+        subject: dbRow.subject,
+        topic: dbRow.topic,
+        confidence: dbRow.confidence,
+        summary: dbRow.summary,
+        sourceFileId: dbRow.image_url,
+        createdAt: new Date(dbRow.created_at),
+        // Inject randomized UUIDs for React mapping since payload omits them to save GPT tokens
+        keyConcepts: (dbRow.key_concepts || []).map((kc: any) => ({ ...kc, id: crypto.randomUUID() })),
+        flashcards: (dbRow.flashcards || []).map((fc: any) => ({ ...fc, id: crypto.randomUUID() })),
+        quizQuestions: (dbRow.quiz_questions || []).map((qq: any) => ({
+          ...qq,
+          id: crypto.randomUUID(),
+          type: 'single_choice',
+          correctAnswer: qq.correctIndex
+        }))
+      };
+      if (isMounted) {
+        setAnalysis(result);
+        sessionStorage.setItem('currentAnalysis', JSON.stringify(result));
+      }
+    };
 
     // REAL DB FLOW (Private Bucket + Signed URLs + DB Sessions)
     const fetchSession = async () => {
@@ -78,12 +112,16 @@ export default function AnalysisPage() {
           .eq('id', sessionId)
           .single();
 
+        if (!isMounted) return;
+
         // 1. Fetch all associated images from session_images
         const { data: imagesData } = await supabase
           .from('session_images')
           .select('image_url, position')
           .eq('session_id', sessionId)
           .order('position', { ascending: true });
+
+        if (!isMounted) return;
 
         // 2. Logic for paths (including fallback for Sprint 1 sessions)
         let paths: string[] = [];
@@ -100,6 +138,8 @@ export default function AnalysisPage() {
             .from('study-materials')
             .createSignedUrls(paths, 3600);
 
+          if (!isMounted) return;
+
           if (signError) {
             console.error("Failed to sign URLs:", signError);
           } else if (signedResults) {
@@ -108,20 +148,48 @@ export default function AnalysisPage() {
             setUploadedImage(urls[0]); // Default to first image
           }
         }
+
         if (sessionData && !sessionData.subject) {
           // Retrieve session explicitly to ensure token is fresh
           const { data: { session } } = await supabase.auth.getSession();
+          if (!isMounted) return;
           
           const functionUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/analyze-notes`;
           
-          const rawResponse = await fetch(functionUrl, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY,
-              ...(session ? { 'Authorization': `Bearer ${session.access_token}` } : {})
-            },
-            body: JSON.stringify({ sessionId })
+          const aiStart = performance.now();
+          console.log('[analysis-timing] analyze_notes_start', { sessionId: sessionId.substring(0, 8) });
+
+          timeoutId = setTimeout(() => {
+            console.warn('[analysis-timing] Aborting request due to 90s timeout');
+            controller.abort();
+          }, 90000); // Generous 90 seconds timeout
+
+          let rawResponse;
+          try {
+            rawResponse = await fetch(functionUrl, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY,
+                ...(session ? { 'Authorization': `Bearer ${session.access_token}` } : {})
+              },
+              body: JSON.stringify({ sessionId }),
+              signal: controller.signal
+            });
+          } finally {
+            if (timeoutId) {
+              clearTimeout(timeoutId);
+              timeoutId = undefined;
+            }
+          }
+
+          if (!isMounted) return;
+
+          const aiEnd = performance.now();
+          console.log('[analysis-timing] analyze_notes_done', {
+            sessionId: sessionId.substring(0, 8),
+            elapsedMs: (aiEnd - aiStart).toFixed(1),
+            status: rawResponse.status
           });
 
           let backendPayload = "";
@@ -130,6 +198,8 @@ export default function AnalysisPage() {
           } catch (e) {
             backendPayload = "Failed to parse body text";
           }
+
+          if (!isMounted) return;
 
           if (!rawResponse.ok || (backendPayload.includes("error") && !rawResponse.ok)) {
             let errorMsg = t('analysis.backendErrors.generic');
@@ -162,15 +232,19 @@ export default function AnalysisPage() {
             }
 
             // Developer diagnostic logging kept strictly inside the console
-            console.error(`Edge function analysis failed (Status ${rawResponse.status}):`, backendPayload);
+            console.error('Edge function analysis failed', {
+              status: rawResponse.status,
+            });
             
             // Clean UX message mapping returned to the UI instead of raw debug strings
-            if (isUsageLimit) {
-              setAnalysisError(`usage_limit:${errorMsg}`);
-            } else {
-              setAnalysisError(errorMsg);
+            if (isMounted) {
+              if (isUsageLimit) {
+                setAnalysisError(`usage_limit:${errorMsg}`);
+              } else {
+                setAnalysisError(errorMsg);
+              }
+              setIsLoading(false);
             }
-            setIsLoading(false);
             return;
           }
 
@@ -181,51 +255,54 @@ export default function AnalysisPage() {
             .eq('id', sessionId)
             .single();
 
+          if (!isMounted) return;
+
           if (updatedSession && updatedSession.subject) {
             applySessionToState(updatedSession);
-            setLessonTitle(updatedSession.lesson_title || '');
+            if (isMounted) {
+              setLessonTitle(updatedSession.lesson_title || '');
+            }
           }
           
         } else if (sessionData && sessionData.subject) {
           // Session already generated, just read it
           applySessionToState(sessionData);
-          setLessonTitle(sessionData.lesson_title || '');
+          if (isMounted) {
+            setLessonTitle(sessionData.lesson_title || '');
+          }
         }
 
-        setIsLoading(false);
+        if (isMounted) {
+          setIsLoading(false);
+        }
       } catch (err: any) {
+        if (!isMounted) return;
         console.error("Failed to resolve active DB session:", err);
-        setAnalysisError(err?.message || t('analysis.error.network'));
-        setIsLoading(false);
-      }
-    };
 
-    // Helper mapping DB JSON back to strong React TypeScript Interfaces
-    const applySessionToState = (dbRow: any) => {
-      const result: AnalysisResult = {
-        id: dbRow.id,
-        subject: dbRow.subject,
-        topic: dbRow.topic,
-        confidence: dbRow.confidence,
-        summary: dbRow.summary,
-        sourceFileId: dbRow.image_url,
-        createdAt: new Date(dbRow.created_at),
-        // Inject randomized UUIDs for React mapping since payload omits them to save GPT tokens
-        keyConcepts: (dbRow.key_concepts || []).map((kc: any) => ({ ...kc, id: crypto.randomUUID() })),
-        flashcards: (dbRow.flashcards || []).map((fc: any) => ({ ...fc, id: crypto.randomUUID() })),
-        quizQuestions: (dbRow.quiz_questions || []).map((qq: any) => ({
-          ...qq,
-          id: crypto.randomUUID(),
-          type: 'single_choice',
-          correctAnswer: qq.correctIndex
-        }))
-      };
-      setAnalysis(result);
-      sessionStorage.setItem('currentAnalysis', JSON.stringify(result));
+        let errorMsg = t('analysis.error.network', 'Problem z połączeniem sieciowym. Spróbuj ponownie.');
+
+        if (err.name === 'AbortError' || err.message?.toLowerCase().includes('timeout') || err.message?.toLowerCase().includes('failed to fetch')) {
+          errorMsg = t('analysis.backendErrors.timeout', 'Analiza trwa zbyt długo. Spróbuj mniejszego pliku lub wyraźniejszego zdjęcia.');
+        } else if (err.message) {
+          errorMsg = err.message;
+        }
+
+        if (isMounted) {
+          setAnalysisError(errorMsg);
+          setIsLoading(false);
+        }
+      }
     };
 
     fetchSession();
 
+    return () => {
+      isMounted = false;
+      controller.abort();
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+      }
+    };
   }, [navigate]);
 
   const getCategoryIcon = (category: KeyConcept['category']) => {

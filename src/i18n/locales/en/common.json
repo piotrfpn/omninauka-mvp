@@ -893,6 +893,13 @@
     "error": "Failed to load study history:"
   },
   "upload": {
+    "steps": {
+      "preparing": "Preparing material...",
+      "compressing": "Compressing files...",
+      "uploading": "Uploading files...",
+      "creating_session": "Creating lesson session...",
+      "navigating": "Loading lesson summary..."
+    },
     "title": "Upload materials",
     "subtitle": "Add up to {{maxImages}} photos of notes or 1 text document (PDF/DOCX). AI will prepare a lesson in a few seconds.",
     "demoMode": "Demo mode — uploaded file will be processed locally only.",
