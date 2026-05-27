@@ -433,6 +433,22 @@ export default function UploadPage() {
     const validImageTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
     const validDocTypes = ['application/pdf', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
 
+    const unsupportedFiles = rawFiles.filter(f =>
+      !validImageTypes.includes(f.type) &&
+      !validDocTypes.includes(f.type) &&
+      !f.name.toLowerCase().endsWith('.pdf') &&
+      !f.name.toLowerCase().endsWith('.docx') &&
+      !f.name.toLowerCase().endsWith('.jpg') &&
+      !f.name.toLowerCase().endsWith('.jpeg') &&
+      !f.name.toLowerCase().endsWith('.png') &&
+      !f.name.toLowerCase().endsWith('.webp')
+    );
+
+    if (unsupportedFiles.length > 0) {
+      setError(t('upload.errors.invalidType', 'Nieobsługiwany typ pliku. Możesz przesyłać tylko zdjęcia (JPG, PNG, WEBP) oraz dokumenty (PDF, DOCX).'));
+      return;
+    }
+
     const hasImages = images.length > 0;
     const hasDoc = documentFile !== null;
 
@@ -681,9 +697,14 @@ export default function UploadPage() {
       }
 
       try {
-        const fileExt = documentFile.file.name.split('.').pop() || 'pdf';
-        const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
-        const filePath = `uploads/${fileName}`;
+        const safeName = documentFile.file.name
+          .replace(/[^a-zA-Z0-9.-]/g, '_')
+          .replace(/_{2,}/g, '_');
+        const uniqueId = typeof crypto.randomUUID === 'function'
+          ? crypto.randomUUID()
+          : Math.random().toString(36).substring(2, 15);
+        const uniqueFileName = `${Date.now()}_${uniqueId}_${safeName}`;
+        const filePath = `${user.id}/uploads/${uniqueFileName}`;
 
         uploadDebug('Uploading document to storage', filePath);
         const { data: uploadData, error: uploadError } = await supabase.storage
