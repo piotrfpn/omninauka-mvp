@@ -994,5 +994,16 @@
         "expired": "Your previous plan has expired. You can renew Premium for another 30 days."
       }
     }
+  },
+  "lessonPage": {
+    "tutor": {
+      "guidance": {
+        "title": "AI Tutor works best after practice",
+        "bodyBeforeStrong": "Complete ",
+        "bodyStrong": "flashcards and the quiz",
+        "bodyAfterStrong": " first, so AI Tutor can better understand what you already know and what still needs explanation. You can start chatting now, but answers will be more helpful after the quiz.",
+        "dismissLabel": "Dismiss"
+      }
+    }
   }
 }

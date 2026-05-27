@@ -993,5 +993,16 @@
         "expired": "Twój poprzedni plan wygasł. Możesz odnowić Premium na kolejne 30 dni."
       }
     }
+  },
+  "lessonPage": {
+    "tutor": {
+      "guidance": {
+        "title": "AI Tutor działa najlepiej po ćwiczeniach",
+        "bodyBeforeStrong": "Najpierw przejdź ",
+        "bodyStrong": "fiszki i quiz",
+        "bodyAfterStrong": ", a wtedy AI Tutor lepiej zobaczy, które pojęcia są już opanowane, a które wymagają wyjaśnienia. Możesz pisać od razu, ale po quizie odpowiedzi będą trafniejsze.",
+        "dismissLabel": "Zamknij"
+      }
+    }
   }
 }

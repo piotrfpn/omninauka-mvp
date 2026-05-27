@@ -1,11 +1,13 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
-import { Send, Bot, User, Mic, MicOff, AlertCircle, AlertTriangle, RefreshCw, MessageCircle, LayoutDashboard, History, Target } from 'lucide-react';
+import { Send, Bot, User, Mic, MicOff, AlertCircle, AlertTriangle, RefreshCw, MessageCircle, LayoutDashboard, History, Target, Lightbulb, X } from 'lucide-react';
 import type { LessonMessage } from '../../types';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../lib/auth-context';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import { useTranslation } from 'react-i18next';
+import { Alert, AlertTitle, AlertDescription } from '../../components/ui/alert';
 
 // ==========================================
 // MOCK LESSON CHAT (For Demo Mode Zero-Cost)
@@ -260,6 +262,21 @@ function RealLessonChat() {
   const [contextSnapshot, setContextSnapshot] = useState<any>(null);
   const [isMistakeReview, setIsMistakeReview] = useState(false);
   const [mistakeCount, setMistakeCount] = useState(0);
+  const { t } = useTranslation();
+  const [showTutorGuidance, setShowTutorGuidance] = useState(() => {
+    try {
+      return sessionStorage.getItem('omninauka_tutor_guidance_dismissed') !== 'true';
+    } catch {
+      return true;
+    }
+  });
+
+  const handleDismissGuidance = () => {
+    setShowTutorGuidance(false);
+    try {
+      sessionStorage.setItem('omninauka_tutor_guidance_dismissed', 'true');
+    } catch { /* ignore */ }
+  };
 
   useEffect(() => {
     const initSession = async () => {
@@ -943,6 +960,31 @@ function RealLessonChat() {
       {/* Messages Area */}
       <div className="flex-1 overflow-y-auto px-4 py-4 space-y-6 custom-scrollbar">
         <div className="max-w-4xl mx-auto w-full space-y-6">
+          {!isMistakeReview && showTutorGuidance && (
+            <Alert className="bg-[var(--omni-lavender)]/20 border-[var(--omni-accent)]/20 dark:border-slate-700 relative p-4 flex gap-3 items-start pr-10 animate-in fade-in slide-in-from-top-4 duration-300">
+              <Lightbulb className="w-5 h-5 text-[var(--omni-accent)] shrink-0 mt-0.5" />
+              <div className="flex-1">
+                <AlertTitle className="font-bold text-[var(--omni-text)] text-sm mb-1">
+                  {t('lessonPage.tutor.guidance.title', 'AI Tutor działa najlepiej po ćwiczeniach')}
+                </AlertTitle>
+                <AlertDescription className="text-xs text-[var(--omni-text-muted)] leading-relaxed">
+                  {t('lessonPage.tutor.guidance.bodyBeforeStrong', 'Najpierw przejdź ')}
+                  <strong>
+                    {t('lessonPage.tutor.guidance.bodyStrong', 'fiszki i quiz')}
+                  </strong>
+                  {t('lessonPage.tutor.guidance.bodyAfterStrong', ', a wtedy AI Tutor lepiej zobaczy, które pojęcia są już opanowane, a które wymagają wyjaśnienia. Możesz pisać od razu, ale po quizie odpowiedzi będą trafniejsze.')}
+                </AlertDescription>
+              </div>
+              <button
+                type="button"
+                onClick={handleDismissGuidance}
+                className="absolute top-3 right-3 text-muted-foreground hover:text-foreground hover:bg-muted p-1 rounded-lg transition-all"
+                title={t('lessonPage.tutor.guidance.dismissLabel', 'Zamknij')}
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </Alert>
+          )}
           {messages.map((message) => (
             <div key={message.id} className={`flex items-start gap-2.5 ${message.role === 'user' ? 'flex-row-reverse' : ''}`}>
                <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 shadow-sm ${
