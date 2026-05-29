@@ -322,29 +322,32 @@ export default function HomePage() {
             {t('home.pricing.extra.info', '1 lekcja AI = do 5 zdjęć albo 1 dokument PDF/DOCX.')}
           </p>
           
-          <div className="mt-12 max-w-2xl mx-auto bg-white/60 border border-gray-100 rounded-2xl p-6 md:p-8 text-center shadow-sm">
-            <h3 className="font-bold text-2xl text-[var(--omni-text)] mb-2">Potrzebujesz więcej nauki?</h3>
-            <p className="text-[var(--omni-text-muted)] mb-6">
+          <div className="mt-12 max-w-2xl mx-auto bg-white/60 dark:bg-[#121A2B] border border-gray-100 dark:border-slate-700/60 rounded-2xl p-6 md:p-8 text-center shadow-sm">
+            <h3 className="font-bold text-2xl text-slate-800 dark:text-slate-50 mb-2">Potrzebujesz więcej nauki?</h3>
+            <p className="text-slate-600 dark:text-slate-300 mb-6">
               Dodatkowe lekcje AI dostępne są w pakietach od 9,99 zł.
             </p>
             
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
-              <div className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm flex flex-col items-center">
-                <span className="text-xl font-bold text-[var(--omni-text)] mb-1">9,99 zł</span>
-                <span className="text-sm font-medium text-[var(--omni-text-muted)]">5 lekcji AI</span>
+              <div className="bg-white dark:bg-[#0B1220] p-4 rounded-xl border border-gray-100 dark:border-slate-800/80 shadow-sm flex flex-col items-center transition-all hover:scale-[1.02]">
+                <span className="text-xl font-bold text-slate-800 dark:text-slate-50 mb-1">9,99 zł</span>
+                <span className="text-sm font-medium text-slate-500 dark:text-slate-400">5 lekcji AI</span>
               </div>
-              <div className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm flex flex-col items-center">
-                <span className="text-xl font-bold text-[var(--omni-text)] mb-1">17,99 zł</span>
-                <span className="text-sm font-medium text-[var(--omni-text-muted)]">10 lekcji AI</span>
+              <div className="bg-white dark:bg-[#0B1220] p-4 rounded-xl border border-gray-100 dark:border-slate-800/80 shadow-sm flex flex-col items-center transition-all hover:scale-[1.02]">
+                <span className="text-xl font-bold text-slate-800 dark:text-slate-50 mb-1">17,99 zł</span>
+                <span className="text-sm font-medium text-slate-500 dark:text-slate-400">10 lekcji AI</span>
               </div>
-              <div className="bg-white p-4 rounded-xl border border-[var(--omni-accent)]/30 ring-1 ring-[var(--omni-accent)]/10 shadow-sm flex flex-col items-center relative overflow-hidden">
-                <div className="absolute top-0 right-0 bg-[var(--omni-accent)]/10 text-[var(--omni-accent)] text-[10px] font-bold px-2 py-0.5 rounded-bl-lg">Najtaniej</div>
-                <span className="text-xl font-bold text-[var(--omni-text)] mb-1">34,99 zł</span>
-                <span className="text-sm font-medium text-[var(--omni-text-muted)]">25 lekcji AI</span>
+              <div className="bg-white dark:bg-[#0B1220] p-4 rounded-xl border border-[var(--omni-accent)]/30 dark:border-[#2EE6A6]/30 ring-1 ring-[var(--omni-accent)]/10 dark:ring-[#2EE6A6]/10 shadow-sm flex flex-col items-center relative overflow-hidden transition-all hover:scale-[1.02]">
+                <div className="absolute top-0 right-0 bg-[var(--omni-accent)]/10 dark:bg-[#2EE6A6]/10 text-[var(--omni-accent)] dark:text-[#2EE6A6] text-[10px] font-bold px-2 py-0.5 rounded-bl-lg">Najtaniej</div>
+                <span className="text-xl font-bold text-slate-800 dark:text-slate-50 mb-1">34,99 zł</span>
+                <span className="text-sm font-medium text-slate-500 dark:text-slate-400">25 lekcji AI</span>
               </div>
             </div>
 
-            <Link to="/login" className="omni-btn-secondary inline-flex items-center gap-2">
+            <Link
+              to="/login"
+              className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-[#6366f1] dark:bg-[#2EE6A6] text-white dark:text-[#0B1220] font-bold rounded-xl hover:opacity-90 active:scale-[0.98] transition-all shadow-md"
+            >
               Dokup lekcje po zalogowaniu
             </Link>
           </div>

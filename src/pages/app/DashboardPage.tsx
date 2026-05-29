@@ -313,11 +313,11 @@ export default function DashboardPage() {
                       <div className="flex items-center gap-2 ml-3">
                         {session.quiz_result && (
                           <div className={`px-2 py-0.5 rounded-lg text-xs font-bold border ${
-                            session.quiz_result.percentage >= 80 
-                              ? 'bg-green-50 text-green-700 border-green-100' 
-                              : session.quiz_result.percentage >= 50 
-                                ? 'bg-amber-50 text-amber-700 border-amber-100' 
-                                : 'bg-red-50 text-red-700 border-red-100'
+                            session.quiz_result.percentage >= 80
+                              ? 'bg-green-50 dark:bg-green-950/20 text-green-700 dark:text-green-400 border-green-100 dark:border-green-900/30'
+                              : session.quiz_result.percentage >= 50
+                                ? 'bg-amber-50 dark:bg-amber-950/20 text-amber-700 dark:text-amber-400 border-amber-100 dark:border-amber-900/30'
+                                : 'bg-red-50 dark:bg-red-950/20 text-red-700 dark:text-red-400 border-red-100 dark:border-red-900/30'
                           }`}>
                             {session.quiz_result.percentage}%
                           </div>
@@ -343,7 +343,7 @@ export default function DashboardPage() {
             ))}
           </div>
         ) : (
-          <div className="omni-card p-8 text-center bg-slate-50 border-dashed border-2">
+          <div className="omni-card p-8 text-center bg-slate-50 dark:bg-slate-900/50 border-dashed border-2 dark:border-slate-800">
             <p className="text-[var(--omni-text-muted)] mb-4">
               {t('dashboard.empty.title', 'Nie masz jeszcze żadnych zapisanych sesji.')}
             </p>
@@ -369,7 +369,7 @@ export default function DashboardPage() {
                     {subject.averageScore !== null ? `${subject.averageScore}%` : '—'}
                   </span>
                 </div>
-                <div className="w-full h-2 bg-gray-100 rounded-full overflow-hidden">
+                <div className="w-full h-2 bg-gray-100 dark:bg-slate-800 rounded-full overflow-hidden">
                   <div 
                     className="h-full rounded-full bg-green-500 transition-all duration-1000" 
                     style={{ width: `${subject.averageScore || 0}%` }} 

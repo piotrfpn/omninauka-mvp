@@ -102,7 +102,9 @@ export default function PaymentsPage() {
 
       {/* Sekcja 2: Karta obecnego planu */}
       <section className={`omni-card p-6 border-l-4 ${
-        isPlanActiveNow && isPaidPlan ? 'bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-400' : 'bg-gray-50 border-gray-300'
+        isPlanActiveNow && isPaidPlan
+          ? 'bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950/30 dark:to-indigo-950/30 border-blue-400 dark:border-blue-600'
+          : 'bg-gray-50 dark:bg-slate-900/50 border-gray-300 dark:border-slate-800'
       }`}>
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
@@ -110,9 +112,9 @@ export default function PaymentsPage() {
               {t('payments.currentPlanLabel', 'Twój obecny plan')}
             </h2>
             <div className="flex items-center gap-3">
-              <span className="text-2xl font-bold text-gray-900">{planLabel}</span>
+              <span className="text-2xl font-bold text-gray-900 dark:text-slate-50">{planLabel}</span>
               {isPlanActiveNow && (user?.effectivePlan || user?.plan) !== 'free' && (
-                <span className="px-2 py-1 bg-blue-100 text-blue-700 text-xs font-medium rounded-full">
+                <span className="px-2 py-1 bg-blue-100 dark:bg-blue-950/40 text-blue-700 dark:text-blue-400 text-xs font-semibold rounded-full">
                   {t('payments.status.active', 'Aktywny')}
                 </span>
               )}
@@ -148,14 +150,14 @@ export default function PaymentsPage() {
                   {t('payments.noExpiryDate', 'Plan aktywny. Brak zapisanej daty wygaśnięcia — skontaktuj się z obsługą.')}
                 </p>
               )}
-              <p className="text-xs text-gray-500">
+              <p className="text-xs text-gray-500 dark:text-slate-400">
                 {t('payments.currentPlanNote', 'Twój plan Premium powinien zostać aktywowany automatycznie w ciągu kilku minut od płatności.')}
               </p>
             </div>
           </div>
-          <div className="bg-white p-3 rounded-lg border border-blue-100 max-w-xs flex items-start gap-3 shadow-sm">
-            <AlertCircle className="w-5 h-5 text-blue-500 shrink-0 mt-0.5" />
-            <p className="text-xs text-gray-600 leading-relaxed">
+          <div className="bg-white dark:bg-slate-900 p-3 rounded-lg border border-blue-100 dark:border-blue-950/50 max-w-xs flex items-start gap-3 shadow-sm">
+            <AlertCircle className="w-5 h-5 text-blue-500 dark:text-blue-400 shrink-0 mt-0.5" />
+            <p className="text-xs text-gray-600 dark:text-slate-300 leading-relaxed">
               {t('payments.mvpNote', 'Plan aktywujemy automatycznie przez Stripe. W razie opóźnień odśwież stronę lub skontaktuj się z obsługą.')}
             </p>
           </div>
@@ -175,10 +177,10 @@ export default function PaymentsPage() {
               Premium 30 dni
             </h3>
             <div className="flex gap-2 mt-2 flex-wrap">
-              <span className="text-xs font-medium bg-gray-100 text-gray-600 px-2 py-1 rounded-md">
+              <span className="text-xs font-medium bg-gray-100 dark:bg-slate-800/80 text-gray-600 dark:text-slate-300 px-2 py-1 rounded-md">
                 Płatność jednorazowa
               </span>
-              <span className="text-xs font-medium bg-gray-100 text-gray-600 px-2 py-1 rounded-md">
+              <span className="text-xs font-medium bg-gray-100 dark:bg-slate-800/80 text-gray-600 dark:text-slate-300 px-2 py-1 rounded-md">
                 Bez automatycznego odnawiania
               </span>
             </div>
@@ -208,13 +210,13 @@ export default function PaymentsPage() {
           </ul>
           <div className="mt-auto">
             {premiumCTAIsDisabled ? (
-              <button disabled className="w-full inline-flex items-center justify-center whitespace-nowrap px-4 py-3 rounded-xl transition-all bg-gray-100 text-gray-400 font-semibold cursor-not-allowed">
+              <button disabled className="w-full inline-flex items-center justify-center whitespace-nowrap px-4 py-3 rounded-xl transition-all bg-gray-100 dark:bg-slate-800/80 text-gray-400 dark:text-slate-500 font-semibold cursor-not-allowed">
                 {premiumCTA}
               </button>
             ) : premium30Url ? (
               <a
                 href={premium30Url}
-                className="w-full inline-flex items-center justify-center whitespace-nowrap px-4 py-3 rounded-xl transition-all bg-[var(--omni-accent)] text-white font-bold hover:shadow-lg gap-2"
+                className="w-full inline-flex items-center justify-center whitespace-nowrap px-4 py-3 bg-[#6366f1] dark:bg-[#2EE6A6] text-white dark:text-[#0B1220] font-bold rounded-xl hover:shadow-lg gap-2 active:scale-[0.98] transition-all"
               >
                 {premiumCTA}
                 <ExternalLink className="w-4 h-4" />
@@ -235,10 +237,10 @@ export default function PaymentsPage() {
               Rodzinny 30 dni
             </h3>
             <div className="flex gap-2 mt-2 flex-wrap">
-              <span className="text-xs font-medium bg-gray-100 text-gray-600 px-2 py-1 rounded-md">
+              <span className="text-xs font-medium bg-gray-100 dark:bg-slate-800/80 text-gray-600 dark:text-slate-300 px-2 py-1 rounded-md">
                 Płatność jednorazowa
               </span>
-              <span className="text-xs font-medium bg-gray-100 text-gray-600 px-2 py-1 rounded-md">
+              <span className="text-xs font-medium bg-gray-100 dark:bg-slate-800/80 text-gray-600 dark:text-slate-300 px-2 py-1 rounded-md">
                 Bez automatycznego odnawiania
               </span>
             </div>
@@ -269,7 +271,7 @@ export default function PaymentsPage() {
             {family30Url ? (
               <a
                 href={family30Url}
-                className="w-full inline-flex items-center justify-center whitespace-nowrap px-4 py-3 rounded-xl transition-all bg-indigo-50 text-indigo-700 font-semibold hover:bg-indigo-100 gap-2"
+                className="w-full inline-flex items-center justify-center whitespace-nowrap px-4 py-3 rounded-xl transition-all bg-indigo-50 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-300 font-bold hover:bg-indigo-100 dark:hover:bg-indigo-900/60 gap-2"
               >
                 Kup Rodzinny na 30 dni
                 <ExternalLink className="w-4 h-4" />
@@ -310,11 +312,11 @@ export default function PaymentsPage() {
               </div>
               <div className="mt-auto">
                 {premiumSubUrl ? (
-                  <a href={premiumSubUrl} className="w-full py-2.5 px-4 rounded-lg bg-white border border-gray-300 text-gray-700 font-medium text-center block hover:bg-gray-50 transition-colors">
+                  <a href={premiumSubUrl} className="w-full py-2.5 px-4 rounded-lg bg-white dark:bg-slate-900 border border-gray-300 dark:border-slate-800 text-gray-700 dark:text-slate-200 font-medium text-center block hover:bg-gray-50 dark:hover:bg-slate-800 transition-colors">
                     Włącz subskrypcję
                   </a>
                 ) : (
-                  <button disabled className="w-full py-2.5 px-4 rounded-lg bg-gray-50 border border-gray-200 text-gray-400 font-medium cursor-not-allowed">
+                  <button disabled className="w-full py-2.5 px-4 rounded-lg bg-gray-50 dark:bg-slate-950 border border-gray-200 dark:border-slate-900 text-gray-400 dark:text-slate-500 font-medium cursor-not-allowed">
                     Wkrótce
                   </button>
                 )}
@@ -329,11 +331,11 @@ export default function PaymentsPage() {
               </div>
               <div className="mt-auto">
                 {familySubUrl ? (
-                  <a href={familySubUrl} className="w-full py-2.5 px-4 rounded-lg bg-white border border-gray-300 text-gray-700 font-medium text-center block hover:bg-gray-50 transition-colors">
+                  <a href={familySubUrl} className="w-full py-2.5 px-4 rounded-lg bg-white dark:bg-slate-900 border border-gray-300 dark:border-slate-800 text-gray-700 dark:text-slate-200 font-medium text-center block hover:bg-gray-50 dark:hover:bg-slate-800 transition-colors">
                     Włącz subskrypcję
                   </a>
                 ) : (
-                  <button disabled className="w-full py-2.5 px-4 rounded-lg bg-gray-50 border border-gray-200 text-gray-400 font-medium cursor-not-allowed">
+                  <button disabled className="w-full py-2.5 px-4 rounded-lg bg-gray-50 dark:bg-slate-950 border border-gray-200 dark:border-slate-900 text-gray-400 dark:text-slate-500 font-medium cursor-not-allowed">
                     Wkrótce
                   </button>
                 )}
@@ -350,7 +352,7 @@ export default function PaymentsPage() {
           <p className="text-[var(--omni-text-muted)] mb-2">
             Dla ucznia, który potrzebuje więcej nauki przed sprawdzianem, kartkówką albo powtórką.
           </p>
-          <p className="text-xs text-[var(--omni-text-muted-light)] bg-gray-50 inline-block px-3 py-1 rounded-full">
+          <p className="text-xs text-[var(--omni-text-muted-light)] bg-gray-50 dark:bg-slate-900/50 inline-block px-3 py-1 rounded-full">
             1 lekcja AI = do 5 zdjęć albo 1 dokument PDF/DOCX.
           </p>
         </div>
@@ -370,11 +372,11 @@ export default function PaymentsPage() {
               </div>
               <div className="mt-auto">
                 {item.link ? (
-                  <a href={buildStripePaymentUrl(item.link, user?.id)} className="w-full py-2 px-4 rounded-lg bg-blue-50 text-blue-600 font-medium inline-block hover:bg-blue-100 transition-colors">
+                  <a href={buildStripePaymentUrl(item.link, user?.id)} className="w-full py-2 px-4 rounded-lg bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400 font-bold inline-block hover:bg-blue-100 dark:hover:bg-blue-900/60 transition-colors">
                     Kup pakiet
                   </a>
                 ) : (
-                  <button disabled className="w-full py-2 px-4 rounded-lg bg-gray-50 text-gray-400 font-medium cursor-not-allowed">
+                  <button disabled className="w-full py-2 px-4 rounded-lg bg-gray-50 dark:bg-slate-900/50 text-gray-400 dark:text-slate-600 font-medium cursor-not-allowed">
                     Wkrótce
                   </button>
                 )}
