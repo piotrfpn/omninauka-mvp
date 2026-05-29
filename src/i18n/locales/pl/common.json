@@ -567,6 +567,20 @@
       "retry": "Spróbuj ponownie z innym zdjęciem",
       "network": "Wystąpił nieoczekiwany błąd sieci."
     },
+    "loading": {
+      "title": "Analizuję Twoje materiały",
+      "subtitle": "To może potrwać kilkanaście sekund. Nie zamykaj tej strony.",
+      "steps": {
+        "preparing": "Przygotowuję materiał",
+        "uploading": "Przekazuję materiał do analizy",
+        "reading": "Odczytuję treść",
+        "summarizing": "Tworzę podsumowanie lekcji",
+        "creatingPractice": "Przygotowuję quiz i fiszki",
+        "finishing": "Jeszcze chwilę — kończę przygotowanie lekcji",
+        "done": "Gotowe"
+      },
+      "longWait": "Jeszcze chwilę — kończę przygotowanie lekcji."
+    },
     "empty": {
       "title": "Nie znaleziono podsumowania lekcji",
       "back": "Wróć do uploadu"

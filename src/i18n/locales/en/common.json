@@ -568,6 +568,20 @@
       "retry": "Try again with another photo",
       "network": "An unexpected network error occurred."
     },
+    "loading": {
+      "title": "Analyzing your materials",
+      "subtitle": "This may take a few seconds. Please do not close this page.",
+      "steps": {
+        "preparing": "Preparing material",
+        "uploading": "Sending material for analysis",
+        "reading": "Reading the content",
+        "summarizing": "Creating lesson summary",
+        "creatingPractice": "Preparing quiz and flashcards",
+        "finishing": "Almost done — finishing your lesson",
+        "done": "Done"
+      },
+      "longWait": "Almost done — finishing your lesson."
+    },
     "empty": {
       "title": "Lesson summary not found",
       "back": "Back to upload"

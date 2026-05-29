@@ -21,7 +21,6 @@ import {
   FileText,
 } from 'lucide-react';
 import { LessonTitleEditor } from '../../components/lessons/lesson-title-editor';
-import { AnalysisSkeleton } from '../../components/ui/page-skeletons';
 import { ConceptDetailSheet } from '../../components/lessons/concept-detail-sheet';
 
 export default function AnalysisPage() {
@@ -37,12 +36,35 @@ export default function AnalysisPage() {
   const [activeImageIdx, setActiveImageIdx] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
   const [analysisError, setAnalysisError] = useState<string | null>(null);
+  const [progress, setProgress] = useState(0);
   const [selectedConcept, setSelectedConcept] = useState<KeyConcept | null>(null);
   const [isConceptModalOpen, setIsConceptModalOpen] = useState(false);
   // Sprint 1: lesson title
   const [lessonTitle, setLessonTitle] = useState<string>('');
   const { id: routeId } = useParams();
   const currentSessionId = routeId || sessionStorage.getItem('currentSessionId') || '';
+
+  useEffect(() => {
+    if (!isLoading || analysisError) {
+      return;
+    }
+
+    setProgress(0);
+
+    const interval = setInterval(() => {
+      setProgress((prev) => {
+        if (prev >= 95) {
+          clearInterval(interval);
+          return 95;
+        }
+        return prev + 1;
+      });
+    }, 150);
+
+    return () => {
+      clearInterval(interval);
+    };
+  }, [isLoading, analysisError]);
 
   useEffect(() => {
     const sessionId = currentSessionId;
@@ -53,6 +75,7 @@ export default function AnalysisPage() {
 
     let isMounted = true;
     let timeoutId: any;
+    let transitionTimeoutId: any;
     const controller = new AbortController();
 
     // DEMO BYPASS: We retrieve the explicitly mocked base64
@@ -68,12 +91,20 @@ export default function AnalysisPage() {
         const result = getDemoAnalysis();
         setAnalysis(result);
         sessionStorage.setItem('currentAnalysis', JSON.stringify(result));
-        setIsLoading(false);
+        setProgress(100);
+        transitionTimeoutId = setTimeout(() => {
+          if (isMounted) {
+            setIsLoading(false);
+          }
+        }, 300);
       }, 1500);
       
       return () => {
         isMounted = false;
         clearTimeout(timer);
+        if (transitionTimeoutId) {
+          clearTimeout(transitionTimeoutId);
+        }
       };
     }
 
@@ -273,7 +304,17 @@ export default function AnalysisPage() {
         }
 
         if (isMounted) {
-          setIsLoading(false);
+          const wasAlreadyAnalyzed = sessionData && sessionData.subject;
+          if (wasAlreadyAnalyzed) {
+            setIsLoading(false);
+          } else {
+            setProgress(100);
+            transitionTimeoutId = setTimeout(() => {
+              if (isMounted) {
+                setIsLoading(false);
+              }
+            }, 300);
+          }
         }
       } catch (err: any) {
         if (!isMounted) return;
@@ -301,6 +342,9 @@ export default function AnalysisPage() {
       controller.abort();
       if (timeoutId) {
         clearTimeout(timeoutId);
+      }
+      if (transitionTimeoutId) {
+        clearTimeout(transitionTimeoutId);
       }
     };
   }, [navigate]);
@@ -330,10 +374,6 @@ export default function AnalysisPage() {
   };
 
 
-  if (isLoading) {
-    return <AnalysisSkeleton />;
-  }
-
   if (analysisError) {
     const isUsageLimit = analysisError.startsWith('usage_limit:');
     const displayMsg = isUsageLimit ? analysisError.replace('usage_limit:', '') : analysisError;
@@ -352,6 +392,72 @@ export default function AnalysisPage() {
               {t('analysis.error.retry')}
             </Link>
           )}
+        </div>
+      </div>
+    );
+  }
+
+  if (isLoading) {
+    let stepKey = 'preparing';
+    if (progress >= 10 && progress < 25) {
+      stepKey = 'uploading';
+    } else if (progress >= 25 && progress < 45) {
+      stepKey = 'reading';
+    } else if (progress >= 45 && progress < 70) {
+      stepKey = 'summarizing';
+    } else if (progress >= 70 && progress < 90) {
+      stepKey = 'creatingPractice';
+    } else if (progress >= 90) {
+      stepKey = 'finishing';
+    }
+
+    const isHoldingAtMax = progress === 95;
+    const currentStepText = isHoldingAtMax
+      ? t('analysis.loading.longWait')
+      : t(`analysis.loading.steps.${stepKey}`);
+
+    return (
+      <div className="flex items-center justify-center min-h-[70vh] px-4 bg-[#0B1220] animate-in fade-in duration-500">
+        <div className="w-full max-w-md bg-[#121A2B] border border-[#22D3EE]/10 rounded-2xl p-6 sm:p-8 shadow-2xl relative overflow-hidden flex flex-col items-center">
+          {/* Ambient AI Glow */}
+          <div className="absolute -top-24 left-1/2 -translate-x-1/2 w-64 h-64 bg-[#22D3EE]/5 rounded-full blur-3xl pointer-events-none" />
+
+          {/* Pulsing premium sparkles icon */}
+          <div className="relative flex items-center justify-center w-16 h-16 rounded-full bg-[#22D3EE]/10 border border-[#22D3EE]/20 mb-6">
+            <Sparkles className="w-8 h-8 text-[#22D3EE] animate-pulse" />
+          </div>
+
+          {/* Title */}
+          <h2 className="text-xl sm:text-2xl font-extrabold text-[#F8FAFC] tracking-tight text-center mb-2">
+            {t('analysis.loading.title')}
+          </h2>
+
+          {/* Subtitle */}
+          <p className="text-xs sm:text-sm text-[#94A3B8] text-center leading-relaxed max-w-[295px] mb-8">
+            {t('analysis.loading.subtitle')}
+          </p>
+
+          {/* Progress Indicators */}
+          <div className="w-full space-y-3">
+            <div className="flex justify-between items-center text-xs font-semibold">
+              <span className={`text-[#94A3B8] transition-all duration-300 ${isHoldingAtMax ? 'animate-pulse text-[#22D3EE]' : ''}`}>
+                {currentStepText}
+              </span>
+              <span className="text-[#2EE6A6] tabular-nums font-bold text-sm">
+                {progress}%
+              </span>
+            </div>
+
+            {/* Progress track */}
+            <div className="w-full h-3 bg-[#0B1220] rounded-full overflow-hidden border border-[#94A3B8]/10 p-[2px]">
+              <div
+                className={`h-full bg-gradient-to-r from-[#22D3EE] to-[#2EE6A6] rounded-full transition-all duration-300 ease-out ${
+                  isHoldingAtMax ? 'animate-pulse shadow-[0_0_12px_rgba(46,230,166,0.5)]' : ''
+                }`}
+                style={{ width: `${progress}%` }}
+              />
+            </div>
+          </div>
         </div>
       </div>
     );
