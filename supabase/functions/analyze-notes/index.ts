@@ -12,12 +12,35 @@ serve(async (req) => {
     return new Response('ok', { headers: corsHeaders });
   }
 
+  let markTimingFn: ((stage: string, extra?: Record<string, unknown>) => void) | null = null;
+
   try {
+    const requestStartedAt = performance.now();
+    const requestId = crypto.randomUUID();
+
+    const markTiming = (stage: string, extra?: Record<string, unknown>) => {
+      const now = performance.now();
+      const elapsedMs = Math.round(now - requestStartedAt);
+      const payload = {
+        marker: 'analyze-notes-timing',
+        requestId,
+        stage,
+        elapsedMs,
+        ...(extra ?? {}),
+      };
+      console.info(JSON.stringify(payload));
+    };
+
+    markTimingFn = markTiming;
+
+    markTiming('request_start');
     console.log("--- ANALYZE-NOTES INVOCATION START ---");
     
     const authHeader = req.headers.get('Authorization') || req.headers.get('authorization');
     if (!authHeader) {
       console.error("[analyze-notes] 401: Missing Authorization header");
+      markTiming('response_ready', { status: 'error', errorCode: 'auth_failed' });
+      markTiming('request_done', { status: 'error' });
       return new Response(JSON.stringify({ error: 'Unauthorized: missing authorization header' }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 401,
@@ -30,6 +53,8 @@ serve(async (req) => {
 
     if (!supabaseUrl || !supabaseServiceKey) {
       console.error("[analyze-notes] 500: Server configuration missing");
+      markTiming('response_ready', { status: 'error', errorCode: 'unknown_error' });
+      markTiming('request_done', { status: 'error' });
       return new Response(JSON.stringify({ error: 'Server misconfiguration' }), {
          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
          status: 500,
@@ -49,7 +74,9 @@ serve(async (req) => {
     // Verify user identity
     const { data: { user }, error: authError } = await supabaseClient.auth.getUser();
     if (authError || !user) {
-      console.error("[analyze-notes] 401: Auth verification failed", authError);
+      console.error("[analyze-notes] 401: Auth verification failed");
+      markTiming('response_ready', { status: 'error', errorCode: 'auth_failed' });
+      markTiming('request_done', { status: 'error' });
       return new Response(JSON.stringify({ error: 'Unauthorized: token validation failed' }), {
          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
          status: 401,
@@ -66,6 +93,8 @@ serve(async (req) => {
 
     if (profileError || !profile) {
       console.error("[analyze-notes] 404: Profile not found");
+      markTiming('response_ready', { status: 'error', errorCode: 'auth_failed' });
+      markTiming('request_done', { status: 'error' });
       return new Response(JSON.stringify({ error: 'User profile not found' }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 404,
@@ -77,7 +106,9 @@ serve(async (req) => {
       profile.account_status === 'parent_withdrawn' ||
       profile.account_status === 'suspended'
     ) {
-      console.warn(`[analyze-notes] 403: Access blocked for status ${profile.account_status}, user ${userId}`);
+      console.warn(`[analyze-notes] 403: Access blocked for status ${profile.account_status}`);
+      markTiming('response_ready', { status: 'error', errorCode: 'auth_failed' });
+      markTiming('request_done', { status: 'error' });
       return new Response(JSON.stringify({ 
         error: `Dostęp zablokowany: status konta ${profile.account_status}` 
       }), {
@@ -85,6 +116,8 @@ serve(async (req) => {
         status: 403,
       });
     }
+
+    markTiming('auth_check');
 
     // --- USAGE LIMITS GUARD (Sprint 23A) ---
     // We use get_my_effective_plan() to respect inherited family plans.
@@ -94,12 +127,12 @@ serve(async (req) => {
         .rpc('get_my_effective_plan');
 
       if (planError) {
-        console.warn('[analyze-notes] get_my_effective_plan failed in analyze-notes, falling back to free', planError);
+        console.warn('[analyze-notes] get_my_effective_plan failed in analyze-notes, falling back to free');
       } else if (effectiveData?.effective_plan) {
         effectivePlan = effectiveData.effective_plan;
       }
     } catch (err) {
-      console.warn('[analyze-notes] get_my_effective_plan threw in analyze-notes, falling back to free', err);
+      console.warn('[analyze-notes] get_my_effective_plan threw in analyze-notes, falling back to free');
     }
     const dailyLimit = (effectivePlan === 'premium' || effectivePlan === 'family') ? 10 : 2;
     const maxCards = (effectivePlan === 'premium' || effectivePlan === 'family') ? 20 : 5;
@@ -116,11 +149,13 @@ serve(async (req) => {
       .gte('created_at', startOfToday.toISOString());
 
     if (usageError) {
-      console.error("[analyze-notes] Usage count error:", usageError.message);
+      console.error("[analyze-notes] Usage count error");
     }
 
     if ((usageCount || 0) >= dailyLimit) {
-      console.warn(`[analyze-notes] 403: Usage limit reached for user ${userId} (${usageCount}/${dailyLimit})`);
+      console.warn(`[analyze-notes] 403: Usage limit reached`);
+      markTiming('response_ready', { status: 'error', errorCode: 'auth_failed' });
+      markTiming('request_done', { status: 'error' });
       return new Response(JSON.stringify({ 
         error: "usage_limit_reached",
         feature: "ai_lessons",
@@ -141,11 +176,15 @@ serve(async (req) => {
 
     if (!sessionId) {
       console.error("[analyze-notes] 400: Missing sessionId");
+      markTiming('response_ready', { status: 'error', errorCode: 'missing_session_id' });
+      markTiming('request_done', { status: 'error' });
       return new Response(JSON.stringify({ error: 'Missing sessionId' }), {
          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
          status: 400
       });
     }
+
+    markTiming('parse_payload');
 
     const { data: sessionData, error: dbError } = await adminClient
       .from('study_sessions')
@@ -154,7 +193,9 @@ serve(async (req) => {
       .single();
 
     if (dbError || !sessionData) {
-      console.error("[analyze-notes] 404: Session not found ->", sessionId);
+      console.error("[analyze-notes] 404: Session not found");
+      markTiming('response_ready', { status: 'error', errorCode: 'session_not_found' });
+      markTiming('request_done', { status: 'error' });
       return new Response(JSON.stringify({ error: 'Session not found' }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 404
@@ -163,14 +204,20 @@ serve(async (req) => {
 
     if (sessionData.user_id !== userId) {
        console.error("[analyze-notes] 403: Ownership mismatch");
+       markTiming('response_ready', { status: 'error', errorCode: 'auth_failed' });
+       markTiming('request_done', { status: 'error' });
        return new Response(JSON.stringify({ error: 'Forbidden: session belongs to another user' }), {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
           status: 403
        });
     }
 
+    markTiming('load_session');
+
     // Idempotency guard: skip if already processed
     if (sessionData.subject) {
+      markTiming('response_ready', { status: 'success' });
+      markTiming('request_done', { status: 'success' });
       return new Response(JSON.stringify({ success: true, alreadyAnalyzed: true }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 200
@@ -180,8 +227,9 @@ serve(async (req) => {
     let ocrText = "";
 
     if (sessionData.raw_ocr_text && sessionData.raw_ocr_text.trim().length > 0) {
-      console.log(`[analyze-notes] Found pre-extracted text for session: ${sessionId}, skipping Vision OCR`);
+      console.log('[analyze-notes] Found pre-extracted text, skipping Vision OCR');
       ocrText = sessionData.raw_ocr_text;
+      markTiming('ocr_skipped', { totalChars: ocrText.length });
     } else {
       // 3. Collect all image paths for this session
       // Primary image from study_sessions.image_url (always present for backward compat)
@@ -206,7 +254,9 @@ serve(async (req) => {
         }
       }
 
-      console.log(`[analyze-notes] Processing ${imagePaths.length} image(s) for session:`, sessionId);
+      console.log('[analyze-notes] Processing images for OCR', { imageCount: imagePaths.length });
+
+      markTiming('ocr_start', { imageCount: imagePaths.length });
 
       // 4. Google Cloud Vision OCR — sequential per image, concatenate results
       const GOOGLE_VISION_KEY = Deno.env.get('GOOGLE_VISION_API_KEY');
@@ -216,17 +266,30 @@ serve(async (req) => {
 
       for (let imgIdx = 0; imgIdx < imagePaths.length; imgIdx++) {
         const imgPath = imagePaths[imgIdx];
-        console.log(`[analyze-notes] OCR image ${imgIdx + 1}/${imagePaths.length}: ${imgPath}`);
+        console.log('[analyze-notes] OCR image started', { imgIdx, totalImages: imagePaths.length });
+
+        const downloadStart = performance.now();
+        markTiming('load_storage_file_start', { imgIdx, totalImages: imagePaths.length });
 
         // Download image from private Storage
         const { data: fileData, error: downloadError } = await adminClient.storage
           .from('study-materials')
           .download(imgPath);
 
+        const downloadDuration = Math.round(performance.now() - downloadStart);
+
         if (downloadError || !fileData) {
-          console.error(`[analyze-notes] Storage download failed for image ${imgIdx + 1} ->`, downloadError?.message);
+          console.error('[analyze-notes] Storage download failed');
+          markTiming('load_storage_file_failed', {
+            imgIdx,
+            totalImages: imagePaths.length,
+            durationMs: downloadDuration,
+            errorCode: 'storage_download_failed'
+          });
           // Non-fatal for multi-image: log and skip this image
           if (imagePaths.length === 1) {
+            markTiming('response_ready', { status: 'error', errorCode: 'storage_download_failed' });
+            markTiming('request_done', { status: 'error' });
             return new Response(JSON.stringify({ error: `Storage download failed: ${downloadError?.message || 'no payload'}` }), {
               headers: { ...corsHeaders, 'Content-Type': 'application/json' },
               status: 500
@@ -236,11 +299,18 @@ serve(async (req) => {
           continue;
         }
 
+        markTiming('load_storage_file_done', {
+          imgIdx,
+          totalImages: imagePaths.length,
+          durationMs: downloadDuration,
+          fileSize: fileData.size
+        });
+
         const arrayBuffer = await fileData.arrayBuffer();
         const bytes = new Uint8Array(arrayBuffer);
 
         if (bytes.length === 0) {
-          console.error(`[analyze-notes] Empty image payload for image ${imgIdx + 1}`);
+          console.error('[analyze-notes] Empty image payload');
           ocrParts.push(`[Strona ${imgIdx + 1}: pusty plik]`);
           continue;
         }
@@ -252,6 +322,9 @@ serve(async (req) => {
           binary += String.fromCharCode(...bytes.subarray(i, i + chunkSize));
         }
         const base64Image = btoa(binary);
+
+        const ocrCallStart = performance.now();
+        markTiming('ocr_call_start', { imgIdx, totalImages: imagePaths.length });
 
         // Call Google Vision OCR
         const visionResponse = await fetch(`https://vision.googleapis.com/v1/images:annotate?key=${GOOGLE_VISION_KEY}`, {
@@ -266,11 +339,13 @@ serve(async (req) => {
         });
 
         const rawVisionText = await visionResponse.text();
+        const ocrCallDuration = Math.round(performance.now() - ocrCallStart);
+
         let visionData: any = {};
         try {
           visionData = JSON.parse(rawVisionText);
         } catch(e) {
-          console.error(`[analyze-notes] Vision response not valid JSON for image ${imgIdx + 1}`);
+          console.error('[analyze-notes] Vision response not valid JSON');
         }
 
         const topLevelError = visionData.error;
@@ -279,21 +354,35 @@ serve(async (req) => {
         const hasVisionError = !!responseItem?.error;
 
         if (!visionResponse.ok || topLevelError || hasVisionError) {
-          const exactMessage = topLevelError?.message || responseItem?.error?.message || "Unknown Error";
-          console.error(`[analyze-notes] Vision error for image ${imgIdx + 1} ->`, exactMessage);
+          console.error('[analyze-notes] Vision OCR failed');
+          markTiming('ocr_call_failed', {
+            imgIdx,
+            totalImages: imagePaths.length,
+            durationMs: ocrCallDuration,
+            errorCode: 'ocr_failed'
+          });
           // Fatal only for single-image sessions
           if (imagePaths.length === 1) {
-            return new Response(JSON.stringify({ error: `Google Vision error: ${exactMessage}` }), {
+            markTiming('response_ready', { status: 'error', errorCode: 'ocr_failed' });
+            markTiming('request_done', { status: 'error' });
+            return new Response(JSON.stringify({ error: 'Google Vision error: ocr_failed' }), {
               headers: { ...corsHeaders, 'Content-Type': 'application/json' },
               status: 502
             });
           }
-          ocrParts.push(`[Strona ${imgIdx + 1}: błąd OCR - ${exactMessage}]`);
+          ocrParts.push(`[Strona ${imgIdx + 1}: nie udało się odczytać tekstu]`);
           continue;
         }
 
         const pageText = responseItem?.fullTextAnnotation?.text || "";
-        console.log(`[analyze-notes] Image ${imgIdx + 1} OCR chars:`, pageText.length);
+        console.log('[analyze-notes] Image OCR chars completed', { charsCount: pageText.length });
+
+        markTiming('ocr_call_done', {
+          imgIdx,
+          totalImages: imagePaths.length,
+          durationMs: ocrCallDuration,
+          charsCount: pageText.length
+        });
 
         if (pageText.trim().length > 0) {
           ocrParts.push(imgIdx === 0 ? pageText : `--- Strona ${imgIdx + 1} ---\n${pageText}`);
@@ -302,7 +391,7 @@ serve(async (req) => {
 
       // Combine all OCR text
       ocrText = ocrParts.join('\n\n');
-      console.log("[analyze-notes] Total OCR chars before cap:", ocrText.length);
+      console.log('[analyze-notes] Total OCR chars completed', { totalChars: ocrText.length });
 
       // Cost protection: cap combined OCR at 8000 chars to avoid OpenAI context overflow
       const OCR_CHAR_CAP = 8000;
@@ -311,7 +400,14 @@ serve(async (req) => {
         ocrText = ocrText.substring(0, OCR_CHAR_CAP) + '\n[...tekst obcięty - za długi materiał]';
       }
 
+      markTiming('ocr_done', {
+        totalImages: imagePaths.length,
+        totalChars: ocrText.length
+      });
+
       if (!ocrText || ocrText.trim().length === 0) {
+        markTiming('response_ready', { status: 'error', errorCode: 'ocr_failed' });
+        markTiming('request_done', { status: 'error' });
         return new Response(JSON.stringify({ error: "Nie wykryto żadnego tekstu na zdjęciach." }), {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
           status: 422
@@ -335,6 +431,13 @@ serve(async (req) => {
     const OPENAI_KEY = Deno.env.get('OPENAI_API_KEY');
     if (!OPENAI_KEY) throw new Error("OpenAI API Key missing");
 
+    markTiming('openai_analysis_start', {
+      inputChars: ocrText.length,
+      maxCards,
+      totalQuiz
+    });
+
+    const openAiStart = performance.now();
     const openAiResponse = await fetch("https://api.openai.com/v1/chat/completions", {
       method: "POST",
       headers: {
@@ -413,11 +516,18 @@ ZASADY QUIZU — KRYTYCZNE, MUSZĄ BYĆ BEZWZGLĘDNIE PRZESTRZEGANE:
     });
 
     const rawAiText = await openAiResponse.text();
+    const openAiDuration = Math.round(performance.now() - openAiStart);
     let aiData: any = {};
     try {
       aiData = JSON.parse(rawAiText);
     } catch (e) {
       console.error("[analyze-notes] OpenAI response not valid JSON");
+      markTiming('openai_analysis_failed', {
+        durationMs: openAiDuration,
+        errorCode: 'ai_analysis_failed'
+      });
+      markTiming('response_ready', { status: 'error', errorCode: 'ai_analysis_failed' });
+      markTiming('request_done', { status: 'error' });
       return new Response(JSON.stringify({ error: "AI processing error: invalid response format" }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 502
@@ -425,8 +535,14 @@ ZASADY QUIZU — KRYTYCZNE, MUSZĄ BYĆ BEZWZGLĘDNIE PRZESTRZEGANE:
     }
 
     if (aiData.error) {
-      console.error("[analyze-notes] 502: OpenAI API error ->", aiData.error?.message);
-      return new Response(JSON.stringify({ error: `OpenAI API error: ${aiData.error?.message || 'Unknown'}` }), {
+      console.error("[analyze-notes] 502: OpenAI API error");
+      markTiming('openai_analysis_failed', {
+        durationMs: openAiDuration,
+        errorCode: 'ai_analysis_failed'
+      });
+      markTiming('response_ready', { status: 'error', errorCode: 'ai_analysis_failed' });
+      markTiming('request_done', { status: 'error' });
+      return new Response(JSON.stringify({ error: "OpenAI API error: ai_analysis_failed" }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 502
       });
@@ -434,6 +550,12 @@ ZASADY QUIZU — KRYTYCZNE, MUSZĄ BYĆ BEZWZGLĘDNIE PRZESTRZEGANE:
 
     if (!openAiResponse.ok) {
       console.error("[analyze-notes] OpenAI non-ok status ->", openAiResponse.status);
+      markTiming('openai_analysis_failed', {
+        durationMs: openAiDuration,
+        errorCode: 'ai_analysis_failed'
+      });
+      markTiming('response_ready', { status: 'error', errorCode: 'ai_analysis_failed' });
+      markTiming('request_done', { status: 'error' });
       return new Response(JSON.stringify({ error: `OpenAI HTTP error ${openAiResponse.status}` }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 502
@@ -448,18 +570,37 @@ ZASADY QUIZU — KRYTYCZNE, MUSZĄ BYĆ BEZWZGLĘDNIE PRZESTRZEGANE:
          parsedGeneration = JSON.parse(aiData.choices[0].message.content);
       } else {
          console.error("[analyze-notes] OpenAI unexpected response shape");
+         markTiming('openai_analysis_failed', {
+           durationMs: openAiDuration,
+           errorCode: 'ai_analysis_failed'
+         });
+         markTiming('response_ready', { status: 'error', errorCode: 'ai_analysis_failed' });
+         markTiming('request_done', { status: 'error' });
          return new Response(JSON.stringify({ error: "AI processing error: unexpected response shape" }), {
            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
            status: 502
          });
       }
     } catch (parseErr: any) {
-       console.error("[analyze-notes] JSON.parse failed ->", parseErr?.message);
+       console.error("[analyze-notes] JSON.parse failed");
+       markTiming('openai_analysis_failed', {
+         durationMs: openAiDuration,
+         errorCode: 'ai_analysis_failed'
+       });
+       markTiming('response_ready', { status: 'error', errorCode: 'ai_analysis_failed' });
+       markTiming('request_done', { status: 'error' });
        return new Response(JSON.stringify({ error: `AI processing error: JSON parse failed` }), {
          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
          status: 502
        });
     }
+
+    markTiming('openai_analysis_done', {
+      durationMs: openAiDuration,
+      conceptsCount: parsedGeneration.keyConcepts?.length ?? 0,
+      flashcardsCount: parsedGeneration.flashcards?.length ?? 0,
+      quizQuestionsCount: parsedGeneration.quizQuestions?.length ?? 0
+    });
 
     // ── Deduplication helpers ─────────────────────────────────────────────────
 
@@ -528,6 +669,9 @@ ZASADY QUIZU — KRYTYCZNE, MUSZĄ BYĆ BEZWZGLĘDNIE PRZESTRZEGANE:
     console.log(`[analyze-notes] Quiz questions: ${rawQuizQuestions.length} raw → ${quiz_questions.length} after dedup`);
 
     // 6. Save generated results to Postgres securely via Admin Client
+    markTiming('db_update_start');
+    const dbUpdateStart = performance.now();
+
     const { error: updateError } = await adminClient
       .from('study_sessions')
       .update({
@@ -542,7 +686,19 @@ ZASADY QUIZU — KRYTYCZNE, MUSZĄ BYĆ BEZWZGLĘDNIE PRZESTRZEGANE:
       })
       .eq('id', sessionId);
 
-    if (updateError) throw new Error(`DB Update failed: ${updateError.message}`);
+    const dbUpdateDuration = Math.round(performance.now() - dbUpdateStart);
+
+    if (updateError) {
+      markTiming('db_update_failed', {
+        durationMs: dbUpdateDuration,
+        errorCode: 'db_update_failed'
+      });
+      throw new Error(`DB Update failed: ${updateError.message}`);
+    }
+
+    markTiming('db_update_done', {
+      durationMs: dbUpdateDuration
+    });
 
     // Log usage event on success
     await adminClient.from('usage_events').insert({
@@ -552,13 +708,44 @@ ZASADY QUIZU — KRYTYCZNE, MUSZĄ BYĆ BEZWZGLĘDNIE PRZESTRZEGANE:
       metadata: { effectivePlan }
     });
 
+    markTiming('response_ready', { status: 'success' });
+    markTiming('request_done', { status: 'success' });
+
     return new Response(JSON.stringify({ success: true, sessionId }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: 200,
     });
 
   } catch (error: any) {
-    console.error('Edge Function Error:', error);
+    let safeErrorCode = 'unknown_error';
+    const errMsg = (error?.message || '').toLowerCase();
+    if (errMsg.includes('auth')) {
+      safeErrorCode = 'auth_failed';
+    } else if (errMsg.includes('missing session')) {
+      safeErrorCode = 'missing_session_id';
+    } else if (errMsg.includes('session not found')) {
+      safeErrorCode = 'session_not_found';
+    } else if (errMsg.includes('download failed') || errMsg.includes('storage')) {
+      safeErrorCode = 'storage_download_failed';
+    } else if (errMsg.includes('vision') || errMsg.includes('ocr')) {
+      safeErrorCode = 'ocr_failed';
+    } else if (errMsg.includes('openai') || errMsg.includes('ai processing')) {
+      safeErrorCode = 'ai_analysis_failed';
+    } else if (errMsg.includes('db update') || errMsg.includes('postgres')) {
+      safeErrorCode = 'db_update_failed';
+    }
+
+    if (markTimingFn) {
+      markTimingFn('request_failed', { status: 'error', errorCode: safeErrorCode });
+    } else {
+      console.error(JSON.stringify({
+        marker: 'analyze-notes-timing',
+        stage: 'request_failed',
+        status: 'error',
+        errorCode: safeErrorCode
+      }));
+    }
+
     return new Response(JSON.stringify({ error: error?.message || "Unknown server error" }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: 500,
