@@ -197,7 +197,7 @@
         "cta": "Premium wählen"
       },
       "premiumPlus": {
-        "title": "Premium+",
+        "title": "Premium",
         "price": "49 PLN",
         "badge": "Prüfungen",
         "feat1": "Alles in Premium",
@@ -240,12 +240,12 @@
         "a": "Ein Quiz mit Erklärungen ist ein kurzes Training nach einer Lektion. Es hilft, das grundlegende Verständnis des Themas zu überprüfen, und zeigt, warum eine Antwort richtig oder falsch ist. Ein Test mit Fehlerbericht ist ein größerer Bereitschaftstest für einen Wissenstest oder eine Prüfung. Am Ende erhält der Schüler ein Ergebnis und Informationen darüber, welche Themen wiederholt werden sollten."
       },
       "q3": {
-        "q": "Was ist Premium+?",
-        "a": "Premium+ ist ein Plan für Schüler, die sich auf wichtige Prüfungen vorbereiten, wie die Achtklässlerprüfung oder das Abitur. Er umfasst Aufgaben im Prüfungsstil, Probeprüfungen und Fehlerberichte."
+        "q": "Was ist der Premium-Plan?",
+        "a": "Der Premium-Plan ermöglicht den Zugriff auf alle Funktionen der Anwendung, einschließlich des erweiterten AI-Tutors, Tests mit Fehlerberichten sowie erweitertem Zugriff auf Lernkarten und Lernverlauf für 30 Tage."
       },
       "q4": {
-        "q": "Wird mich OmniNauka auf die Achtklässlerprüfung und das Abitur vorbereiten?",
-        "a": "Ja, wir planen einen Prüfungsmodus für die Achtklässlerprüfung und das Abitur. Dies wird ein separates Modul sein, das nach der Basisversion der Anwendung entwickelt wird."
+        "q": "Kann ich mich auf eine Klassenarbeit vorbereiten?",
+        "a": "Ja, OmniNauka hilft Ihnen bei der Vorbereitung auf Tests und Klassenarbeiten, indem es Übungsquizze, Tests mit Fehlerberichten und Lernkarten generiert, die auf Ihre eigenen Notizen und Unterrichtsmaterialien zugeschnitten sind."
       },
       "q5": {
         "q": "Ist OmniNauka ein offizielles Tool des CKE?",

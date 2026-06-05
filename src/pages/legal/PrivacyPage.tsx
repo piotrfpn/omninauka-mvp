@@ -91,7 +91,7 @@ export default function PrivacyPage() {
           Jeżeli dziecko poniżej 13 roku życia rozpocznie rejestrację konta, a podany adres e-mail nie został wcześniej dodany i zatwierdzony przez rodzica lub opiekuna prawnego w Panelu Rodzica, konto dziecka pozostaje zablokowane i nie ma dostępu do funkcji edukacyjnych OmniNauka.
         </p>
         <p className="mt-2">
-          Dane takiego konta są przetwarzane wyłącznie w celu umożliwienia powiązania konta z rodzicem lub opiekunem prawnym. Jeżeli konto nie zostanie powiązane z rodzicem lub opiekunem w ciągu 72 godzin, może zostać usunięte lub oznaczone do usunięcia zgodnie z zasadą minimalizacji danych.
+          Dane takiego konta są przetwarzane wyłącznie w celu umożliwienia powiązania konta z rodzicem lub opiekunem prawnym. Jeżeli konto nie zostanie powiązane z rodzicem lub opiekunem w ciągu 72 godzin, zostaje usunięte zgodnie z zasadą minimalizacji danych.
         </p>
       </section>
 

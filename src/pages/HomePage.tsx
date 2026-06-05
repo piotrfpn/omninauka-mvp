@@ -111,12 +111,12 @@ export default function HomePage() {
       answer: t('home.faq.q2.a', 'Quiz z wyjaśnieniami to krótki trening po lekcji. Pomaga sprawdzić podstawowe zrozumienie tematu i pokazuje, dlaczego odpowiedź jest dobra lub błędna. Sprawdzian z raportem błędów to większy test gotowości do kartkówki lub sprawdzianu. Na końcu uczeń otrzymuje wynik oraz informację, które zagadnienia warto powtórzyć.')
     },
     {
-      question: t('home.faq.q3.q', 'Czym jest Premium+?'),
-      answer: t('home.faq.q3.a', 'Premium+ to plan dla uczniów przygotowujących się do ważniejszych egzaminów, takich jak egzamin ósmoklasisty lub matura. Obejmuje zadania w stylu egzaminacyjnym, arkusze próbne i raport błędów.')
+      question: t('home.faq.q3.q', 'Czym jest plan Premium?'),
+      answer: t('home.faq.q3.a', 'Plan Premium pozwala na pełne korzystanie ze wszystkich funkcji aplikacji, w tym z zaawansowanego AI Tutora, sprawdzianów z raportem błędów oraz rozszerzonego dostępu do fiszek i historii nauki w okresie 30 dni.')
     },
     {
-      question: t('home.faq.q4.q', 'Czy OmniNauka przygotuje do egzaminu ósmoklasisty i matury?'),
-      answer: t('home.faq.q4.a', 'Tak, planujemy tryb egzaminacyjny dla egzaminu ósmoklasisty i matury. Będzie to osobny moduł rozwijany po podstawowej wersji aplikacji.')
+      question: t('home.faq.q4.q', 'Czy mogę przygotować się do sprawdzianu?'),
+      answer: t('home.faq.q4.a', 'Tak, OmniNauka pomaga w przygotowaniu do sprawdzianów i kartkówek poprzez generowanie quizów, sprawdzianów z raportem błędów oraz fiszek dopasowanych do Twoich własnych notatek i materiałów lekcyjnych.')
     },
     {
       question: t('home.faq.q5.q', 'Czy OmniNauka jest oficjalnym narzędziem CKE?'),

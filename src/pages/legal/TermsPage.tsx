@@ -7,7 +7,7 @@ export default function TermsPage() {
     <LegalPageLayout title={t('home.footer.legal.terms', 'Regulamin')} lastUpdated="26.04.2026">
       <section>
         <p className="font-semibold mb-6">
-          Wersja: REGULAMIN_v02 (Draft)<br />
+          Wersja: REGULAMIN_v02 (Wersja 1.0)<br />
           Data wejścia w życie: 26.04.2026
         </p>
       </section>
@@ -35,14 +35,14 @@ export default function TermsPage() {
           <li><strong>4. Uczeń</strong> — użytkownik korzystający z funkcji edukacyjnych aplikacji.</li>
           <li><strong>5. Rodzic / Opiekun prawny</strong> — osoba sprawująca władzę rodzicielską lub opiekę prawną nad użytkownikiem niepełnoletnim.</li>
           <li><strong>6. Konto</strong> — indywidualne konto użytkownika w aplikacji.</li>
-          <li><strong>7. Konto dziecka</strong> — konto wykorzystywane przez użytkownika niepełnoletniego, utworzone lub zaakceptowane przez rodzica albo opiekuna prawnego, jeżeli jest to wymagane prawem lub funkcjonalnością aplikacji.</li>
-          <li><strong>8. Konto rodzica</strong> — konto rodzica lub opiekuna prawnego służące do zarządzania korzystaniem z aplikacji przez dziecko, w szczególności w ramach planu rodzinnego, jeżeli taka funkcja zostanie udostępniona.</li>
+          <li><strong>7. Konto dziecka</strong> — konto wykorzystywane przez użytkownika niepełnoletniego, powiązane z kontem rodzica lub opiekuna prawnego.</li>
+          <li><strong>8. Konto rodzica</strong> — konto rodzica lub opiekuna prawnego służące do zarządzania korzystaniem z aplikacji przez dziecko, w szczególności w ramach planu rodzinnego.</li>
           <li><strong>9. Materiały Użytkownika</strong> — zdjęcia, pliki, dokumenty, notatki, teksty, obrazy, tekstowe pliki PDF, DOCX lub inne treści przesyłane przez użytkownika do aplikacji.</li>
           <li><strong>10. Lekcja AI</strong> — pojedyncze przetworzenie materiału edukacyjnego w aplikacji, obejmujące do 5 zdjęć albo 1 dokument PDF/DOCX, zgodnie z aktualnym opisem usługi.</li>
           <li><strong>11. AI Tutor</strong> — funkcja aplikacji umożliwiająca rozmowę edukacyjną z systemem sztucznej inteligencji.</li>
-          <li><strong>12. Funkcje AI</strong> — funkcje aplikacji wykorzystujące sztuczną inteligencję, w szczególności analiza materiałów, generowanie wyjaśnień, odpowiedzi, quizów, fiszek, rekomendacji nauki, powtórek i raportów.</li>
-          <li><strong>13. Plan Darmowy</strong> — bezpłatny zakres korzystania z aplikacji, zgodnie z aktualnym opisem widocznym w aplikacji lub na stronie internetowej.</li>
-          <li><strong>14. Plan Premium, Premium+ lub Rodzinny</strong> — płatny zakres korzystania z aplikacji, zgodnie z aktualnym opisem widocznym w aplikacji lub na stronie internetowej.</li>
+          <li><strong>12. Funkcje AI</strong> — funkcje aplikacji wykorzystujące sztuczną inteligencję, w szczególności analiza materiałów, generowanie wyjaśnień, odpowiedzi, quizów, fiszek, rekomendacji nauki, powtórki i raportów.</li>
+          <li><strong>13. Plan Darmowy</strong> — bezpłatny zakres korzystania z aplikacji, zgodnie z aktualnym opisem widocznym w aplikacji.</li>
+          <li><strong>14. Plan Premium lub Plan Rodzinny</strong> — płatny zakres korzystania z aplikacji, zgodnie z aktualnym opisem widocznym w aplikacji.</li>
           <li><strong>15. Fair use</strong> — zasady uczciwego, rozsądnego i zgodnego z przeznaczeniem korzystania z aplikacji w granicach technicznych, kosztowych, organizacyjnych i bezpieczeństwa określonych przez Usługodawcę.</li>
           <li><strong>16. Usługi cyfrowe</strong> — usługi świadczone drogą elektroniczną za pośrednictwem aplikacji OmniNauka.</li>
           <li><strong>17. Regulamin</strong> — niniejszy regulamin korzystania z aplikacji OmniNauka.</li>
@@ -61,7 +61,7 @@ export default function TermsPage() {
 
       <section>
         <h2>§ 4. Zakres usług świadczonych drogą elektroniczną</h2>
-        <p>1. Usługodawca może świadczyć za pośrednictwem aplikacji w szczególności następujące usługi:</p>
+        <p>1. Usługodawca świadczy za pośrednictwem aplikacji w szczególności następujące usługi:</p>
         <ul className="list-[lower-alpha] pl-6 space-y-1">
           <li>rejestrację i obsługę konta,</li>
           <li>logowanie do konta,</li>
@@ -75,8 +75,8 @@ export default function TermsPage() {
           <li>profil użytkownika,</li>
           <li>ustawienia konta,</li>
           <li>raporty błędów i postępów,</li>
-          <li>funkcje przygotowania do sprawdzianów i egzaminów,</li>
-          <li>funkcje płatne i pakiety dodatkowych lekcji AI, jeżeli zostaną wdrożone.</li>
+          <li>funkcje przygotowania do sprawdzianów,</li>
+          <li>funkcje płatne w ramach planów czasowych Premium i Rodzinny.</li>
         </ul>
         <p>2. Zakres funkcji może różnić się w zależności od planu, wersji aplikacji, dostępności technicznej, limitów oraz etapu rozwoju produktu.</p>
         <p>3. Niektóre funkcje mogą być oznaczone jako testowe, beta, pilotażowe albo dostępne w przyszłości.</p>
@@ -110,10 +110,10 @@ export default function TermsPage() {
       <section>
         <h2>§ 7. Użytkownicy niepełnoletni i zgoda rodzica lub opiekuna</h2>
         <p>1. Aplikacja OmniNauka jest przeznaczona również dla uczniów, w tym osób niepełnoletnich, jednak zasady korzystania z aplikacji zależą od wieku użytkownika oraz zakresu funkcji, z których korzysta.</p>
-        <p>2. Użytkownik, który nie ukończył 13 lat, może korzystać z aplikacji wyłącznie za pośrednictwem konta utworzonego i zarządzanego przez rodzica lub opiekuna prawnego albo za jego wyraźną zgodą, jeżeli taki model konta zostanie udostępniony w aplikacji.</p>
-        <p>3. Użytkownik, który ukończył 13 lat, ale nie ukończył 16 lat, może korzystać z aplikacji za zgodą lub akceptacją rodzica albo opiekuna prawnego, w szczególności w zakresie przetwarzania danych osobowych, utworzenia konta oraz korzystania z funkcji wymagających przesyłania materiałów edukacyjnych.</p>
-        <p>4. Użytkownik, który ukończył 16 lat, może korzystać z aplikacji zgodnie z Regulaminem, z zastrzeżeniem ograniczeń wynikających z przepisów prawa, w szczególności dotyczących zawierania umów płatnych przez osoby niepełnoletnie.</p>
-        <p>5. Umowy dotyczące usług płatnych, pakietów dodatkowych lekcji AI lub innych odpłatnych funkcji mogą być zawierane wyłącznie przez osobę pełnoletnią albo przez rodzica lub opiekuna prawnego działającego na rzecz użytkownika niepełnoletniego.</p>
+        <p>2. Użytkownik, który nie ukończył 13 lat, korzysta z aplikacji za pośrednictwem konta powiązanego z kontem rodzica lub opiekuna prawnego w ramach funkcjonalności Panelu Rodzica.</p>
+        <p>3. Użytkownik, który ukończył 13 lat, ale nie ukończył 16 lat, korzysta z aplikacji za zgodą lub akceptacją rodzica albo opiekuna prawnego, w szczególności w zakresie przetwarzania danych osobowych, utworzenia konta oraz korzystania z funkcji wymagających przesyłania materiałów edukacyjnych.</p>
+        <p>4. Użytkownik, który ukończył 16 lat, korzysta z aplikacji zgodnie z Regulaminem, z zastrzeżeniem ograniczeń wynikających z przepisów prawa, w szczególności dotyczących zawierania umów płatnych przez osoby niepełnoletnie.</p>
+        <p>5. Umowy dotyczące usług płatnych są zawierane przez osobę pełnoletnią albo przez rodzica lub opiekuna prawnego działającego na rzecz użytkownika niepełnoletniego.</p>
         <p>6. Rodzic lub opiekun prawny odpowiada za nadzór nad korzystaniem z aplikacji przez dziecko oraz za upewnienie się, że dziecko nie przesyła do aplikacji danych wrażliwych, dokumentów tożsamości, danych osób trzecich, materiałów naruszających prawa autorskie lub innych treści, których nie powinno przesyłać.</p>
         <p>7. Usługodawca może stosować odpowiednie środki weryfikacji wieku użytkownika oraz zgody rodzica lub opiekuna prawnego, proporcjonalne do rodzaju usługi, dostępnej technologii i ryzyka związanego z przetwarzaniem danych dzieci. Konto dziecka poniżej 13 roku życia może korzystać z funkcji edukacyjnych wyłącznie po wcześniejszym dodaniu adresu e-mail dziecka przez rodzica lub opiekuna prawnego w Panelu Rodzica i powiązaniu konta z tym adresem. Konta niepowiązane z rodzicem lub opiekunem mogą zostać zablokowane, oznaczone do usunięcia lub usunięte po upływie określonego czasu, w szczególności po 72 godzinach od rozpoczęcia rejestracji bez powiązania.</p>
         <p>8. Usługodawca może odmówić świadczenia usług lub ograniczyć dostęp do wybranych funkcji, jeżeli nie uzyska wymaganej zgody rodzica lub opiekuna prawnego albo jeżeli istnieje uzasadnione podejrzenie, że konto zostało utworzone z naruszeniem zasad dotyczących wieku użytkownika.</p>
@@ -219,58 +219,28 @@ export default function TermsPage() {
 
       <section>
         <h2>§ 15. Plany cenowe i usługi płatne</h2>
-        <p>1. Aplikacja może być oferowana w planach bezpłatnych i płatnych. Aktualny zakres planów, ceny, limity i dostępność funkcji powinny być prezentowane użytkownikowi przed zakupem usługi płatnej.</p>
-        <p>2. Plan Darmowy może obejmować:</p>
+        <p>1. Aplikacja jest oferowana w planach bezpłatnych i płatnych. Aktualny zakres planów, ceny, limity i dostępność funkcji są prezentowane użytkownikowi w aplikacji przed zakupem usługi płatnej.</p>
+        <p>2. Plan Darmowy obejmuje w szczególności:</p>
         <ul className="list-[lower-alpha] pl-6 space-y-1">
-          <li>0 zł miesięcznie,</li>
-          <li>2 lekcje AI dziennie,</li>
-          <li>AI Tutor tekstowy,</li>
+          <li>0 zł,</li>
+          <li>dostęp do podstawowych funkcji w ramach określonych limitów bezpłatnych zapytań AI,</li>
+          <li>AI Tutor w wersji podstawowej,</li>
           <li>quizy z wyjaśnieniami,</li>
-          <li>historię nauki,</li>
-          <li>możliwość zakupu dodatkowej lekcji AI.</li>
+          <li>historię nauki.</li>
         </ul>
-        <p>3. Plan Premium może obejmować:</p>
-        <ul className="list-[lower-alpha] pl-6 space-y-1">
-          <li>29,99 zł miesięcznie,</li>
-          <li>więcej lekcji AI każdego dnia,</li>
-          <li>zaawansowany AI Tutor,</li>
-          <li>powtórki błędów,</li>
-          <li>sprawdziany z raportem błędów,</li>
-          <li>priorytetowe AI.</li>
-        </ul>
-        <p>4. Plan Premium+ może obejmować:</p>
-        <ul className="list-[lower-alpha] pl-6 space-y-1">
-          <li>49 zł miesięcznie,</li>
-          <li>funkcje Premium,</li>
-          <li>przygotowanie do egzaminu ósmoklasisty,</li>
-          <li>przygotowanie do matury,</li>
-          <li>zadania w stylu egzaminacyjnym,</li>
-          <li>arkusze próbne i raport błędów.</li>
-        </ul>
-        <p>5. Plan Rodzinny może obejmować:</p>
-        <ul className="list-[lower-alpha] pl-6 space-y-1">
-          <li>59,99 zł miesięcznie,</li>
-          <li>do 3 kont uczniowskich,</li>
-          <li>funkcje Premium,</li>
-          <li>raporty postępów,</li>
-          <li>wspólną historię nauki,</li>
-          <li>panel rodzica.</li>
-        </ul>
-        <p>6. Dodatkowe pakiety lekcji AI mogą być oferowane według cennika widocznego w aplikacji lub na stronie internetowej, przykładowo:</p>
-        <ul className="list-[lower-alpha] pl-6 space-y-1">
-          <li>5 lekcji AI — 7,99 zł,</li>
-          <li>10 lekcji AI — 14,99 zł,</li>
-          <li>25 lekcji AI — 29,99 zł.</li>
-        </ul>
+        <p>3. Plan Premium 30 dni obejmuje dostęp do rozszerzonych funkcji aplikacji (takich jak dodatkowe lekcje AI każdego dnia, zaawansowany AI Tutor, sprawdzian Premium, powtórki fiszek Premium i pełny raport błędów) na okres 30 dni od momentu aktywacji. Dostęp ma charakter jednorazowy i nie odnawia się automatycznie.</p>
+        <p>4. Plan Rodzinny 30 dni obejmuje funkcje planu Premium dla maksymalnie 3 kont uczniów powiązanych z kontem rodzica/opiekuna oraz dostęp do Panelu Rodzica na okres 30 dni od momentu aktywacji. Dostęp ma charakter jednorazowy i nie odnawia się automatycznie.</p>
+        <p>5. Dodatkowe pakiety lekcji AI są oferowane według cennika i warunków widocznych w aplikacji przed dokonaniem zakupu.</p>
+        <p>6. Aktualna cena, zakres i czas trwania dostępu płatnego są prezentowane użytkownikowi bezpośrednio przed dokonaniem zakupu.</p>
         <p>7. Ceny, zakres planów i dostępność funkcji mogą ulegać zmianie. Zmiany nie naruszają praw nabytych konsumenta wynikających z obowiązujących przepisów prawa.</p>
-        <p>8. Informacje prezentowane w aplikacji lub na stronie internetowej przed zakupem powinny jednoznacznie wskazywać, co użytkownik kupuje, jaka jest cena, jaki jest okres dostępu, jaki jest charakter płatności (obecnie wyłącznie jednorazowa, brak automatycznego odnawiania), jakie są limity oraz jak można zrezygnować z usługi.</p>
+        <p>8. Informacje prezentowane w aplikacji przed zakupem jednoznacznie wskazują, co użytkownik kupuje, jaka jest cena, jaki jest okres dostępu, jaki jest charakter płatności (dostęp jednorazowy, brak automatycznego odnawiania), jakie są limity oraz jak można zrezygnować z usługi.</p>
       </section>
 
       <section>
         <h2>§ 16. Zasady jednorazowego dostępu płatnego</h2>
-        <p>1. Usługi płatne mogą być oferowane jako jednorazowy dostęp czasowy, np. Premium na 30 dni.</p>
+        <p>1. Usługi płatne są oferowane jako jednorazowy dostęp czasowy, np. Premium na 30 dni.</p>
         <p>2. Umowa o usługę płatną zostaje zawarta z chwilą potwierdzenia zakupu przez użytkownika oraz otrzymania przez Usługodawcę potwierdzenia skutecznej płatności.</p>
-        <p>3. Zakres, cena i czas trwania są pokazane użytkownikowi przed zakupem.</p>
+        <p>3. Zakres, cena i czas trwania są pokazywane użytkownikowi przed zakupem.</p>
         <p>4. Płatności może dokonywać wyłącznie osoba pełnoletnia albo rodzic lub opiekun prawny.</p>
         <p>5. Usługodawca obecnie nie oferuje subskrypcji odnawialnych. Dostęp płatny wygasa automatycznie po upływie wykupionego okresu.</p>
         <p>6. Jeżeli w przyszłości zostaną wprowadzone inne modele płatności, regulamin i komunikaty w aplikacji zostaną odpowiednio zaktualizowane przed ich uruchomieniem.</p>
@@ -278,8 +248,8 @@ export default function TermsPage() {
 
       <section>
         <h2>§ 17. Płatności</h2>
-        <p>1. Płatności za usługi płatne mogą być obsługiwane przez zewnętrznych operatorów płatności, takich jak Stripe, Przelewy24, PayU, Google Play Billing, Apple In-App Purchase lub inny dostawca wskazany w aplikacji.</p>
-        <p>2. Przed dokonaniem płatności użytkownik powinien otrzymać jasne informacje o:</p>
+        <p>1. Płatności za usługi płatne są obsługiwane przez zewnętrznych operatorów płatności, takich jak Stripe lub inny dostawca wskazany w aplikacji.</p>
+        <p>2. Przed dokonaniem płatności użytkownik otrzymuje jasne informacje o:</p>
         <ul className="list-[lower-alpha] pl-6 space-y-1">
           <li>sprzedawcy usługi,</li>
           <li>cenie brutto,</li>
@@ -291,18 +261,16 @@ export default function TermsPage() {
           <li>zasadach rezygnacji,</li>
           <li>prawie odstąpienia od umowy.</li>
         </ul>
-        <p>3. Usługodawca może nie przechowywać pełnych danych karty płatniczej użytkownika, jeżeli płatność jest realizowana przez zewnętrznego operatora płatności.</p>
-        <p>4. Szczegółowe zasady płatności mogą wynikać również z regulaminów operatorów płatności, z których korzysta użytkownik.</p>
-        <p>5. W przypadku płatności realizowanych przez sklepy aplikacji lub zewnętrzne platformy, takie jak Google Play lub Apple App Store, mogą mieć zastosowanie dodatkowe zasady tych platform.</p>
+        <p>3. Usługodawca nie przechowuje pełnych danych karty płatniczej. Obsługa płatności odbywa się za pośrednictwem zewnętrznego dostawcy płatności.</p>
+        <p>4. Szczegółowe zasady płatności wynikają z regulaminów operatorów płatności, z których korzysta użytkownik.</p>
+        <p>5. W przypadku płatności realizowanych przez platformy mobilne (np. Google Play, Apple App Store), zastosowanie mają regulaminy i zasady tych platform.</p>
       </section>
 
       <section>
         <h2>§ 18. Prawo odstąpienia od umowy</h2>
-        <p>1. Konsumentowi przysługuje prawo odstąpienia od umowy zawartej na odległość w terminie 14 dni, chyba że zgodnie z obowiązującymi przepisami prawa prawo to nie przysługuje albo zostało skutecznie utracone.</p>
-        <p>2. Jeżeli użytkownik żąda rozpoczęcia świadczenia usługi cyfrowej lub dostarczenia treści cyfrowych przed upływem terminu do odstąpienia od umowy, Usługodawca może rozpocząć świadczenie wyłącznie po uzyskaniu wyraźnej zgody użytkownika oraz po poinformowaniu go o skutkach rozpoczęcia świadczenia, w tym o możliwej utracie prawa odstąpienia w zakresie przewidzianym przez przepisy prawa.</p>
-        <p>3. Jeżeli wymaga tego prawo, Usługodawca przekaże użytkownikowi potwierdzenie zawarcia umowy oraz potwierdzenie zgody na rozpoczęcie świadczenia przed upływem terminu odstąpienia na trwałym nośniku, w szczególności pocztą elektroniczną.</p>
-        <p>4. Szczegółowe zasady odstąpienia od umowy, zwrotów oraz reklamacji usług płatnych powinny być przedstawione użytkownikowi przed zakupem.</p>
-        <p>5. W przypadku usług lub treści cyfrowych wykorzystanych przez użytkownika, w szczególności zużytych pakietów lekcji AI, wygenerowanych lekcji, wykorzystanych zapytań AI lub przetworzonych dokumentów, zakres prawa do zwrotu może zależeć od obowiązujących przepisów prawa oraz od tego, czy użytkownik wyraził zgodę na rozpoczęcie świadczenia przed upływem terminu odstąpienia.</p>
+        <p>1. Konsumentowi przysługuje prawo odstąpienia od umowy zawartej na odległość w terminie 14 dni zgodnie z obowiązującymi przepisami prawa konsumenckiego.</p>
+        <p>2. Szczegółowe zasady odstąpienia od umowy, w tym informacje dotyczące ewentualnej utraty prawa odstąpienia w przypadku wyrażenia zgody na natychmiastowe rozpoczęcie świadczenia i dostarczania treści cyfrowych, są przedstawiane użytkownikowi w procesie zakupowym przed dokonaniem płatności.</p>
+        <p>3. Użytkownik może złożyć oświadczenie o odstąpieniu od umowy kontaktując się z Usługodawcą drogą elektroniczną na adres e-mail: <a href="mailto:piotr.fiszer@pfconsulting.pl">piotr.fiszer@pfconsulting.pl</a>.</p>
       </section>
 
       <section>
@@ -317,8 +285,8 @@ export default function TermsPage() {
           <li>datę wystąpienia problemu,</li>
           <li>oczekiwany sposób rozwiązania sprawy.</li>
         </ul>
-        <p>4. Usługodawca rozpatruje reklamację w terminie 14 dni od dnia jej otrzymania, chyba że obowiązujące przepisy przewidują inny termin albo sprawa wymaga dodatkowych informacji od użytkownika.</p>
-        <p>5. Jeżeli reklamacja nie zawiera informacji potrzebnych do jej rozpatrzenia, Usługodawca może poprosić użytkownika o uzupełnienie zgłoszenia.</p>
+        <p>4. Usługodawca rozpatruje reklamacje w terminie 14 dni od dnia ich otrzymania.</p>
+        <p>5. Jeżeli reklamacja nie zawiera informacji potrzebnych do jej rozpatrzenia, Usługodawca zwraca się do użytkownika o jej uzupełnienie.</p>
         <p>6. Żadne postanowienie Regulaminu nie ogranicza praw konsumenta wynikających z przepisów dotyczących niezgodności usługi cyfrowej lub treści cyfrowej z umową.</p>
       </section>
 
@@ -352,13 +320,13 @@ export default function TermsPage() {
           <li>uzasadnienie zgłoszenia,</li>
           <li>dane kontaktowe do odpowiedzi.</li>
         </ul>
-        <p>3. Usługodawca może podjąć odpowiednie działania, w tym:</p>
+        <p>3. Usługodawca podejmuje odpowiednie działania, w tym w uzasadnionych przypadkach:</p>
         <ul className="list-[lower-alpha] pl-6 space-y-1">
-          <li>poprosić o dodatkowe informacje,</li>
-          <li>ograniczyć dostęp do treści,</li>
-          <li>usunąć treść,</li>
-          <li>zablokować konto,</li>
-          <li>odmówić usunięcia treści, jeżeli zgłoszenie jest oczywiście bezzasadne.</li>
+          <li>prosi o dodatkowe informacje,</li>
+          <li>ogranicza dostęp do treści,</li>
+          <li>usuwa treść,</li>
+          <li>zablokuje konto,</li>
+          <li>odmawia usunięcia treści, jeżeli zgłoszenie jest oczywiście bezzasadne.</li>
         </ul>
         <p>4. Użytkownik, którego treść została usunięta albo konto zostało ograniczone, może złożyć odwołanie na adres e-mail Usługodawcy.</p>
         <p>5. Zakres obowiązków Usługodawcy związanych z treściami bezprawnymi może zależeć od faktycznego modelu działania aplikacji, w szczególności od tego, czy aplikacja umożliwia publiczne udostępnianie treści innym użytkownikom.</p>
@@ -376,11 +344,11 @@ export default function TermsPage() {
       <section>
         <h2>§ 23. Retencja danych i usuwanie materiałów</h2>
         <p>1. Materiały Użytkownika są przechowywane przez okres niezbędny do świadczenia usług, obsługi konta, zachowania historii nauki, realizacji funkcji aplikacji, bezpieczeństwa, rozpatrywania reklamacji oraz spełnienia obowiązków prawnych.</p>
-        <p>2. Użytkownik może złożyć wniosek o usunięcie konta lub określonych danych, zgodnie z zasadami opisanymi w Regulaminie i Polityce Prywatności.</p>
-        <p>3. Usunięcie konta może skutkować utratą dostępu do historii nauki, lekcji AI, quizów, raportów, materiałów użytkownika i ustawień konta.</p>
-        <p>4. Niektóre dane mogą być przechowywane przez dłuższy okres, jeżeli jest to wymagane przez przepisy prawa, obowiązki księgowe, podatkowe, rozpatrywanie reklamacji, zabezpieczenie roszczeń lub bezpieczeństwo systemu.</p>
-        <p>5. Dane mogą pozostawać przez ograniczony czas w kopiach bezpieczeństwa, zanim zostaną trwale usunięte w ramach standardowego cyklu technicznego usuwania backupów. Konta dzieci poniżej 13 roku życia, które nie zostały powiązane z kontem rodzica lub opiekuna prawnego w terminie 72 godzin od rejestracji, mogą zostać usunięte lub oznaczone do usunięcia zgodnie z zasadą minimalizacji danych.</p>
-        <p>6. Szczegółowe okresy retencji danych powinny zostać określone w Polityce Prywatności.</p>
+        <p>2. Użytkownik ma prawo złożyć wniosek o usunięcie konta lub określonych danych, zgodnie z zasadami opisanymi w Regulaminie i Polityce Prywatności.</p>
+        <p>3. Usunięcie konta skutkuje utratą dostępu do historii nauki, lekcji AI, quizów, raportów, materiałów użytkownika i ustawień konta.</p>
+        <p>4. Niektóre dane są przechowywane przez dłuższy okres, jeżeli jest to wymagane przez przepisy prawa, obowiązki księgowe, podatkowe, rozpatrywanie reklamacji, zabezpieczenie roszczeń lub bezpieczeństwo systemu.</p>
+        <p>5. Dane pozostają przez ograniczony czas w kopiach bezpieczeństwa, zanim zostaną trwale usunięte w ramach standardowego cyklu technicznego usuwania backupów. Konta dzieci poniżej 13 roku życia, które nie zostały powiązane z kontem rodzica lub opiekuna prawnego w terminie 72 godzin od rejestracji, są usuwane zgodnie z zasadą minimalizacji danych.</p>
+        <p>6. Szczegółowe okresy retencji danych są określone w Polityce Prywatności.</p>
       </section>
 
       <section>
@@ -458,13 +426,7 @@ export default function TermsPage() {
         <p>1. Regulamin jest udostępniany użytkownikowi nieodpłatnie przed rozpoczęciem korzystania z aplikacji w sposób umożliwiający jego pozyskanie, odtwarzanie i utrwalanie.</p>
         <p>2. W sprawach nieuregulowanych Regulaminem zastosowanie mają właściwe przepisy prawa polskiego oraz prawa Unii Europejskiej.</p>
         <p>3. Postanowienia Regulaminu nie wyłączają ani nie ograniczają praw konsumenta przysługujących mu na podstawie bezwzględnie obowiązujących przepisów prawa.</p>
-        <p>4. Regulamin w wersji finalnej powinien wskazywać:</p>
-        <ul className="list-[lower-alpha] pl-6 space-y-1">
-          <li>datę wejścia w życie: 26.04.2026,</li>
-          <li>numer wersji: 1.0 (REGULAMIN_v02),</li>
-          <li>sposób archiwizacji wcześniejszych wersji — PFConsulting Piotr Fiszer,</li>
-          <li>adres strony, na której Regulamin jest dostępny — obecnie <a href="https://omninauka-mvp.vercel.app/" className="break-all">https://omninauka-mvp.vercel.app/</a>.</li>
-        </ul>
+        <p>4. Niniejszy Regulamin wchodzi w życie z dniem 26.04.2026 i jest oznaczony jako wersja REGULAMIN_v02. Wszelkie archiwalne wersje regulaminu są przechowywane przez Usługodawcę i udostępniane na żądanie Użytkownika.</p>
       </section>
     </LegalPageLayout>
   );

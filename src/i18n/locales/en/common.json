@@ -268,12 +268,12 @@
         "a": "A quiz with explanations is a short training session after a lesson. It helps check basic understanding of the topic and shows why an answer is right or wrong. A test with an error report is a larger readiness test for a pop quiz or exam. At the end, the student receives a score and information on which topics to review."
       },
       "q3": {
-        "q": "What is Premium+?",
-        "a": "Premium+ is a plan for students preparing for major exams, such as the eighth-grade exam or matura. It includes exam-style tasks, mock exams, and error reports."
+        "q": "What is the Premium plan?",
+        "a": "The Premium plan allows full access to all application features, including the advanced AI Tutor, tests with error reports, and extended access to flashcards and study history for 30 days."
       },
       "q4": {
-        "q": "Will OmniNauka prepare me for the eighth-grade and matura exams?",
-        "a": "Yes, we are planning an exam mode for the eighth-grade exam and matura. This will be a separate module developed after the basic version of the application."
+        "q": "Can I prepare for a test?",
+        "a": "Yes, OmniNauka helps you prepare for tests and quizzes by generating practice quizzes, tests with error reports, and flashcards tailored to your own notes and lesson materials."
       },
       "q5": {
         "q": "Is OmniNauka an official tool of the CKE (Central Examination Board)?",
@@ -978,9 +978,9 @@
   },
   "paymentSuccess": {
     "title": "Thank you for your purchase!",
-    "desc1": "Your Premium plan should be activated automatically within a few minutes.",
+    "desc1": "Your Premium plan will be activated after payment verification (usually up to 24 hours in the test phase).",
     "desc2": "If your plan status does not update immediately, refresh the “Payments and plan” page after a moment. If there is a problem, contact us — we can verify the payment manually.",
-    "mvpNote": "Premium activation is handled automatically by Stripe. The admin panel remains available as a fallback in case of payment processing issues.",
+    "mvpNote": "In the current test phase, Premium activation may require confirmation. Thank you for your patience.",
     "backToDashboard": "Back to dashboard",
     "goToSettings": "Check plan status"
   },
@@ -988,8 +988,8 @@
     "title": "Payments & Plan",
     "subtitle": "Check available Premium options and extra AI lesson packs here.",
     "currentPlanLabel": "Your current plan",
-    "currentPlanNote": "Your Premium plan should be activated automatically within a few minutes after payment.",
-    "mvpNote": "Activation is automatic via Stripe. If it's delayed, refresh the page or contact support.",
+    "currentPlanNote": "Your Premium plan will be activated after payment verification (usually up to 24 hours in the test phase).",
+    "mvpNote": "In the test phase, plan activation may require verification. In case of delays, please contact support.",
     "validUntil": "Valid until",
     "expiredNotice": "Your plan has expired. You are currently using the Free plan.",
     "noExpiryDate": "Plan active. No expiry date recorded — please contact support.",

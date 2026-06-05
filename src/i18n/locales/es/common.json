@@ -197,7 +197,7 @@
         "cta": "Elegir Premium"
       },
       "premiumPlus": {
-        "title": "Premium+",
+        "title": "Premium",
         "price": "49 PLN",
         "badge": "Exámenes",
         "feat1": "Todo en Premium",
@@ -240,12 +240,12 @@
         "a": "Un cuestionario con explicaciones es una breve sesión de entrenamiento después de una lección. Ayuda a comprobar la comprensión básica del tema y muestra por qué una respuesta es correcta o incorrecta. Un examen con un informe de errores es una prueba de preparación mayor para un control o examen. Al final, el estudiante recibe una puntuación e información sobre qué temas revisar."
       },
       "q3": {
-        "q": "¿Qué es Premium+?",
-        "a": "Premium+ es un plan para estudiantes que se preparan para exámenes importantes, como el examen de octavo grado o matura. Incluye tareas estilo examen, exámenes de prueba e informes de errores."
+        "q": "¿Qué es el plan Premium?",
+        "a": "El plan Premium permite el acceso completo a todas las funciones de la aplicación, incluido el AI Tutor avanzado, pruebas con informes de errores y la visualización ampliada de tarjetas de aprendizaje e historial de estudio durante 30 días."
       },
       "q4": {
-        "q": "¿OmniNauka me preparará para los exámenes de octavo grado y matura?",
-        "a": "Sí, estamos planeando un modo de examen para el examen de octavo grado y matura. Este será un módulo separado desarrollado después de la versión básica de la aplicación."
+        "q": "¿Puedo prepararme para un examen?",
+        "a": "Sí, OmniNauka te ayuda a prepararte para exámenes y pruebas de control generando cuestionarios de práctica, exámenes con informes de errores y tarjetas de aprendizaje adaptadas a tus propias notas y materiales de clase."
       },
       "q5": {
         "q": "¿Es OmniNauka una herramienta oficial del CKE?",

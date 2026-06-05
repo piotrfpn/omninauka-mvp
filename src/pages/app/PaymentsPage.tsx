@@ -149,14 +149,14 @@ export default function PaymentsPage() {
                 </p>
               )}
               <p className="text-xs text-gray-500 dark:text-slate-400">
-                {t('payments.currentPlanNote', 'Twój plan Premium powinien zostać aktywowany automatycznie w ciągu kilku minut od płatności.')}
+                {t('payments.currentPlanNote', 'Twój plan Premium zostanie aktywowany po weryfikacji płatności (zazwyczaj do 24 godzin w fazie testowej).')}
               </p>
             </div>
           </div>
           <div className="bg-white dark:bg-slate-900 p-3 rounded-lg border border-blue-100 dark:border-blue-950/50 max-w-xs flex items-start gap-3 shadow-sm">
             <AlertCircle className="w-5 h-5 text-blue-500 dark:text-blue-400 shrink-0 mt-0.5" />
             <p className="text-xs text-gray-600 dark:text-slate-300 leading-relaxed">
-              {t('payments.mvpNote', 'Plan aktywujemy automatycznie przez Stripe. W razie opóźnień odśwież stronę lub skontaktuj się z obsługą.')}
+              {t('payments.mvpNote', 'W fazie testowej aktywacja planu może wymagać weryfikacji. W razie opóźnień skontaktuj się z obsługą.')}
             </p>
           </div>
         </div>
@@ -283,7 +283,7 @@ export default function PaymentsPage() {
         </div>
       </div>
 
-      {/* Sekcja 6: Subskrypcja miesięczna (Tymczasowo ukryta do czasu pełnego wdrożenia płatności cyklicznych) */}
+      {/* Sekcja 6: Wyłączone płatności (Ukryte) */}
 
       {/* Sekcja 5: Pakiety dodatkowych lekcji AI */}
       <section className="mt-12 pt-10 border-t border-gray-100">

@@ -197,7 +197,7 @@
         "cta": "Scegli Premium"
       },
       "premiumPlus": {
-        "title": "Premium+",
+        "title": "Premium",
         "price": "49 PLN",
         "badge": "Esami",
         "feat1": "Tutto nel Premium",
@@ -240,12 +240,12 @@
         "a": "Un quiz con spiegazioni è una breve sessione di allenamento dopo una lezione. Aiuta a verificare la comprensione di base dell'argomento e mostra perché una risposta è giusta o sbagliata. Un test con un rapporto sugli errori è un test di prontezza più ampio per un compito in classe o un esame. Alla fine, lo studente riceve un punteggio e informazioni su quali argomenti ripassare."
       },
       "q3": {
-        "q": "Cos'è Premium+?",
-        "a": "Premium+ è un piano per gli studenti che si preparano per esami importanti, come l'esame di ottava classe o la maturità. Include compiti in stile esame, esami simulati e rapporti sugli errori."
+        "q": "Cos'è il piano Premium?",
+        "a": "Il piano Premium consente l'accesso completo a tutte le funzioni dell'applicazione, inclusi l'AI Tutor avanzato, test con rapporti sugli errori e la visualizzazione estesa di flashcard e cronologia di studio per 30 giorni."
       },
       "q4": {
-        "q": "OmniNauka mi preparerà per l'esame di ottava classe e la maturità?",
-        "a": "Sì, stiamo pianificando una modalità esame per l'esame di ottava classe e la maturità. Questo sarà un modulo separato sviluppato dopo la versione base dell'applicazione."
+        "q": "Posso prepararmi per un compito in classe?",
+        "a": "Sì, OmniNauka ti aiuta a prepararti per test e compiti in classe generando quiz di esercitazione, test con rapporti sugli errori e flashcard personalizzate in base ai tuoi appunti e materiali scolastici."
       },
       "q5": {
         "q": "OmniNauka è uno strumento ufficiale del CKE?",

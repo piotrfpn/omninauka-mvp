@@ -268,12 +268,12 @@
         "a": "Quiz z wyjaśnieniami to krótki trening po lekcji. Pomaga sprawdzić podstawowe zrozumienie tematu i pokazuje, dlaczego odpowiedź jest dobra lub błędna. Sprawdzian z raportem błędów to większy test gotowości do kartkówki lub sprawdzianu. Na końcu uczeń otrzymuje wynik oraz informację, które zagadnienia warto powtórzyć."
       },
       "q3": {
-        "q": "Czym jest Premium+?",
-        "a": "Premium+ to plan dla uczniów przygotowujących się do ważniejszych egzaminów, takich jak egzamin ósmoklasisty lub matura. Obejmuje zadania w stylu egzaminacyjnym, arkusze próbne i raport błędów."
+        "q": "Czym jest plan Premium?",
+        "a": "Plan Premium pozwala na pełne korzystanie ze wszystkich funkcji aplikacji, w tym z zaawansowanego AI Tutora, sprawdzianów z raportem błędów oraz rozszerzonego dostępu do fiszek i historii nauki w okresie 30 dni."
       },
       "q4": {
-        "q": "Czy OmniNauka przygotuje do egzaminu ósmoklasisty i matury?",
-        "a": "Tak, planujemy tryb egzaminacyjny dla egzaminu ósmoklasisty i matury. Będzie to osobny moduł rozwijany po podstawowej wersji aplikacji."
+        "q": "Czy mogę przygotować się do sprawdzianu?",
+        "a": "Tak, OmniNauka pomaga w przygotowaniu do sprawdzianów i kartkówek poprzez generowanie quizów, sprawdzianów z raportem błędów oraz fiszek dopasowanych do Twoich własnych notatek i materiałów lekcyjnych."
       },
       "q5": {
         "q": "Czy OmniNauka jest oficjalnym narzędziem CKE?",
@@ -977,9 +977,9 @@
   },
   "paymentSuccess": {
     "title": "Dziękujemy za zakup!",
-    "desc1": "Twój plan Premium powinien zostać aktywowany automatycznie w ciągu kilku minut.",
+    "desc1": "Twój plan Premium zostanie aktywowany po weryfikacji płatności (zazwyczaj do 24 godzin w fazie testowej).",
     "desc2": "Jeśli status planu nie zmieni się od razu, odśwież stronę „Płatności i plan” po chwili. W razie problemu skontaktuj się z nami — sprawdzimy płatność ręcznie.",
-    "mvpNote": "Automatyczna aktywacja Premium działa przez Stripe. Panel administratora pozostaje zabezpieczeniem na wypadek problemów technicznych z płatnością.",
+    "mvpNote": "W obecnej fazie testowej aktywacja Premium może wymagać potwierdzenia. Dziękujemy za cierpliwość.",
     "backToDashboard": "Wróć do Panelu głównego",
     "goToSettings": "Sprawdź status planu"
   },
@@ -987,8 +987,8 @@
     "title": "Płatności i plan",
     "subtitle": "Tutaj sprawdzisz dostępne opcje Premium i pakiety dodatkowych lekcji AI.",
     "currentPlanLabel": "Twój obecny plan",
-    "currentPlanNote": "Twój plan Premium powinien zostać aktywowany automatycznie w ciągu kilku minut od płatności.",
-    "mvpNote": "Plan aktywujemy automatycznie przez Stripe. W razie opóźnień odśwież stronę lub skontaktuj się z obsługą.",
+    "currentPlanNote": "Twój plan Premium zostanie aktywowany po weryfikacji płatności (zazwyczaj do 24 godzin w fazie testowej).",
+    "mvpNote": "W fazie testowej aktywacja planu może wymagać weryfikacji. W razie opóźnień skontaktuj się z obsługą.",
     "validUntil": "Ważny do",
     "expiredNotice": "Twój plan wygasł. Obecnie korzystasz z planu Darmowego.",
     "noExpiryDate": "Plan aktywny. Brak zapisanej daty wygaśnięcia — skontaktuj się z obsługą.",
