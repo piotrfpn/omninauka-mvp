@@ -1,6 +1,6 @@
 import { useAuth } from '../../lib/auth-context';
 import { useTranslation } from 'react-i18next';
-import { CheckCircle, AlertCircle, Sparkles, Users, Layers, ExternalLink } from 'lucide-react';
+import { CheckCircle, AlertCircle, Sparkles, Users, ExternalLink } from 'lucide-react';
 import { isPlanActive } from '../../lib/plan-utils';
 
 export default function PaymentsPage() {
@@ -10,8 +10,7 @@ export default function PaymentsPage() {
   const premium30Link = import.meta.env.VITE_STRIPE_PREMIUM_30_DAYS_PAYMENT_LINK || import.meta.env.VITE_STRIPE_PREMIUM_PAYMENT_LINK;
   const family30Link = import.meta.env.VITE_STRIPE_FAMILY_30_DAYS_PAYMENT_LINK || import.meta.env.VITE_STRIPE_FAMILY_PAYMENT_LINK;
 
-  const premiumSubLink = import.meta.env.VITE_STRIPE_PREMIUM_SUBSCRIPTION_PAYMENT_LINK;
-  const familySubLink = import.meta.env.VITE_STRIPE_FAMILY_SUBSCRIPTION_PAYMENT_LINK;
+  // Sub link variables removed for MVP phase
 
   const lesson5Link = import.meta.env.VITE_STRIPE_LESSON_5_PAYMENT_LINK;
   const lesson10Link = import.meta.env.VITE_STRIPE_LESSON_10_PAYMENT_LINK;
@@ -42,8 +41,7 @@ export default function PaymentsPage() {
 
   const premium30Url = buildStripePaymentUrl(premium30Link, user?.id);
   const family30Url = buildStripePaymentUrl(family30Link, user?.id);
-  const premiumSubUrl = buildStripePaymentUrl(premiumSubLink, user?.id);
-  const familySubUrl = buildStripePaymentUrl(familySubLink, user?.id);
+  // Variables removed for MVP phase
 
   const planLabel = (user?.effectivePlan || user?.plan) === 'premium' && isPlanActiveNow
     ? t('payments.plan.premium', 'Premium')
@@ -285,65 +283,7 @@ export default function PaymentsPage() {
         </div>
       </div>
 
-      {/* Sekcja 6: Subskrypcja miesięczna */}
-      <section className="mt-12 pt-10 border-t border-gray-100">
-        <div className="flex flex-col md:flex-row gap-8 items-start">
-          <div className="md:w-1/3">
-            <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-purple-100 text-purple-700 text-xs font-semibold rounded-full mb-4 uppercase tracking-wide">
-              <Layers className="w-3.5 h-3.5" />
-              Automatyczne odnawianie
-            </div>
-            <h2 className="text-2xl font-bold text-[var(--omni-text)] mb-3">Subskrypcja miesięczna</h2>
-            <p className="text-[var(--omni-text-muted)] mb-4">
-              Opcja dla osób, które chcą korzystać z OmniNauka regularnie co miesiąc.
-            </p>
-            <div className="bg-purple-50 p-4 rounded-xl border border-purple-100 text-sm text-purple-900 font-medium flex items-start gap-3">
-              <AlertCircle className="w-5 h-5 text-purple-500 shrink-0" />
-              <p>Płatność odnawia się automatycznie co miesiąc, dopóki jej nie anulujesz.</p>
-            </div>
-          </div>
-          
-          <div className="md:w-2/3 grid grid-cols-1 sm:grid-cols-2 gap-4 w-full">
-            <div className="omni-card p-5 border border-gray-200 flex flex-col">
-              <h4 className="font-semibold text-lg mb-1">Premium</h4>
-              <div className="mb-4" aria-label="29,99 zł miesięcznie">
-                <span className="text-2xl font-bold" aria-hidden="true">{renderPrice('29,99 zł')}</span>
-                <span className="text-[var(--omni-text-muted)] text-sm ml-1" aria-hidden="true">/ miesiąc</span>
-              </div>
-              <div className="mt-auto">
-                {premiumSubUrl ? (
-                  <a href={premiumSubUrl} className="w-full py-2.5 px-4 rounded-lg bg-white dark:bg-slate-900 border border-gray-300 dark:border-slate-800 text-gray-700 dark:text-slate-200 font-medium text-center block hover:bg-gray-50 dark:hover:bg-slate-800 transition-colors">
-                    Włącz subskrypcję
-                  </a>
-                ) : (
-                  <button disabled className="w-full py-2.5 px-4 rounded-lg bg-gray-50 dark:bg-slate-950 border border-gray-200 dark:border-slate-900 text-gray-400 dark:text-slate-500 font-medium cursor-not-allowed">
-                    Wkrótce
-                  </button>
-                )}
-              </div>
-            </div>
-            
-            <div className="omni-card p-5 border border-gray-200 flex flex-col">
-              <h4 className="font-semibold text-lg mb-1">Rodzinny</h4>
-              <div className="mb-4" aria-label="59,99 zł miesięcznie">
-                <span className="text-2xl font-bold" aria-hidden="true">{renderPrice('59,99 zł')}</span>
-                <span className="text-[var(--omni-text-muted)] text-sm ml-1" aria-hidden="true">/ miesiąc</span>
-              </div>
-              <div className="mt-auto">
-                {familySubUrl ? (
-                  <a href={familySubUrl} className="w-full py-2.5 px-4 rounded-lg bg-white dark:bg-slate-900 border border-gray-300 dark:border-slate-800 text-gray-700 dark:text-slate-200 font-medium text-center block hover:bg-gray-50 dark:hover:bg-slate-800 transition-colors">
-                    Włącz subskrypcję
-                  </a>
-                ) : (
-                  <button disabled className="w-full py-2.5 px-4 rounded-lg bg-gray-50 dark:bg-slate-950 border border-gray-200 dark:border-slate-900 text-gray-400 dark:text-slate-500 font-medium cursor-not-allowed">
-                    Wkrótce
-                  </button>
-                )}
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
+      {/* Sekcja 6: Subskrypcja miesięczna (Tymczasowo ukryta do czasu pełnego wdrożenia płatności cyklicznych) */}
 
       {/* Sekcja 5: Pakiety dodatkowych lekcji AI */}
       <section className="mt-12 pt-10 border-t border-gray-100">

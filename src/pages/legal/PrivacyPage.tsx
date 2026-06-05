@@ -50,7 +50,7 @@ export default function PrivacyPage() {
           <li><strong>Vercel:</strong> Hosting aplikacji i funkcje serwerowe.</li>
           <li><strong>OpenAI (lub inny dostawca AI):</strong> Przetwarzanie treści w celu generowania odpowiedzi edukacyjnych.</li>
           <li><strong>Google Cloud Vision (lub inny dostawca OCR):</strong> Rozpoznawanie tekstu ze zdjęć.</li>
-          <li><strong>Dostawcy płatności:</strong> (W przyszłości) obsługa transakcji subskrypcyjnych.</li>
+          <li><strong>Dostawcy płatności:</strong> Obsługa transakcji jednorazowych, np. dostępu Premium na 30 dni.</li>
         </ul>
       </section>
 

@@ -18,7 +18,7 @@ export default function PaymentSuccessPage() {
         
         <div className="space-y-4 text-[var(--omni-text-muted)] text-lg mb-8">
           <p>
-            {t('paymentSuccess.desc1', 'Twój plan Premium powinien zostać aktywowany automatycznie w ciągu kilku minut.')}
+            {t('paymentSuccess.desc1', 'Twój plan Premium zostanie aktywowany po weryfikacji płatności (zazwyczaj do 24 godzin w fazie testowej).')}
           </p>
           <p className="text-sm">
             {t('paymentSuccess.desc2', 'Jeśli status planu nie zmieni się od razu, odśwież stronę „Płatności i plan” po chwili. W razie problemu skontaktuj się z nami — sprawdzimy płatność ręcznie.')}
@@ -27,7 +27,7 @@ export default function PaymentSuccessPage() {
 
         <div className="p-4 bg-blue-50 border border-blue-100 rounded-xl text-sm text-blue-800 w-full text-left mb-10">
           <p className="italic">
-            {t('paymentSuccess.mvpNote', 'Automatyczna aktywacja Premium działa przez Stripe. Panel administratora pozostaje zabezpieczeniem na wypadek problemów technicznych z płatnością.')}
+            {t('paymentSuccess.mvpNote', 'W obecnej fazie testowej aktywacja Premium może wymagać potwierdzenia. Dziękujemy za cierpliwość.')}
           </p>
         </div>
 

@@ -76,7 +76,7 @@ export default function TermsPage() {
           <li>ustawienia konta,</li>
           <li>raporty błędów i postępów,</li>
           <li>funkcje przygotowania do sprawdzianów i egzaminów,</li>
-          <li>funkcje płatne, subskrypcje i pakiety dodatkowych lekcji AI, jeżeli zostaną wdrożone.</li>
+          <li>funkcje płatne i pakiety dodatkowych lekcji AI, jeżeli zostaną wdrożone.</li>
         </ul>
         <p>2. Zakres funkcji może różnić się w zależności od planu, wersji aplikacji, dostępności technicznej, limitów oraz etapu rozwoju produktu.</p>
         <p>3. Niektóre funkcje mogą być oznaczone jako testowe, beta, pilotażowe albo dostępne w przyszłości.</p>
@@ -113,7 +113,7 @@ export default function TermsPage() {
         <p>2. Użytkownik, który nie ukończył 13 lat, może korzystać z aplikacji wyłącznie za pośrednictwem konta utworzonego i zarządzanego przez rodzica lub opiekuna prawnego albo za jego wyraźną zgodą, jeżeli taki model konta zostanie udostępniony w aplikacji.</p>
         <p>3. Użytkownik, który ukończył 13 lat, ale nie ukończył 16 lat, może korzystać z aplikacji za zgodą lub akceptacją rodzica albo opiekuna prawnego, w szczególności w zakresie przetwarzania danych osobowych, utworzenia konta oraz korzystania z funkcji wymagających przesyłania materiałów edukacyjnych.</p>
         <p>4. Użytkownik, który ukończył 16 lat, może korzystać z aplikacji zgodnie z Regulaminem, z zastrzeżeniem ograniczeń wynikających z przepisów prawa, w szczególności dotyczących zawierania umów płatnych przez osoby niepełnoletnie.</p>
-        <p>5. Umowy dotyczące usług płatnych, subskrypcji, pakietów dodatkowych lekcji AI lub innych odpłatnych funkcji mogą być zawierane wyłącznie przez osobę pełnoletnią albo przez rodzica lub opiekuna prawnego działającego na rzecz użytkownika niepełnoletniego.</p>
+        <p>5. Umowy dotyczące usług płatnych, pakietów dodatkowych lekcji AI lub innych odpłatnych funkcji mogą być zawierane wyłącznie przez osobę pełnoletnią albo przez rodzica lub opiekuna prawnego działającego na rzecz użytkownika niepełnoletniego.</p>
         <p>6. Rodzic lub opiekun prawny odpowiada za nadzór nad korzystaniem z aplikacji przez dziecko oraz za upewnienie się, że dziecko nie przesyła do aplikacji danych wrażliwych, dokumentów tożsamości, danych osób trzecich, materiałów naruszających prawa autorskie lub innych treści, których nie powinno przesyłać.</p>
         <p>7. Usługodawca może stosować odpowiednie środki weryfikacji wieku użytkownika oraz zgody rodzica lub opiekuna prawnego, proporcjonalne do rodzaju usługi, dostępnej technologii i ryzyka związanego z przetwarzaniem danych dzieci. Konto dziecka poniżej 13 roku życia może korzystać z funkcji edukacyjnych wyłącznie po wcześniejszym dodaniu adresu e-mail dziecka przez rodzica lub opiekuna prawnego w Panelu Rodzica i powiązaniu konta z tym adresem. Konta niepowiązane z rodzicem lub opiekunem mogą zostać zablokowane, oznaczone do usunięcia lub usunięte po upływie określonego czasu, w szczególności po 72 godzinach od rozpoczęcia rejestracji bez powiązania.</p>
         <p>8. Usługodawca może odmówić świadczenia usług lub ograniczyć dostęp do wybranych funkcji, jeżeli nie uzyska wymaganej zgody rodzica lub opiekuna prawnego albo jeżeli istnieje uzasadnione podejrzenie, że konto zostało utworzone z naruszeniem zasad dotyczących wieku użytkownika.</p>
@@ -254,7 +254,7 @@ export default function TermsPage() {
           <li>funkcje Premium,</li>
           <li>raporty postępów,</li>
           <li>wspólną historię nauki,</li>
-          <li>panel rodzica — wkrótce.</li>
+          <li>panel rodzica.</li>
         </ul>
         <p>6. Dodatkowe pakiety lekcji AI mogą być oferowane według cennika widocznego w aplikacji lub na stronie internetowej, przykładowo:</p>
         <ul className="list-[lower-alpha] pl-6 space-y-1">
@@ -263,20 +263,17 @@ export default function TermsPage() {
           <li>25 lekcji AI — 29,99 zł.</li>
         </ul>
         <p>7. Ceny, zakres planów i dostępność funkcji mogą ulegać zmianie. Zmiany nie naruszają praw nabytych konsumenta wynikających z obowiązujących przepisów prawa.</p>
-        <p>8. Informacje prezentowane w aplikacji lub na stronie internetowej przed zakupem powinny jednoznacznie wskazywać, co użytkownik kupuje, jaka jest cena, jaki jest okres dostępu, czy płatność jest jednorazowa czy cykliczna, jakie są limity oraz jak można zrezygnować z usługi.</p>
+        <p>8. Informacje prezentowane w aplikacji lub na stronie internetowej przed zakupem powinny jednoznacznie wskazywać, co użytkownik kupuje, jaka jest cena, jaki jest okres dostępu, jaki jest charakter płatności (obecnie wyłącznie jednorazowa, brak automatycznego odnawiania), jakie są limity oraz jak można zrezygnować z usługi.</p>
       </section>
 
       <section>
-        <h2>§ 16. Subskrypcje i automatyczne odnowienie</h2>
-        <p>1. Usługi płatne mogą być oferowane w formie subskrypcji miesięcznej, rocznej lub innej, zgodnie z informacjami przedstawionymi użytkownikowi przed zakupem.</p>
-        <p>2. Umowa o usługę płatną zostaje zawarta z chwilą potwierdzenia zakupu przez użytkownika oraz otrzymania przez Usługodawcę potwierdzenia skutecznej płatności, chyba że przy danej ofercie wskazano inaczej.</p>
-        <p>3. Przed zawarciem umowy użytkownik otrzymuje jasne informacje o cenie, okresie rozliczeniowym, zakresie funkcji, limitach, zasadach automatycznego odnowienia, sposobie rezygnacji oraz prawie odstąpienia od umowy.</p>
-        <p>4. Jeżeli subskrypcja odnawia się automatycznie, informacja o automatycznym odnowieniu musi być przedstawiona użytkownikowi w sposób jasny przed zakupem.</p>
-        <p>5. Użytkownik może zrezygnować z automatycznego odnowienia subskrypcji w ustawieniach konta lub w inny wskazany w aplikacji sposób.</p>
-        <p>6. Rezygnacja działa na przyszłość i nie pozbawia użytkownika dostępu do opłaconej usługi do końca bieżącego okresu rozliczeniowego, chyba że przepisy prawa lub warunki danej promocji stanowią inaczej.</p>
-        <p>7. Zmiana ceny lub innych istotnych warunków aktywnej subskrypcji wymaga wcześniejszego poinformowania użytkownika.</p>
-        <p>8. Jeżeli zmiana ceny lub innych istotnych warunków ma obowiązywać od kolejnego okresu rozliczeniowego, użytkownik powinien mieć możliwość jej zaakceptowania albo rezygnacji z dalszej subskrypcji przed wejściem zmiany w życie.</p>
-        <p>9. Usługodawca nie pobierze od użytkownika opłaty według zmienionej ceny za kolejny okres subskrypcji, jeżeli użytkownik nie został wcześniej prawidłowo poinformowany o zmianie i nie miał realnej możliwości rezygnacji lub wyrażenia wymaganej zgody.</p>
+        <h2>§ 16. Zasady jednorazowego dostępu płatnego</h2>
+        <p>1. Usługi płatne mogą być oferowane jako jednorazowy dostęp czasowy, np. Premium na 30 dni.</p>
+        <p>2. Umowa o usługę płatną zostaje zawarta z chwilą potwierdzenia zakupu przez użytkownika oraz otrzymania przez Usługodawcę potwierdzenia skutecznej płatności.</p>
+        <p>3. Zakres, cena i czas trwania są pokazane użytkownikowi przed zakupem.</p>
+        <p>4. Płatności może dokonywać wyłącznie osoba pełnoletnia albo rodzic lub opiekun prawny.</p>
+        <p>5. Usługodawca obecnie nie oferuje subskrypcji odnawialnych. Dostęp płatny wygasa automatycznie po upływie wykupionego okresu.</p>
+        <p>6. Jeżeli w przyszłości zostaną wprowadzone inne modele płatności, regulamin i komunikaty w aplikacji zostaną odpowiednio zaktualizowane przed ich uruchomieniem.</p>
       </section>
 
       <section>
@@ -290,7 +287,7 @@ export default function TermsPage() {
           <li>zakresie kupowanej usługi,</li>
           <li>okresie dostępu,</li>
           <li>limitach,</li>
-          <li>automatycznym odnowieniu, jeżeli występuje,</li>
+          <li>braku automatycznego odnawiania,</li>
           <li>zasadach rezygnacji,</li>
           <li>prawie odstąpienia od umowy.</li>
         </ul>
@@ -426,8 +423,7 @@ export default function TermsPage() {
         </ul>
         <p>2. Użytkownicy powinni zostać poinformowani o istotnych zmianach Regulaminu w sposób odpowiedni do charakteru zmiany, np. przez komunikat w aplikacji lub wiadomość e-mail.</p>
         <p>3. Zmiany Regulaminu nie powinny naruszać praw nabytych konsumenta wynikających z obowiązujących przepisów prawa.</p>
-        <p>4. W przypadku aktywnych subskrypcji zmiana istotnych warunków, w szczególności ceny lub podstawowego zakresu świadczenia, powinna być dokonana zgodnie z przepisami prawa konsumenckiego oraz zasadami opisanymi w Regulaminie.</p>
-        <p>5. Jeżeli użytkownik nie akceptuje zmian Regulaminu, może zakończyć korzystanie z aplikacji, a w przypadku aktywnej subskrypcji — zrezygnować z jej dalszego odnawiania zgodnie z zasadami opisanymi w aplikacji.</p>
+        <p>4. Jeżeli użytkownik nie akceptuje zmian Regulaminu, może zakończyć korzystanie z aplikacji.</p>
       </section>
 
       <section>
