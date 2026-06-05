@@ -465,9 +465,17 @@ export default function HomePage() {
           </div>
 
           <div className="pt-8 border-t border-white/5 flex flex-col md:flex-row items-center justify-between gap-4">
-            <p className="text-[#94A3B8] text-xs">
-              {t('home.footer.copyright', '© 2026 OmniNauka. Wszelkie prawa zastrzeżone.')}
-            </p>
+            <div className="flex flex-col gap-1 text-center md:text-left">
+              <p className="text-[#94A3B8] text-xs">
+                {t('home.footer.copyright', '© 2026 OmniNauka. Wszelkie prawa zastrzeżone.')}
+              </p>
+              <p className="text-[#94A3B8] text-xs opacity-60 italic">
+                {t('home.footer.creatorPrefix', 'Projekt, koncepcja i rozwój produktu:')} Piotr Fiszer —{' '}
+                <a href="tel:+48604904150" className="hover:text-white underline transition-colors">+48 604 904 150</a>
+                {' · '}
+                <a href="mailto:piotr.fiszer@pfconsulting.pl" className="hover:text-white underline transition-colors">piotr.fiszer@pfconsulting.pl</a>
+              </p>
+            </div>
             <div className="flex items-center gap-6">
               {/* Optional: Add social icons here if needed in future */}
             </div>

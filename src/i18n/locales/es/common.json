@@ -290,7 +290,8 @@
         "privacy": "Política de privacidad",
         "reports": "Denuncia de infracciones y eliminación de contenido"
       },
-      "copyright": "© 2026 OmniNauka. Todos los derechos reservados."
+      "copyright": "© 2026 OmniNauka. Todos los derechos reservados.",
+      "creatorPrefix": "Proyecto, concepto y desarrollo del producto:"
     },
     "nav": {
       "login": "Iniciar sesión",

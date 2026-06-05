@@ -320,7 +320,8 @@
         "aiDisclaimer": "AI Disclaimer",
         "reports": "Reporting Violations and Content Removal"
       },
-      "copyright": "© 2026 OmniNauka. All rights reserved."
+      "copyright": "© 2026 OmniNauka. All rights reserved.",
+      "creatorPrefix": "Project, concept and product development:"
     },
     "nav": {
       "login": "Log in",

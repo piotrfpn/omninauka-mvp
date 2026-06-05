@@ -320,7 +320,8 @@
         "aiDisclaimer": "AI Disclaimer",
         "reports": "Zgłaszanie naruszeń i usuwanie treści"
       },
-      "copyright": "© 2026 OmniNauka. Wszelkie prawa zastrzeżone."
+      "copyright": "© 2026 OmniNauka. Wszelkie prawa zastrzeżone.",
+      "creatorPrefix": "Projekt, koncepcja i rozwój produktu:"
     },
     "nav": {
       "login": "Zaloguj się",

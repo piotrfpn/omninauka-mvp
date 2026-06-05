@@ -111,7 +111,13 @@ export default function LegalPageLayout({
             <Link to="/polityka-zglaszania-naruszen" className="hover:text-white transition-colors">{t('home.footer.legal.reports', 'Zgłaszanie naruszeń')}</Link>
             <Link to="/kontakt" className="hover:text-white transition-colors">{t('contact.title', 'Kontakt')}</Link>
           </div>
-          <p className="text-sm">{t('home.footer.copyright', '© 2026 OmniNauka. Wszelkie prawa zastrzeżone.')}</p>
+          <p className="text-sm mb-1">{t('home.footer.copyright', '© 2026 OmniNauka. Wszelkie prawa zastrzeżone.')}</p>
+          <p className="text-xs text-white/30 italic">
+            {t('home.footer.creatorPrefix', 'Projekt, koncepcja i rozwój produktu:')} Piotr Fiszer —{' '}
+            <a href="tel:+48604904150" className="hover:text-white underline transition-colors">+48 604 904 150</a>
+            {' · '}
+            <a href="mailto:piotr.fiszer@pfconsulting.pl" className="hover:text-white underline transition-colors">piotr.fiszer@pfconsulting.pl</a>
+          </p>
         </div>
       </footer>
     </div>
