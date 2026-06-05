@@ -1,0 +1,14 @@
+{
+  "name": "OmniNauka",
+  "short_name": "OmniNauka",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "type": "image/svg+xml",
+      "sizes": "any"
+    }
+  ],
+  "theme_color": "#0B1220",
+  "background_color": "#0B1220",
+  "display": "standalone"
+}
