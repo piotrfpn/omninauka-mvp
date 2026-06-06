@@ -4,7 +4,16 @@ import { useTranslation } from 'react-i18next';
 export default function CookiesPage() {
   const { t } = useTranslation();
   return (
-    <LegalPageLayout title={t('legal.cookies.title', 'Polityka Cookies i Przechowywania Danych')} lastUpdated="02.05.2026">
+    <LegalPageLayout title={t('legal.cookies.title', 'Polityka Cookies i Przechowywania Danych')} lastUpdated="06.06.2026">
+      <section>
+        <p className="font-semibold mb-2">
+          Wersja: 1.0
+        </p>
+        <p className="text-sm text-[var(--omni-text-muted)] italic mb-6">
+          Dokument prawny jest dostępny wyłącznie w języku polskim. W przypadku korzystania z aplikacji w innym języku, wiążąca pozostaje polska wersja dokumentu.
+        </p>
+      </section>
+
       <p className="mb-6">
         Serwis OmniNauka wykorzystuje pliki "cookies" oraz funkcje przeglądarki (localStorage i sessionStorage) w celu zapewnienia prawidłowego działania aplikacji, bezpieczeństwa oraz zapamiętania Twoich preferencji.
       </p>

@@ -4,7 +4,16 @@ import { useTranslation } from 'react-i18next';
 export default function PrivacyPage() {
   const { t } = useTranslation();
   return (
-    <LegalPageLayout title={t('home.footer.legal.privacy', 'Polityka prywatności')} lastUpdated="26.04.2026">
+    <LegalPageLayout title={t('home.footer.legal.privacy', 'Polityka prywatności')} lastUpdated="06.06.2026">
+      <section>
+        <p className="font-semibold mb-2">
+          Wersja: 1.0
+        </p>
+        <p className="text-sm text-[var(--omni-text-muted)] italic mb-6">
+          Dokument prawny jest dostępny wyłącznie w języku polskim. W przypadku korzystania z aplikacji w innym języku, wiążąca pozostaje polska wersja dokumentu.
+        </p>
+      </section>
+
       <section>
         <h2>1. Administrator Danych Osobowych</h2>
         <p>Administratorem Twoich danych osobowych jest:</p>

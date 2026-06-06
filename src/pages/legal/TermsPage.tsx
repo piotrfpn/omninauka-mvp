@@ -4,11 +4,14 @@ import { useTranslation } from 'react-i18next';
 export default function TermsPage() {
   const { t } = useTranslation();
   return (
-    <LegalPageLayout title={t('home.footer.legal.terms', 'Regulamin')} lastUpdated="26.04.2026">
+    <LegalPageLayout title={t('home.footer.legal.terms', 'Regulamin')} lastUpdated="06.06.2026">
       <section>
-        <p className="font-semibold mb-6">
-          Wersja: REGULAMIN_v02 (Wersja 1.0)<br />
-          Data wejścia w życie: 26.04.2026
+        <p className="font-semibold mb-2">
+          Wersja: 1.0<br />
+          Data wejścia w życie: 06.06.2026
+        </p>
+        <p className="text-sm text-[var(--omni-text-muted)] italic mb-6">
+          Dokument prawny jest dostępny wyłącznie w języku polskim. W przypadku korzystania z aplikacji w innym języku, wiążąca pozostaje polska wersja dokumentu.
         </p>
       </section>
 
@@ -426,7 +429,7 @@ export default function TermsPage() {
         <p>1. Regulamin jest udostępniany użytkownikowi nieodpłatnie przed rozpoczęciem korzystania z aplikacji w sposób umożliwiający jego pozyskanie, odtwarzanie i utrwalanie.</p>
         <p>2. W sprawach nieuregulowanych Regulaminem zastosowanie mają właściwe przepisy prawa polskiego oraz prawa Unii Europejskiej.</p>
         <p>3. Postanowienia Regulaminu nie wyłączają ani nie ograniczają praw konsumenta przysługujących mu na podstawie bezwzględnie obowiązujących przepisów prawa.</p>
-        <p>4. Niniejszy Regulamin wchodzi w życie z dniem 26.04.2026 i jest oznaczony jako wersja REGULAMIN_v02. Wszelkie archiwalne wersje regulaminu są przechowywane przez Usługodawcę i udostępniane na żądanie Użytkownika.</p>
+        <p>4. Niniejszy Regulamin wchodzi w życie z dniem 06.06.2026 i jest oznaczony jako Wersja: 1.0. Wszelkie archiwalne wersje regulaminu są przechowywane przez Usługodawcę i udostępniane na żądanie Użytkownika.</p>
       </section>
     </LegalPageLayout>
   );

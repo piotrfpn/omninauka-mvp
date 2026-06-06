@@ -4,7 +4,16 @@ import { useTranslation } from 'react-i18next';
 export default function AIDisclaimerPage() {
   const { t } = useTranslation();
   return (
-    <LegalPageLayout title={t('legal.aiDisclaimer.title', 'Oświadczenie dot. Sztucznej Inteligencji (AI Disclaimer)')} lastUpdated="26.04.2026">
+    <LegalPageLayout title={t('legal.aiDisclaimer.title', 'Oświadczenie dot. Sztucznej Inteligencji (AI Disclaimer)')} lastUpdated="06.06.2026">
+      <section>
+        <p className="font-semibold mb-2">
+          Wersja: 1.0
+        </p>
+        <p className="text-sm text-[var(--omni-text-muted)] italic mb-6">
+          Dokument prawny jest dostępny wyłącznie w języku polskim. W przypadku korzystania z aplikacji w innym języku, wiążąca pozostaje polska wersja dokumentu.
+        </p>
+      </section>
+
       <p>
         OmniNauka to narzędzie wykorzystujące nowoczesne modele sztucznej inteligencji (AI) do wspierania procesu uczenia się. Korzystając z Serwisu, Użytkownik przyjmuje do wiadomości następujące zasady:
       </p>

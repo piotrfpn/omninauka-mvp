@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowLeft, AlertTriangle, Info } from 'lucide-react';
+import { ArrowLeft, Info } from 'lucide-react';
 import OmniNaukaLogo from '../brand/OmniNaukaLogo';
 import { useTranslation } from 'react-i18next';
 
@@ -14,7 +14,6 @@ interface LegalPageLayoutProps {
 export default function LegalPageLayout({ 
   title, 
   lastUpdated, 
-  isDraft = true, 
   children 
 }: LegalPageLayoutProps) {
   const { t, i18n } = useTranslation();
@@ -61,15 +60,7 @@ export default function LegalPageLayout({
             </div>
           )}
 
-          {/* Draft Notice */}
-          {isDraft && (
-            <div className="mb-10 p-4 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-900/30 rounded-xl flex items-start gap-3">
-              <AlertTriangle className="w-5 h-5 text-amber-600 dark:text-amber-500 mt-0.5 flex-shrink-0" />
-              <p className="text-sm text-amber-800 dark:text-amber-200 font-medium">
-                Dokument roboczy — wymaga finalnej weryfikacji prawnej przed komercyjnym uruchomieniem usługi.
-              </p>
-            </div>
-          )}
+
 
           <div className="space-y-8">
             <header>

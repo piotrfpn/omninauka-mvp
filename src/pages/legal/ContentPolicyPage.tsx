@@ -6,13 +6,16 @@ export default function ContentPolicyPage() {
   return (
     <LegalPageLayout 
       title={t('home.footer.legal.reports', 'Polityka zgłaszania naruszeń i usuwania treści')} 
-      lastUpdated="26.04.2026"
+      lastUpdated="06.06.2026"
       isDraft={false}
     >
       <section>
-        <p className="font-semibold mb-6">
-          Wersja: v01<br />
-          Data publikacji: 26 kwietnia 2026 r.
+        <p className="font-semibold mb-2">
+          Wersja: 1.0<br />
+          Data publikacji: 6 czerwca 2026 r.
+        </p>
+        <p className="text-sm text-[var(--omni-text-muted)] italic mb-6">
+          Dokument prawny jest dostępny wyłącznie w języku polskim. W przypadku korzystania z aplikacji w innym języku, wiążąca pozostaje polska wersja dokumentu.
         </p>
       </section>
 
