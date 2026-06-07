@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../lib/auth-context';
 import { supabase } from '../../lib/supabase';
+import { Link } from 'react-router-dom';
 import {
   Search, Shield, ShieldOff, AlertTriangle, Loader2,
-  User, Calendar, Crown, FileText, Activity, History, Users
+  User, Calendar, Crown, FileText, Activity, History, Users, Inbox
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -133,6 +134,7 @@ export default function AdminPage() {
   // Admin Check State
   const [isAdminChecked, setIsAdminChecked] = useState(false);
   const [isForbidden, setIsForbidden] = useState(false);
+  const [newTicketsCount, setNewTicketsCount] = useState(0);
 
   // Search state
   const [searchQuery, setSearchQuery] = useState('');
@@ -183,7 +185,27 @@ export default function AdminPage() {
 
         if (response.ok) {
           const data = await response.json();
-          if (isMounted) setIsForbidden(!data.isAdmin);
+          if (isMounted) {
+            setIsForbidden(!data.isAdmin);
+            if (data.isAdmin) {
+              try {
+                const countRes = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/support-inbox`, {
+                  method: 'POST',
+                  headers: {
+                    'Authorization': `Bearer ${session.access_token}`,
+                    'Content-Type': 'application/json',
+                  },
+                  body: JSON.stringify({ action: 'count_new_tickets' }),
+                });
+                if (countRes.ok) {
+                  const countData = await countRes.json();
+                  if (isMounted) setNewTicketsCount(countData.count || 0);
+                }
+              } catch (e) {
+                console.error('Błąd pobierania licznika zgłoszeń', e);
+              }
+            }
+          }
         } else {
           if (isMounted) setIsForbidden(true);
         }
@@ -402,12 +424,23 @@ export default function AdminPage() {
           <div className="w-10 h-10 bg-red-100 dark:bg-red-900/30 rounded-xl flex items-center justify-center">
             <Shield className="w-5 h-5 text-red-600 dark:text-red-400" />
           </div>
-          <div>
+          <div className="flex-1">
             <h1 className="text-2xl font-bold text-foreground">Panel administratora</h1>
             <p className="text-sm text-muted-foreground">
               Zarządzanie użytkownikami, planami i audytem
             </p>
           </div>
+          <Button asChild variant="outline" className="gap-2 relative">
+            <Link to="/app/admin/support">
+              <Inbox className="w-4 h-4" />
+              Skrzynka zgłoszeń (Support)
+              {newTicketsCount > 0 && (
+                <span className="absolute -top-2 -right-2 bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full min-w-[20px] text-center shadow-sm">
+                  {newTicketsCount}
+                </span>
+              )}
+            </Link>
+          </Button>
         </div>
         <div className="mt-3 flex items-center gap-2 text-xs text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg px-3 py-2">
           <AlertTriangle className="w-3.5 h-3.5 flex-shrink-0" />

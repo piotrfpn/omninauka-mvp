@@ -36,6 +36,8 @@ const ParentDashboardPage = lazy(() => import('./pages/app/ParentDashboardPage')
 const PaymentSuccessPage = lazy(() => import('./pages/app/PaymentSuccessPage'));
 const PaymentsPage = lazy(() => import('./pages/app/PaymentsPage'));
 const AdminPage = lazy(() => import('./pages/app/AdminPage'));
+const SupportPage = lazy(() => import('./pages/app/SupportPage'));
+const AdminSupportInboxPage = lazy(() => import('./pages/app/AdminSupportInboxPage'));
 
 // A fallback component for Suspense
 const SuspenseFallback = () => (
@@ -150,6 +152,8 @@ function AppRoutes() {
                     <Route path="payment-success" element={<PaymentSuccessPage />} />
                     <Route path="payments" element={<PaymentsPage />} />
                     <Route path="admin" element={<AdminPage />} />
+                    <Route path="admin/support" element={<AdminSupportInboxPage />} />
+                    <Route path="support" element={<SupportPage />} />
                     <Route path="*" element={<Navigate to={user?.userRole === 'parent' || user?.userRole === 'guardian' ? "parent" : "dashboard"} replace />} />
                    </Routes>
                 </Suspense>
