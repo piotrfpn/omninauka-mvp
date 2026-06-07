@@ -56,7 +56,15 @@ serve(async (req) => {
     const requestingEmail = requestingUser.email?.toLowerCase().trim() ?? '';
     const requestingUserId = requestingUser.id;
 
-    // ── 3. Check ADMIN_EMAILS allowlist ────────────────────────────────────────
+    // ── 3. Parse request body ──────────────────────────────────────────────────
+    const body = await req.json().catch(() => ({}));
+    const action = body.action;
+
+    if (!action || typeof action !== 'string') {
+      return jsonResponse({ error: 'Missing or invalid action' }, 400);
+    }
+
+    // ── 4. Check ADMIN_EMAILS allowlist ────────────────────────────────────────
     const adminEmailsEnv = Deno.env.get('ADMIN_EMAILS') ?? '';
     if (!adminEmailsEnv) {
       console.error('[admin-plan-management] ADMIN_EMAILS secret not configured');
@@ -68,22 +76,20 @@ serve(async (req) => {
       .map(e => e.trim().toLowerCase())
       .filter(Boolean);
 
-    if (!adminEmails.includes(requestingEmail)) {
+    const isAdmin = adminEmails.includes(requestingEmail);
+
+    if (action === 'check_admin') {
+      return jsonResponse({ isAdmin });
+    }
+
+    if (!isAdmin) {
       return jsonResponse({ error: 'Forbidden: insufficient permissions' }, 403);
     }
 
-    // ── 4. Admin is verified — use service client for all operations ───────────
+    // ── 5. Admin is verified — use service client for all operations ───────────
     const adminClient = createClient(supabaseUrl, supabaseServiceKey, {
       auth: { persistSession: false },
     });
-
-    // ── 5. Parse request body ──────────────────────────────────────────────────
-    const body = await req.json();
-    const { action } = body;
-
-    if (!action || typeof action !== 'string') {
-      return jsonResponse({ error: 'Missing or invalid action' }, 400);
-    }
 
     // ── 6. Helpers ─────────────────────────────────────────────────────────────
 
@@ -131,29 +137,60 @@ serve(async (req) => {
 
     // ── 7. search_user ─────────────────────────────────────────────────────────
     if (action === 'search_user') {
-      const rawEmail = body.email;
-      if (!rawEmail || typeof rawEmail !== 'string') {
-        return jsonResponse({ error: 'Missing email parameter' }, 400);
+      const query = body.query;
+      if (!query || typeof query !== 'string') {
+        return jsonResponse({ error: 'Missing query parameter' }, 400);
       }
 
-      const normalizedEmail = rawEmail.trim().toLowerCase();
-      if (!normalizedEmail.includes('@')) {
-        return jsonResponse({ error: 'Invalid email format' }, 400);
+      // Sanitization: remove % and _ to prevent massive dumps, trim
+      const sanitizedQuery = query.replace(/[%_]/g, '').trim();
+
+      if (sanitizedQuery.length < 3) {
+        return jsonResponse({ error: 'Fraza wyszukiwania musi mieć minimum 3 znaki' }, 400);
+      }
+
+      const ilikePattern = `%${sanitizedQuery}%`;
+
+      const { data: users, error: searchError } = await adminClient
+        .from('profiles')
+        .select('id, email, name, plan, plan_expires_at, user_role, created_at, account_status')
+        .or(`email.ilike.${ilikePattern},name.ilike.${ilikePattern}`)
+        .order('created_at', { ascending: false })
+        .limit(20);
+
+      if (searchError) {
+        console.error('[admin-plan-management] search_user error:', searchError.message);
+        return jsonResponse({ error: 'Database query error' }, 500);
+      }
+
+      return jsonResponse({ users: users ?? [] });
+    }
+
+    // ── 7.5 get_user_details ───────────────────────────────────────────────────
+    if (action === 'get_user_details') {
+      const { userId } = body;
+      if (!userId || typeof userId !== 'string') {
+        return jsonResponse({ error: 'Missing userId parameter' }, 400);
+      }
+
+      const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+      if (!uuidRegex.test(userId)) {
+        return jsonResponse({ error: 'Invalid userId format' }, 400);
       }
 
       const { data: userProfile, error: userError } = await adminClient
         .from('profiles')
-        .select('id, email, plan, plan_expires_at, plan_updated_at, created_at')
-        .eq('email', normalizedEmail)
+        .select('id, email, name, plan, plan_expires_at, plan_updated_at, created_at, account_status, age_band, user_role')
+        .eq('id', userId)
         .maybeSingle();
 
       if (userError) {
-        console.error('[admin-plan-management] search_user error:', userError.message);
+        console.error('[admin-plan-management] get_user_details error:', userError.message);
         return jsonResponse({ error: 'Database query error' }, 500);
       }
 
       if (!userProfile) {
-        return jsonResponse({ user: null });
+        return jsonResponse({ error: 'User not found' }, 404);
       }
 
       // Fetch audit logs safely using service role
@@ -162,7 +199,7 @@ serve(async (req) => {
         .select('id, created_at, action_type, admin_email, target_email, old_plan, new_plan, reason')
         .eq('target_user_id', userProfile.id)
         .order('created_at', { ascending: false })
-        .limit(10);
+        .limit(20);
 
       // Fetch usage events safely using service role
       const { data: usageEvents } = await adminClient
@@ -170,14 +207,14 @@ serve(async (req) => {
         .select('id, created_at, event_type, value, details')
         .eq('user_id', userProfile.id)
         .order('created_at', { ascending: false })
-        .limit(10);
+        .limit(20);
 
       // Fetch family children
       const { data: familyChildrenRaw } = await adminClient
         .from('child_profiles')
         .select('id, status, child_user_id, child_email, display_name, created_at')
         .eq('parent_user_id', userProfile.id)
-        .limit(10);
+        .limit(20);
 
       const childUserIds = familyChildrenRaw?.map(c => c.child_user_id).filter(Boolean) || [];
       let childrenProfiles = [];
@@ -199,8 +236,8 @@ serve(async (req) => {
       const { data: parentalConsents } = await adminClient
         .from('parental_consents')
         .select('id, consent_status, child_user_id, parent_email, last_email_sent_at, email_send_count, email_last_status, email_last_error, created_at, updated_at')
-        .or(`parent_email.eq.${normalizedEmail},child_user_id.eq.${userProfile.id}`)
-        .limit(10);
+        .or(`parent_email.eq.${userProfile.email},child_user_id.eq.${userProfile.id}`)
+        .limit(20);
 
       return jsonResponse({
         user: userProfile,
@@ -295,6 +332,38 @@ serve(async (req) => {
         target_email: targetEmail,
         old_plan: oldPlan,
         new_plan: updatedUser?.plan ?? 'premium',
+        old_plan_expires_at: oldExpiresAt,
+        new_plan_expires_at: updatedUser?.plan_expires_at ?? null,
+        reason: sanitizedReason,
+      });
+
+      return jsonResponse({ success: true, user: updatedUser });
+    }
+
+    if (action === 'extend_family_30') {
+      const { data: rpcData, error: rpcError } = await adminClient
+        .rpc('admin_extend_plan_30_days', {
+          target_user_id: userId,
+          target_plan: 'family',
+        });
+
+      if (rpcError) {
+        console.error('[admin-plan-management] extend_family_30 RPC error:', rpcError.message);
+        return jsonResponse({ error: 'Failed to extend plan' }, 500);
+      }
+
+      if (!rpcData?.success) {
+        return jsonResponse({ error: 'Extension rejected by database function' }, 500);
+      }
+
+      const updatedUser = await fetchUserProfile(userId);
+
+      await writeAuditLog({
+        action_type: 'extend_family_30',
+        target_user_id: userId,
+        target_email: targetEmail,
+        old_plan: oldPlan,
+        new_plan: updatedUser?.plan ?? 'family',
         old_plan_expires_at: oldExpiresAt,
         new_plan_expires_at: updatedUser?.plan_expires_at ?? null,
         reason: sanitizedReason,

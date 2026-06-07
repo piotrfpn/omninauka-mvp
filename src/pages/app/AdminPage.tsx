@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../lib/auth-context';
 import { supabase } from '../../lib/supabase';
 import {
@@ -13,16 +13,28 @@ import { Input } from '../../components/ui/input';
 import { Textarea } from '../../components/ui/textarea';
 import { Badge } from '../../components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../components/ui/table';
+import {
+  AlertDialog,
+
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '../../components/ui/alert-dialog';
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
 interface AdminUserProfile {
   id: string;
   email: string;
+  name?: string;
   plan: 'free' | 'premium' | 'family';
   plan_expires_at: string | null;
   plan_updated_at: string | null;
   created_at?: string | null;
+  user_role?: string;
 }
 
 interface AdminPlanAction {
@@ -76,7 +88,7 @@ interface AdminData {
   parentalConsents: AdminConsent[];
 }
 
-type ActionType = 'activate_premium_30' | 'extend_premium_30' | 'activate_family_30' | 'set_free';
+type ActionType = 'extend_premium_30' | 'extend_family_30' | 'set_free';
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
 
@@ -118,18 +130,74 @@ function getEffectivePlanLabel(plan: string, plan_expires_at: string | null): st
 export default function AdminPage() {
   const { user } = useAuth();
 
-  // Search state
-  const [searchEmail, setSearchEmail] = useState('');
-  const [isSearching, setIsSearching] = useState(false);
+  // Admin Check State
+  const [isAdminChecked, setIsAdminChecked] = useState(false);
   const [isForbidden, setIsForbidden] = useState(false);
-  const [notFound, setNotFound] = useState(false);
+
+  // Search state
+  const [searchQuery, setSearchQuery] = useState('');
+  const [isSearching, setIsSearching] = useState(false);
+  const [searchResults, setSearchResults] = useState<AdminUserProfile[] | null>(null);
 
   // Data state
   const [adminData, setAdminData] = useState<AdminData | null>(null);
+  const [isLoadingDetails, setIsLoadingDetails] = useState(false);
 
   // Action state
   const [isUpdatingPlan, setIsUpdatingPlan] = useState(false);
   const [reason, setReason] = useState('');
+
+  // Modal State
+  const [actionModal, setActionModal] = useState<{ isOpen: boolean; action: ActionType | null; label: string }>({
+    isOpen: false,
+    action: null,
+    label: '',
+  });
+
+  // ── Initial Check ─────────────────────────────────────────────────────────
+
+  useEffect(() => {
+    let isMounted = true;
+    if (!user) {
+      setIsForbidden(true);
+      setIsAdminChecked(true);
+      return;
+    }
+
+    const check = async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) {
+          if (isMounted) { setIsForbidden(true); setIsAdminChecked(true); }
+          return;
+        }
+
+        const response = await fetch(FUNCTION_URL_BASE, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${session.access_token}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ action: 'check_admin' }),
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          if (isMounted) setIsForbidden(!data.isAdmin);
+        } else {
+          if (isMounted) setIsForbidden(true);
+        }
+      } catch {
+        if (isMounted) setIsForbidden(true);
+      } finally {
+        if (isMounted) setIsAdminChecked(true);
+      }
+    };
+
+    check();
+
+    return () => { isMounted = false; };
+  }, [user]);
 
   // ── API call helper ────────────────────────────────────────────────────────
 
@@ -164,33 +232,19 @@ export default function AdminPage() {
 
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
-    const email = searchEmail.trim().toLowerCase();
-    if (!email || !email.includes('@')) {
-      toast.error('Wpisz poprawny adres e-mail.');
+    const q = searchQuery.trim();
+    if (q.length < 3) {
+      toast.error('Wpisz minimum 3 znaki.');
       return;
     }
 
     setIsSearching(true);
     setAdminData(null);
-    setNotFound(false);
-    setIsForbidden(false);
-    setReason('');
+    setSearchResults(null);
 
     try {
-      const result = await callAdminFunction({ action: 'search_user', email });
-      if (result.user) {
-        setAdminData({
-          user: result.user as AdminUserProfile,
-          auditLogs: result.auditLogs as AdminPlanAction[] ?? [],
-          usageEvents: result.usageEvents as AdminUsageEvent[] ?? [],
-          familyChildren: result.familyChildren as AdminChild[] ?? [],
-          parentalConsents: result.parentalConsents as AdminConsent[] ?? []
-        });
-        setNotFound(false);
-      } else {
-        setAdminData(null);
-        setNotFound(true);
-      }
+      const result = await callAdminFunction({ action: 'search_user', query: q });
+      setSearchResults(result.users || []);
     } catch (err: unknown) {
       if (err instanceof Error && err.message === 'forbidden') {
         // Handled by state
@@ -202,28 +256,54 @@ export default function AdminPage() {
     }
   };
 
+  // ── User Selection ─────────────────────────────────────────────────────────
+
+  const handleSelectUser = async (userId: string) => {
+    setIsLoadingDetails(true);
+    setAdminData(null);
+    setReason('');
+
+    try {
+      const result = await callAdminFunction({ action: 'get_user_details', userId });
+      setAdminData({
+        user: result.user as AdminUserProfile,
+        auditLogs: result.auditLogs as AdminPlanAction[] ?? [],
+        usageEvents: result.usageEvents as AdminUsageEvent[] ?? [],
+        familyChildren: result.familyChildren as AdminChild[] ?? [],
+        parentalConsents: result.parentalConsents as AdminConsent[] ?? []
+      });
+    } catch (err: unknown) {
+      if (err instanceof Error && err.message === 'forbidden') {
+        // handled
+      } else {
+        toast.error(err instanceof Error ? err.message : 'Błąd pobierania danych.');
+      }
+    } finally {
+      setIsLoadingDetails(false);
+    }
+  };
+
   // ── Action handler ─────────────────────────────────────────────────────────
 
-  const handleAction = async (action: ActionType, label: string) => {
+  const handleOpenActionModal = (action: ActionType, label: string) => {
     if (!adminData?.user) return;
+    setActionModal({ isOpen: true, action, label });
+  };
 
+  const confirmAction = async () => {
+    if (!adminData?.user || !actionModal.action) return;
+
+    const action = actionModal.action;
+    const label = actionModal.label;
     const trimmedReason = reason.trim();
+
     if (trimmedReason.length < 3) {
       toast.error('Powód zmiany jest wymagany (minimum 3 znaki).');
       return;
     }
 
-    if (action === 'set_free') {
-      const isFamilyDowngrade = adminData.user.plan === 'family';
-      const confirmMessage = isFamilyDowngrade
-        ? 'Ta akcja zakończy dostęp Family dla rodzica. Dzieci pozostaną powiązane z rodzicem i zachowają zgodę rodzicielską, ale ich effective plan spadnie do Free. Historia nauki i konta dzieci nie zostaną usunięte. Kontynuować?'
-        : 'Ta akcja ustawi konto użytkownika jako Free. Kontynuować?';
-
-      const confirmed = window.confirm(confirmMessage);
-      if (!confirmed) return;
-    }
-
     setIsUpdatingPlan(true);
+    setActionModal({ isOpen: false, action: null, label: '' });
 
     try {
       const result = await callAdminFunction({
@@ -234,22 +314,9 @@ export default function AdminPage() {
 
       if (result.success && result.user) {
         toast.success(`✓ ${label} — plan został zaktualizowany.`);
-
-        // Refresh data to get new audit logs
-        const refreshResult = await callAdminFunction({ action: 'search_user', email: adminData.user.email });
-        if (refreshResult.user) {
-          setAdminData({
-            user: refreshResult.user as AdminUserProfile,
-            auditLogs: refreshResult.auditLogs as AdminPlanAction[] ?? [],
-            usageEvents: refreshResult.usageEvents as AdminUsageEvent[] ?? [],
-            familyChildren: refreshResult.familyChildren as AdminChild[] ?? [],
-            parentalConsents: refreshResult.parentalConsents as AdminConsent[] ?? []
-          });
-        } else {
-           setAdminData(prev => prev ? { ...prev, user: result.user as AdminUserProfile } : null);
-        }
-
-        setReason(''); // wyczyść powód po sukcesie
+        // Refresh full user data
+        await handleSelectUser(adminData.user.id);
+        setReason('');
       } else {
         throw new Error('Nieoczekiwana odpowiedź z serwera.');
       }
@@ -284,18 +351,7 @@ export default function AdminPage() {
 
       if (result.success) {
         toast.success(`✓ E-mail zgody został wysłany ponownie.`);
-
-        // Refresh data
-        const refreshResult = await callAdminFunction({ action: 'search_user', email: adminData.user.email });
-        if (refreshResult.user) {
-          setAdminData({
-            user: refreshResult.user as AdminUserProfile,
-            auditLogs: refreshResult.auditLogs as AdminPlanAction[] ?? [],
-            usageEvents: refreshResult.usageEvents as AdminUsageEvent[] ?? [],
-            familyChildren: refreshResult.familyChildren as AdminChild[] ?? [],
-            parentalConsents: refreshResult.parentalConsents as AdminConsent[] ?? []
-          });
-        }
+        await handleSelectUser(adminData.user.id);
         setReason('');
       }
     } catch (err: unknown) {
@@ -310,6 +366,32 @@ export default function AdminPage() {
   };
 
   // ── Render ─────────────────────────────────────────────────────────────────
+
+  if (!isAdminChecked) {
+    return (
+      <div className="flex items-center justify-center py-20">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  if (isForbidden) {
+    return (
+      <div className="max-w-4xl mx-auto space-y-8 animate-in fade-in duration-300 pb-12 mt-8">
+        <div className="flex items-start gap-3 p-5 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-2xl">
+          <ShieldOff className="w-5 h-5 text-red-600 dark:text-red-400 mt-0.5 flex-shrink-0" />
+          <div>
+            <p className="font-semibold text-red-800 dark:text-red-300">
+              Brak dostępu do panelu administratora
+            </p>
+            <p className="text-sm text-red-700 dark:text-red-400 mt-1">
+              Ta strona jest przeznaczona wyłącznie dla wyznaczonych administratorów systemu.
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-4xl mx-auto space-y-8 animate-in fade-in duration-300 pb-12">
@@ -336,22 +418,6 @@ export default function AdminPage() {
         </div>
       </header>
 
-      {/* Forbidden state */}
-      {isForbidden && (
-        <div className="flex items-start gap-3 p-5 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-2xl">
-          <ShieldOff className="w-5 h-5 text-red-600 dark:text-red-400 mt-0.5 flex-shrink-0" />
-          <div>
-            <p className="font-semibold text-red-800 dark:text-red-300">
-              Nie masz uprawnień administratora.
-            </p>
-            <p className="text-sm text-red-700 dark:text-red-400 mt-1">
-              Twój adres e-mail nie jest na liście administratorów.
-              Skontaktuj się z właścicielem projektu.
-            </p>
-          </div>
-        </div>
-      )}
-
       {/* Search Section */}
       <Card>
         <CardHeader>
@@ -360,24 +426,24 @@ export default function AdminPage() {
             Wyszukaj użytkownika
           </CardTitle>
           <CardDescription>
-            Wpisz dokładny adres e-mail, aby zobaczyć profil, plany i historię.
+            Szukaj po fragmencie e-maila lub nazwy (minimum 3 znaki).
           </CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSearch} className="flex gap-2">
             <Input
-              id="admin-search-email"
-              type="email"
-              value={searchEmail}
-              onChange={(e) => setSearchEmail(e.target.value)}
-              placeholder="email@uzytkownika.pl"
+              id="admin-search-query"
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="np. tomek@gmail.com lub tomek"
               autoComplete="off"
               className="flex-1"
             />
             <Button
               id="admin-search-btn"
               type="submit"
-              disabled={isSearching}
+              disabled={isSearching || searchQuery.trim().length < 3}
               className="min-w-[120px]"
             >
               {isSearching ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Search className="w-4 h-4 mr-2" />}
@@ -385,11 +451,63 @@ export default function AdminPage() {
             </Button>
           </form>
 
-          {notFound && (
+          {searchResults && searchResults.length === 0 && (
             <p className="text-sm text-muted-foreground flex items-center gap-1.5 mt-4">
               <User className="w-4 h-4" />
-              Nie znaleziono użytkownika o podanym adresie e-mail.
+              Brak wyników. Sprawdź wpisaną frazę.
             </p>
+          )}
+
+          {searchResults && searchResults.length > 0 && (
+            <div className="mt-6 overflow-x-auto">
+              <h4 className="text-sm font-semibold mb-3">
+                Wyniki wyszukiwania ({searchResults.length})
+              </h4>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>E-mail / Nazwa</TableHead>
+                    <TableHead>Rola</TableHead>
+                    <TableHead>Plan</TableHead>
+                    <TableHead>Utworzono</TableHead>
+                    <TableHead className="text-right">Akcja</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {searchResults.map((u) => (
+                    <TableRow key={u.id}>
+                      <TableCell>
+                        <div className="font-medium text-sm">{u.email}</div>
+                        {u.name && <div className="text-xs text-muted-foreground">{u.name}</div>}
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant="outline" className="text-[10px]">
+                          {u.user_role || '—'}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant="secondary" className="text-[10px]">
+                          {getPlanLabel(u.plan)}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-xs text-muted-foreground">
+                        {formatDate(u.created_at)}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <Button
+                          variant="secondary"
+                          size="sm"
+                          onClick={() => handleSelectUser(u.id)}
+                          disabled={isLoadingDetails}
+                        >
+                          {isLoadingDetails ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Wybierz'}
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
           )}
         </CardContent>
       </Card>
@@ -399,7 +517,6 @@ export default function AdminPage() {
         const foundUser = adminData.user;
         const expired = isPlanExpired(foundUser.plan, foundUser.plan_expires_at);
         const effectiveLabel = getEffectivePlanLabel(foundUser.plan, foundUser.plan_expires_at);
-        const isFamily = foundUser.plan === 'family';
 
         return (
           <div className="space-y-6 mt-6">
@@ -417,6 +534,7 @@ export default function AdminPage() {
                   <div>
                     <p className="text-sm text-muted-foreground mb-1">E-mail</p>
                     <p className="font-medium break-all">{foundUser.email}</p>
+                    {foundUser.name && <p className="text-xs text-muted-foreground">{foundUser.name}</p>}
                   </div>
                   <div>
                     <p className="text-sm text-muted-foreground mb-1">Status planu</p>
@@ -468,7 +586,7 @@ export default function AdminPage() {
                     <Textarea
                       value={reason}
                       onChange={(e) => setReason(e.target.value)}
-                      placeholder="Wymagane: np. płatność ręczna, wsparcie, test (min. 3 znaki)"
+                      placeholder="Wymagane (min. 3 znaki)"
                       className="resize-none"
                       rows={2}
                       maxLength={500}
@@ -479,44 +597,28 @@ export default function AdminPage() {
                     <Button
                       variant="default"
                       className="bg-indigo-600 hover:bg-indigo-700 text-white"
-                      onClick={() => handleAction('activate_premium_30', 'Aktywuj Premium')}
+                      onClick={() => handleOpenActionModal('extend_premium_30', 'Przedłuż Premium +30 dni')}
                       disabled={isUpdatingPlan || reason.trim().length < 3}
                     >
-                      Aktywuj Premium 30d
+                      Premium +30 dni
                     </Button>
                     <Button
-                      variant="outline"
-                      onClick={() => handleAction('extend_premium_30', 'Przedłuż Premium')}
+                      variant="default"
+                      className="bg-violet-600 hover:bg-violet-700 text-white"
+                      onClick={() => handleOpenActionModal('extend_family_30', 'Przedłuż Family +30 dni')}
                       disabled={isUpdatingPlan || reason.trim().length < 3}
                     >
-                      Przedłuż Premium 30d
-                    </Button>
-                    <Button
-                      variant="outline"
-                      onClick={() => handleAction('activate_family_30', 'Aktywuj Family')}
-                      disabled={isUpdatingPlan || reason.trim().length < 3}
-                    >
-                      Aktywuj Family 30d
+                      Family +30 dni
                     </Button>
 
-                    {isFamily ? (
-                      <Button
-                        variant="destructive"
-                        onClick={() => handleAction('set_free', 'Ustaw Free')}
-                        disabled={isUpdatingPlan || reason.trim().length < 3}
-                        className="w-full"
-                      >
-                        Ustaw Free
-                      </Button>
-                    ) : (
-                      <Button
-                        variant="destructive"
-                        onClick={() => handleAction('set_free', 'Ustaw Free')}
-                        disabled={isUpdatingPlan || reason.trim().length < 3}
-                      >
-                        Ustaw Free
-                      </Button>
-                    )}
+                    <Button
+                      variant="destructive"
+                      onClick={() => handleOpenActionModal('set_free', 'Ustaw Free')}
+                      disabled={isUpdatingPlan || reason.trim().length < 3}
+                      className="col-span-2"
+                    >
+                      Ustaw Free
+                    </Button>
                   </div>
                 </CardContent>
               </Card>
@@ -653,7 +755,7 @@ export default function AdminPage() {
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 text-lg">
                     <History className="w-5 h-5" />
-                    Historia operacji (Ostatnie 10)
+                    Historia operacji (Ostatnie 20)
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -689,7 +791,7 @@ export default function AdminPage() {
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 text-lg">
                     <Activity className="w-5 h-5" />
-                    Użycie AI (Ostatnie 10)
+                    Użycie AI (Ostatnie 20)
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -720,6 +822,50 @@ export default function AdminPage() {
                 </CardContent>
               </Card>
             </div>
+
+            {/* Action Modal */}
+            <AlertDialog open={actionModal.isOpen} onOpenChange={(isOpen) => { if(!isOpen) setActionModal({ isOpen: false, action: null, label: '' }); }}>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Potwierdzenie zmiany planu</AlertDialogTitle>
+                  <AlertDialogDescription asChild>
+                    <div className="space-y-3 mt-4 text-sm text-foreground">
+                      <div className="grid grid-cols-2 gap-2 bg-muted p-3 rounded-lg">
+                        <span className="text-muted-foreground">Użytkownik:</span>
+                        <span className="font-medium text-right">{foundUser.email}</span>
+                        <span className="text-muted-foreground">Aktualny plan:</span>
+                        <span className="font-medium text-right">{getPlanLabel(foundUser.plan)}</span>
+                        <span className="text-muted-foreground">Ważny do:</span>
+                        <span className="font-medium text-right">{foundUser.plan_expires_at ? formatDate(foundUser.plan_expires_at) : '—'}</span>
+                      </div>
+
+                      {actionModal.action === 'set_free' && (
+                        <div className="bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 p-3 rounded-lg border border-red-200 dark:border-red-800">
+                          <AlertTriangle className="w-4 h-4 inline mr-2" />
+                          <strong>Uwaga!</strong> Ta operacja natychmiastowo zmieni plan użytkownika na <strong>Darmowy</strong> i wyczyści całkowicie datę wygaśnięcia.
+                        </div>
+                      )}
+
+                      {(actionModal.action === 'extend_premium_30' || actionModal.action === 'extend_family_30') && (
+                        <div className="bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400 p-3 rounded-lg border border-green-200 dark:border-green-800">
+                          Operacja bezpiecznie <strong>przedłuży plan o 30 dni</strong> (od dzisiaj lub od obecnej daty wygaśnięcia, zależy co jest późniejsze).
+                        </div>
+                      )}
+                    </div>
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Anuluj</AlertDialogCancel>
+                  <Button
+                    onClick={confirmAction}
+                    disabled={isUpdatingPlan}
+                    variant={actionModal.action === 'set_free' ? 'destructive' : 'default'}
+                  >
+                    {actionModal.action === 'set_free' ? 'Tak, ustaw Free' : `Tak, przedłuż o 30 dni`}
+                  </Button>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
 
           </div>
         );

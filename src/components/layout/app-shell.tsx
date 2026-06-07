@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../lib/auth-context';
+import { supabase } from '../../lib/supabase';
 import {
   LayoutDashboard,
   Upload,
@@ -32,6 +33,44 @@ export function AppShell({ children }: AppShellProps) {
   const location = useLocation();
   const navigate = useNavigate();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  useEffect(() => {
+    let isMounted = true;
+    if (!user) {
+      setIsAdmin(false);
+      return;
+    }
+
+    const checkAdmin = async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) return;
+
+        const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/admin-plan-management`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${session.access_token}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ action: 'check_admin' })
+        });
+
+        if (res.ok) {
+          const data = await res.json();
+          if (isMounted) setIsAdmin(!!data.isAdmin);
+        } else {
+          if (isMounted) setIsAdmin(false);
+        }
+      } catch (err) {
+        if (isMounted) setIsAdmin(false);
+      }
+    };
+
+    checkAdmin();
+
+    return () => { isMounted = false; };
+  }, [user?.id, user?.email]);
 
   const navItems = [
     { label: t('appShell.nav.dashboard', 'Dashboard'), href: '/app/dashboard', icon: LayoutDashboard },
@@ -75,6 +114,14 @@ export function AppShell({ children }: AppShellProps) {
     ];
   } else {
     baseNavItems = [...navItems];
+  }
+
+  if (isAdmin) {
+    baseNavItems.push({
+      label: 'Panel administratora',
+      href: '/app/admin',
+      icon: ShieldCheck as any
+    });
   }
 
   const dynamicNavItems = baseNavItems.map(item => {
@@ -153,8 +200,8 @@ export function AppShell({ children }: AppShellProps) {
                 {user?.name || t('appShell.user', 'Użytkownik')}
               </p>
               <p className="text-xs text-[var(--omni-text-muted)] truncate">
-                {getEffectivePlan(user) === 'premium' 
-                  ? t('appShell.plan.premium', 'Premium') 
+                {getEffectivePlan(user) === 'premium'
+                  ? t('appShell.plan.premium', 'Premium')
                   : getEffectivePlan(user) === 'family'
                     ? (user?.inheritedFromParent ? t('appShell.plan.familyInherited', 'Rodzinny (od rodzica)') : t('appShell.plan.family', 'Rodzinny'))
                     : t('appShell.plan.free', 'Darmowy')}
@@ -242,8 +289,8 @@ export function AppShell({ children }: AppShellProps) {
 
       {/* Main Content */}
       <main className={`flex-1 min-h-screen-dvh lg:ml-0 pt-16 lg:pt-0 ${isActive('/app/lesson') ? 'h-screen-dvh flex flex-col overflow-hidden' : ''}`}>
-        <div className={isActive('/app/lesson') 
-          ? "flex-1 flex flex-col h-full w-full" 
+        <div className={isActive('/app/lesson')
+          ? "flex-1 flex flex-col h-full w-full"
           : "p-4 lg:p-8 max-w-6xl mx-auto"
         }>
           {children}
