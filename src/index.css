@@ -270,3 +270,14 @@ html {
 .dark .omninauka-home-bg {
   background-image: linear-gradient(rgba(11, 18, 32, 0.58), rgba(11, 18, 32, 0.58)), url('/backgrounds/omninauka-bg-dark.png');
 }
+
+.omninauka-dashboard-bg {
+  background-image: linear-gradient(rgba(248, 247, 250, 0.60), rgba(248, 247, 250, 0.60)), url('/backgrounds/omninauka-bg-light.png');
+  background-size: cover;
+  background-position: center top;
+  background-repeat: no-repeat;
+}
+
+.dark .omninauka-dashboard-bg {
+  background-image: linear-gradient(rgba(11, 18, 32, 0.62), rgba(11, 18, 32, 0.62)), url('/backgrounds/omninauka-bg-dark.png');
+}

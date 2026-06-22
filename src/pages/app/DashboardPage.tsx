@@ -224,10 +224,10 @@ export default function DashboardPage() {
       {/* Stats Grid */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {statCards.map((stat, index) => (
-          <div key={index} className="omni-card p-4 lg:p-6">
+          <div key={index} className="omni-card p-4 lg:p-6 bg-white/85 dark:bg-[#121A2B]/85 border border-gray-100 dark:border-slate-700/60 shadow-sm">
             <div className="flex items-center gap-3 mb-2">
               <stat.icon className={`w-5 h-5 ${stat.color}`} />
-              <span className="text-sm text-[var(--omni-text-muted)]">{stat.label}</span>
+              <span className="text-sm text-slate-600 dark:text-slate-300">{stat.label}</span>
             </div>
             <p className="text-2xl lg:text-3xl font-bold text-[var(--omni-text)]">{stat.value}</p>
           </div>
@@ -244,7 +244,7 @@ export default function DashboardPage() {
             <Link
               key={index}
               to={action.href}
-              className="omni-card p-4 lg:p-6 flex flex-col items-start gap-3 hover:shadow-lg active:scale-[0.97] transition-all group"
+              className="omni-card p-4 lg:p-6 bg-white/85 dark:bg-[#121A2B]/85 border border-gray-100 dark:border-slate-700/60 flex flex-col items-start gap-3 hover:shadow-lg active:scale-[0.97] transition-all group"
             >
               <div className={`w-12 h-12 ${action.color} rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform flex-shrink-0`}>
                 <action.icon className="w-6 h-6 text-[var(--omni-text)]" />
@@ -279,13 +279,13 @@ export default function DashboardPage() {
               <div key={subject} className="space-y-4">
                 <div className="flex items-center gap-2 px-1">
                    <div className="w-1.5 h-1.5 rounded-full bg-indigo-500" />
-                   <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider">{subject}</h3>
+                   <h3 className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">{subject}</h3>
                 </div>
                 <div className="space-y-3">
                   {subjectSessions.map((session: any) => (
                     <div 
                       key={session.id} 
-                      className="omni-card p-4 md:p-5 flex items-center justify-between group cursor-pointer hover:border-indigo-200 active:scale-[0.99] transition-all" 
+                      className="omni-card p-4 md:p-5 bg-white/85 dark:bg-[#121A2B]/85 border border-gray-100 dark:border-slate-700/60 flex items-center justify-between group cursor-pointer hover:border-indigo-200 dark:hover:border-indigo-500/50 active:scale-[0.99] transition-all"
                       onClick={() => {
                         sessionStorage.setItem('currentSessionId', session.id);
                         navigate('/app/analysis/' + session.id);
@@ -305,7 +305,7 @@ export default function DashboardPage() {
                             isDemoMode={isDemoMode}
                             className="mb-0.5"
                           />
-                          <p className="text-xs text-[var(--omni-text-muted)] truncate">
+                          <p className="text-xs text-slate-600 dark:text-slate-300 truncate">
                              {session.topic || (session.analysis && session.analysis.topic) || t('dashboard.processing', 'Przetwarzanie...')}
                           </p>
                         </div>
@@ -343,8 +343,8 @@ export default function DashboardPage() {
             ))}
           </div>
         ) : (
-          <div className="omni-card p-8 text-center bg-slate-50 dark:bg-slate-900/50 border-dashed border-2 dark:border-slate-800">
-            <p className="text-[var(--omni-text-muted)] mb-4">
+          <div className="omni-card p-8 text-center bg-white/85 dark:bg-[#121A2B]/85 border-dashed border-2 border-gray-200 dark:border-slate-800/60 shadow-sm">
+            <p className="text-slate-600 dark:text-slate-300 mb-4">
               {t('dashboard.empty.title', 'Nie masz jeszcze żadnych zapisanych sesji.')}
             </p>
             <Link to="/app/upload" className="omni-btn-primary mx-auto w-fit">
@@ -362,20 +362,20 @@ export default function DashboardPage() {
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {computedStats.subjectProgress.map((subject, index) => (
-              <div key={index} className="omni-card p-4">
+              <div key={index} className="omni-card p-4 bg-white/85 dark:bg-[#121A2B]/85 border border-gray-100 dark:border-slate-700/60 shadow-sm">
                 <div className="flex items-center justify-between mb-3">
                   <span className="font-medium text-[var(--omni-text)] truncate pr-2">{subject.subject}</span>
                   <span className={`text-sm font-medium ${subject.averageScore !== null ? 'text-green-500' : 'text-gray-400'}`}>
                     {subject.averageScore !== null ? `${subject.averageScore}%` : '—'}
                   </span>
                 </div>
-                <div className="w-full h-2 bg-gray-100 dark:bg-slate-800 rounded-full overflow-hidden">
+                <div className="w-full h-2 bg-gray-200/50 dark:bg-slate-800 rounded-full overflow-hidden">
                   <div 
                     className="h-full rounded-full bg-green-500 transition-all duration-1000" 
                     style={{ width: `${subject.averageScore || 0}%` }} 
                   />
                 </div>
-                <p className="text-xs text-[var(--omni-text-muted)] mt-2">
+                <p className="text-xs text-slate-600 dark:text-slate-300 mt-2">
                   {subject.totalSessions} {t('dashboard.sessions', 'sesji')} • ok. {Math.round(subject.totalTimeMinutes / 60)}h
                 </p>
               </div>

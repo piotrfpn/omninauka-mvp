@@ -290,7 +290,11 @@ export function AppShell({ children }: AppShellProps) {
       </div>
 
       {/* Main Content */}
-      <main className={`flex-1 min-h-screen-dvh lg:ml-0 pt-16 lg:pt-0 ${isActive('/app/lesson') ? 'h-screen-dvh flex flex-col overflow-hidden' : ''}`}>
+      <main className={`flex-1 min-h-screen-dvh lg:ml-0 pt-16 lg:pt-0 ${
+        isActive('/app/lesson') ? 'h-screen-dvh flex flex-col overflow-hidden' : ''
+      } ${
+        location.pathname === '/app/dashboard' ? 'omninauka-dashboard-bg' : ''
+      }`}>
         <div className={isActive('/app/lesson')
           ? "flex-1 flex flex-col h-full w-full"
           : "p-4 lg:p-8 max-w-6xl mx-auto"
