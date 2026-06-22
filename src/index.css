@@ -250,12 +250,12 @@ html {
 
 /* OmniNauka custom background utility classes */
 .omninauka-bg-shell {
-  background-image: linear-gradient(rgba(248, 247, 250, 0.88), rgba(248, 247, 250, 0.88)), url('/backgrounds/omninauka-bg-light.png');
+  background-image: linear-gradient(rgba(248, 247, 250, 0.68), rgba(248, 247, 250, 0.68)), url('/backgrounds/omninauka-bg-light.png');
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
 }
 
 .dark .omninauka-bg-shell {
-  background-image: linear-gradient(rgba(11, 18, 32, 0.90), rgba(11, 18, 32, 0.90)), url('/backgrounds/omninauka-bg-dark.png');
+  background-image: linear-gradient(rgba(11, 18, 32, 0.76), rgba(11, 18, 32, 0.76)), url('/backgrounds/omninauka-bg-dark.png');
 }
