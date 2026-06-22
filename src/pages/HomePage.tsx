@@ -152,7 +152,7 @@ export default function HomePage() {
   };
 
   return (
-    <div className="min-h-screen bg-[var(--omni-bg)] omninauka-bg-shell">
+    <div className="min-h-screen bg-[var(--omni-bg)] omninauka-home-bg">
       {/* Navigation */}
       <nav className="w-full px-6 py-4 flex items-center justify-between">
         <Link to="/" className="flex items-center">
@@ -355,18 +355,18 @@ export default function HomePage() {
       </section>
 
       {/* FAQ Section */}
-      <section id="faq" className="px-6 py-16 lg:py-24 bg-white/30">
+      <section id="faq" className="px-6 py-16 lg:py-24 bg-white/30 dark:bg-transparent">
         <div className="max-w-4xl mx-auto">
           <h2 className="omni-heading-2 text-[var(--omni-text)] text-center mb-12">
             {t('home.faq.title', 'Najczęściej zadawane pytania')}
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {faqItems.map((item, index) => (
-              <div key={index} className="omni-card p-6 bg-white/80 border border-gray-100 hover:border-[var(--omni-accent)]/20 transition-all flex flex-col">
-                <h3 className="font-bold text-[var(--omni-text)] mb-2">
+              <div key={index} className="omni-card p-6 bg-white/80 dark:bg-[#121A2B]/85 border border-gray-100 dark:border-slate-700/60 hover:border-[var(--omni-accent)]/20 dark:hover:border-[var(--omni-accent)]/40 transition-all flex flex-col">
+                <h3 className="font-bold text-[var(--omni-text)] dark:text-slate-50 mb-2">
                   {item.question}
                 </h3>
-                <p className="text-sm text-[var(--omni-text-muted)] leading-relaxed">
+                <p className="text-sm text-slate-700 dark:text-slate-300 leading-relaxed">
                   {item.answer}
                 </p>
               </div>
@@ -378,16 +378,16 @@ export default function HomePage() {
       {/* O nas Section */}
       <section id="o-nas" className="px-6 py-16 lg:py-24">
         <div className="max-w-4xl mx-auto">
-          <div className="omni-card p-8 lg:p-12 bg-white/50 border border-gray-100">
-            <h2 className="omni-heading-3 text-[var(--omni-text)] mb-6 text-center">{t('home.about.title', 'O nas')}</h2>
-            <div className="space-y-4 text-[var(--omni-text-muted)] leading-relaxed">
+          <div className="omni-card p-8 lg:p-12 bg-white/50 dark:bg-[#121A2B]/85 border border-gray-100 dark:border-slate-700/60">
+            <h2 className="omni-heading-3 text-[var(--omni-text)] dark:text-slate-50 mb-6 text-center">{t('home.about.title', 'O nas')}</h2>
+            <div className="space-y-4 text-slate-700 dark:text-slate-300 leading-relaxed">
               <p>
                 {t('home.about.p1', 'OmniNauka to nowoczesny korepetytor AI dla uczniów. Pomaga zrozumieć materiał z notatek, zdjęć, PDF-ów i dokumentów Word, prowadzi rozmowę z AI Tutorem, tworzy quizy i wspiera powtórki błędów.')}
               </p>
               <p>
                 {t('home.about.p2', 'Tworzymy aplikację, która nie wyręcza ucznia, ale pomaga mu naprawdę zrozumieć temat.')}
               </p>
-              <p className="pt-4 border-t border-gray-100 text-sm italic">
+              <p className="pt-4 border-t border-gray-100 dark:border-slate-700/60 text-sm italic">
                 {t('home.about.p3', 'OmniNauka jest rozwijana jako produkt mobile-first — prosty, szybki i wygodny dla uczniów korzystających głównie z telefonu lub tabletu.')}
               </p>
             </div>
