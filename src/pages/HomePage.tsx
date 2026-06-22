@@ -152,7 +152,7 @@ export default function HomePage() {
   };
 
   return (
-    <div className="min-h-screen bg-[var(--omni-bg)]">
+    <div className="min-h-screen bg-[var(--omni-bg)] omninauka-bg-shell">
       {/* Navigation */}
       <nav className="w-full px-6 py-4 flex items-center justify-between">
         <Link to="/" className="flex items-center">

@@ -103,7 +103,7 @@ export default function RegisterPage() {
   // ── Sprint 17B: under_13 — linked successfully ────────────────────────────
   if (under13LinkResult === 'linked') {
     return (
-      <div className="min-h-screen bg-[var(--omni-bg)] flex items-center justify-center px-6 py-12 relative">
+      <div className="min-h-screen bg-[var(--omni-bg)] omninauka-bg-shell flex items-center justify-center px-6 py-12 relative">
         <div className="absolute top-4 right-4"><LanguageSwitcher /></div>
         <div className="w-full max-w-md">
           <div className="omni-card p-8 flex flex-col items-center gap-6 text-center animate-in fade-in zoom-in duration-500">
@@ -126,7 +126,7 @@ export default function RegisterPage() {
   // ── Sprint 17B: under_13 — no parent pre-approval found ──────────────────
   if (under13LinkResult === 'no_preapproval') {
     return (
-      <div className="min-h-screen bg-[var(--omni-bg)] flex items-center justify-center px-6 py-12 relative">
+      <div className="min-h-screen bg-[var(--omni-bg)] omninauka-bg-shell flex items-center justify-center px-6 py-12 relative">
         <div className="absolute top-4 right-4"><LanguageSwitcher /></div>
         <div className="w-full max-w-md">
           <div className="omni-card p-8 flex flex-col items-center gap-6 text-center">
@@ -158,7 +158,7 @@ export default function RegisterPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[var(--omni-bg)] flex items-center justify-center px-6 py-12 relative">
+    <div className="min-h-screen bg-[var(--omni-bg)] omninauka-bg-shell flex items-center justify-center px-6 py-12 relative">
       <div className="absolute top-4 right-4">
         <LanguageSwitcher />
       </div>

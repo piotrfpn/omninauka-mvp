@@ -1,4 +1,4 @@
-﻿import { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { Lock, Eye, EyeOff, Loader2, AlertCircle, CheckCircle2 } from 'lucide-react';
@@ -71,7 +71,7 @@ export default function ResetPasswordPage() {
 
   if (hasSession === false) {
     return (
-      <div className="min-h-screen bg-[var(--omni-bg)] flex items-center justify-center px-6 py-12 relative">
+      <div className="min-h-screen bg-[var(--omni-bg)] omninauka-bg-shell flex items-center justify-center px-6 py-12 relative">
         <div className="absolute top-4 right-4">
           <LanguageSwitcher />
         </div>
@@ -100,7 +100,7 @@ export default function ResetPasswordPage() {
 
   if (isSuccess) {
     return (
-      <div className="min-h-screen bg-[var(--omni-bg)] flex items-center justify-center px-6 py-12 relative">
+      <div className="min-h-screen bg-[var(--omni-bg)] omninauka-bg-shell flex items-center justify-center px-6 py-12 relative">
         <div className="absolute top-4 right-4">
           <LanguageSwitcher />
         </div>
@@ -126,7 +126,7 @@ export default function ResetPasswordPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[var(--omni-bg)] flex items-center justify-center px-6 py-12 relative">
+    <div className="min-h-screen bg-[var(--omni-bg)] omninauka-bg-shell flex items-center justify-center px-6 py-12 relative">
       <div className="absolute top-4 right-4">
         <LanguageSwitcher />
       </div>

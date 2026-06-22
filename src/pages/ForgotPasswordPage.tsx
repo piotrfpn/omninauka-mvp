@@ -41,7 +41,7 @@ export default function ForgotPasswordPage() {
 
   if (isSubmitted) {
     return (
-      <div className="min-h-screen bg-[var(--omni-bg)] flex items-center justify-center px-6 py-12 relative">
+      <div className="min-h-screen bg-[var(--omni-bg)] omninauka-bg-shell flex items-center justify-center px-6 py-12 relative">
         <div className="absolute top-4 right-4">
           <LanguageSwitcher />
         </div>
@@ -85,7 +85,7 @@ export default function ForgotPasswordPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[var(--omni-bg)] flex items-center justify-center px-6 py-12 relative">
+    <div className="min-h-screen bg-[var(--omni-bg)] omninauka-bg-shell flex items-center justify-center px-6 py-12 relative">
       <div className="absolute top-4 right-4">
         <LanguageSwitcher />
       </div>

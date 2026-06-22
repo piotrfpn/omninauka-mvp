@@ -107,7 +107,7 @@ export default function ParentConsentPage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-[var(--omni-bg)] flex flex-col items-center justify-center p-6 relative">
+      <div className="min-h-screen bg-[var(--omni-bg)] omninauka-bg-shell flex flex-col items-center justify-center p-6 relative">
         <div className="absolute top-4 right-4">
           <LanguageSwitcher />
         </div>
@@ -119,7 +119,7 @@ export default function ParentConsentPage() {
 
   if (status === 'invalid' || status === 'expired') {
     return (
-      <div className="min-h-screen bg-[var(--omni-bg)] flex items-center justify-center p-6 relative">
+      <div className="min-h-screen bg-[var(--omni-bg)] omninauka-bg-shell flex items-center justify-center p-6 relative">
         <div className="absolute top-4 right-4">
           <LanguageSwitcher />
         </div>
@@ -141,7 +141,7 @@ export default function ParentConsentPage() {
 
   if (status === 'success') {
     return (
-      <div className="min-h-screen bg-[var(--omni-bg)] flex items-center justify-center p-6 relative">
+      <div className="min-h-screen bg-[var(--omni-bg)] omninauka-bg-shell flex items-center justify-center p-6 relative">
         <div className="absolute top-4 right-4">
           <LanguageSwitcher />
         </div>
@@ -164,7 +164,7 @@ export default function ParentConsentPage() {
   const allChecked = Object.values(consents).every(v => v === true);
 
   return (
-    <div className="min-h-screen bg-gray-50 py-12 px-6 relative">
+    <div className="min-h-screen bg-gray-50 omninauka-bg-shell py-12 px-6 relative">
       <div className="absolute top-4 right-4">
         <LanguageSwitcher />
       </div>

@@ -7,7 +7,7 @@ export default function ContactPage() {
   const { t } = useTranslation();
 
   return (
-    <div className="min-h-screen bg-[var(--omni-bg)] flex flex-col">
+    <div className="min-h-screen bg-[var(--omni-bg)] omninauka-bg-shell flex flex-col">
       {/* Navigation */}
       <nav className="w-full px-6 py-4 flex items-center justify-between border-b border-[var(--omni-text)]/5">
         <Link to="/" className="flex items-center">
