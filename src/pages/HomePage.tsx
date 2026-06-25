@@ -87,7 +87,7 @@ export default function HomePage() {
       price: t('home.pricing.family.price', '59,99 zł'),
       period: '',
       tags: ['Płatność jednorazowa', 'Bez automatycznego odnawiania'],
-      desc: t('home.pricing.family.desc', 'Dla rodzica i maksymalnie 3 kont uczniowskich.'),
+      desc: t('home.pricing.family.desc', 'Dla rodzica i maksymalnie 3 kont uczniowskich. Plan Rodzinny nie ma jeszcze automatycznej aktywacji po płatności. Skontaktuj się z nami, jeśli chcesz go uruchomić testowo.'),
       features: [
         t('home.pricing.family.feat1', 'Do 3 kont uczniowskich'),
         t('home.pricing.family.feat2', 'Panel Rodzica'),
@@ -95,9 +95,8 @@ export default function HomePage() {
         t('home.pricing.family.feat4', 'Wszystko z Premium dla uczniów'),
         t('home.pricing.family.feat5', 'Wspólna organizacja nauki')
       ],
-      cta: t('home.pricing.family.cta', 'Załóż konto i kup Rodzinny'),
+      cta: t('home.pricing.family.cta', 'Dostępne po kontakcie'),
       primary: false,
-      link: '/register',
     },
   ];
 
@@ -311,7 +310,7 @@ export default function HomePage() {
                       disabled
                       className="w-full inline-flex items-center justify-center whitespace-nowrap px-4 py-3 rounded-xl transition-all bg-gray-100 text-[var(--omni-text-muted)] font-semibold opacity-60 cursor-not-allowed"
                     >
-                      {plan.name === t('home.pricing.family.title', 'Rodzinny') ? t('home.pricing.comingSoon', 'Wkrótce') : t('home.pricing.notAvailable', 'Płatności będą dostępne wkrótce.')}
+                      {plan.cta}
                     </button>
                   )}
                 </div>
@@ -325,7 +324,7 @@ export default function HomePage() {
           <div className="mt-12 max-w-2xl mx-auto bg-white/60 dark:bg-[#121A2B] border border-gray-100 dark:border-slate-700/60 rounded-2xl p-6 md:p-8 text-center shadow-sm">
             <h3 className="font-bold text-2xl text-slate-800 dark:text-slate-50 mb-2">Potrzebujesz więcej nauki?</h3>
             <p className="text-slate-600 dark:text-slate-300 mb-6">
-              Dodatkowe lekcje AI dostępne są w pakietach od 9,99 zł.
+              Pakiety dodatkowych lekcji AI będą dostępne po zakończeniu testów płatności.
             </p>
             
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
@@ -344,12 +343,12 @@ export default function HomePage() {
               </div>
             </div>
 
-            <Link
-              to="/login"
-              className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-[#6366f1] dark:bg-[#2EE6A6] text-white dark:text-[#0B1220] font-bold rounded-xl hover:opacity-90 active:scale-[0.98] transition-all shadow-md"
+            <button
+              disabled
+              className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-gray-100 dark:bg-slate-800/80 text-slate-400 dark:text-slate-500 font-bold rounded-xl cursor-not-allowed"
             >
-              Dokup lekcje po zalogowaniu
-            </Link>
+              Pakiety lekcji — wkrótce
+            </button>
           </div>
         </div>
       </section>

@@ -237,13 +237,13 @@
       "family": {
         "title": "Rodzinny 30 dni",
         "price": "59,99 zł",
-        "desc": "Dla rodzica i maksymalnie 3 kont uczniowskich.",
+        "desc": "Dla rodzica i maksymalnie 3 kont uczniowskich. Plan Rodzinny nie ma jeszcze automatycznej aktywacji po płatności. Skontaktuj się z nami, jeśli chcesz go uruchomić testowo.",
         "feat1": "Do 3 kont uczniowskich",
         "feat2": "Panel Rodzica",
         "feat3": "Podgląd dzieci po zgodzie rodzicielskiej",
         "feat4": "Wszystko z Premium dla uczniów",
         "feat5": "Wspólna organizacja nauki",
-        "cta": "Załóż konto i kup Rodzinny"
+        "cta": "Dostępne po kontakcie"
       },
       "extra": {
         "info": "1 lekcja AI = do 5 zdjęć albo 1 dokument PDF/DOCX.",
