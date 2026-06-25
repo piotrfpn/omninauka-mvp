@@ -7,6 +7,8 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+const MAX_CONSENT_EMAIL_SENDS = 5;
+
 async function hashToken(token: string): Promise<string> {
   const encoder = new TextEncoder();
   const data = encoder.encode(token);
@@ -70,6 +72,14 @@ serve(async (req) => {
       .eq('child_user_id', userId)
       .maybeSingle();
 
+    const currentEmailSendCount = existingConsent?.email_send_count ?? 0;
+    if (currentEmailSendCount >= MAX_CONSENT_EMAIL_SENDS) {
+      return new Response(JSON.stringify({ error: "Limit wysyłek wiadomości ze zgodą został wyczerpany. Skontaktuj się ze wsparciem." }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 429,
+      });
+    }
+
     if (existingConsent?.last_email_sent_at) {
       const lastSent = new Date(existingConsent.last_email_sent_at).getTime();
       const now = Date.now();
@@ -108,7 +118,7 @@ serve(async (req) => {
         token_expires_at: expiresAt.toISOString(),
         consent_status: 'pending',
         last_email_sent_at: new Date().toISOString(),
-        email_send_count: (existingConsent?.email_send_count || 0) + 1,
+        email_send_count: currentEmailSendCount + 1,
         email_last_status: 'sending',
         updated_at: new Date().toISOString(),
       }, { onConflict: 'child_user_id' });
