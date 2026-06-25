@@ -8,13 +8,8 @@ export default function PaymentsPage() {
   const { user } = useAuth();
 
   const premium30Link = import.meta.env.VITE_STRIPE_PREMIUM_30_DAYS_PAYMENT_LINK || import.meta.env.VITE_STRIPE_PREMIUM_PAYMENT_LINK;
-  const family30Link = import.meta.env.VITE_STRIPE_FAMILY_30_DAYS_PAYMENT_LINK || import.meta.env.VITE_STRIPE_FAMILY_PAYMENT_LINK;
 
   // Sub link variables removed for MVP phase
-
-  const lesson5Link = import.meta.env.VITE_STRIPE_LESSON_5_PAYMENT_LINK;
-  const lesson10Link = import.meta.env.VITE_STRIPE_LESSON_10_PAYMENT_LINK;
-  const lesson25Link = import.meta.env.VITE_STRIPE_LESSON_25_PAYMENT_LINK;
 
   // Plan status computed values
   const isPaidPlan = user?.plan === 'premium' || user?.plan === 'family';
@@ -40,7 +35,6 @@ export default function PaymentsPage() {
   };
 
   const premium30Url = buildStripePaymentUrl(premium30Link, user?.id);
-  const family30Url = buildStripePaymentUrl(family30Link, user?.id);
   // Variables removed for MVP phase
 
   const planLabel = (user?.effectivePlan || user?.plan) === 'premium' && isPlanActiveNow
@@ -94,7 +88,7 @@ export default function PaymentsPage() {
       <header className="mb-8">
         <h1 className="omni-heading text-3xl mb-2">{t('payments.title', 'Płatności i plan')}</h1>
         <p className="text-[var(--omni-text-muted)] text-lg">
-          {t('payments.subtitle', 'Tutaj sprawdzisz dostępne opcje Premium i pakiety dodatkowych lekcji AI.')}
+          {t('payments.subtitle', 'Tutaj sprawdzisz Premium oraz przyszłe opcje planów i pakietów lekcji AI.')}
         </p>
       </header>
 
@@ -251,6 +245,9 @@ export default function PaymentsPage() {
           <p className="text-sm text-[var(--omni-text-muted)] mb-6">
             Dla rodzica i maksymalnie 3 kont uczniowskich.
           </p>
+          <p className="text-xs text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/30 border border-amber-100 dark:border-amber-900/40 rounded-lg px-3 py-2 mb-6">
+            Plan Rodzinny nie ma jeszcze automatycznej aktywacji po płatności. Skontaktuj się z obsługą, jeśli chcesz dołączyć do testów.
+          </p>
           <ul className="space-y-3 mb-8 flex-1">
             {[
               t('home.pricing.family.feat1', 'Do 3 kont uczniowskich'),
@@ -266,19 +263,9 @@ export default function PaymentsPage() {
             ))}
           </ul>
           <div className="mt-auto">
-            {family30Url ? (
-              <a
-                href={family30Url}
-                className="w-full inline-flex items-center justify-center whitespace-nowrap px-4 py-3 rounded-xl transition-all bg-indigo-50 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-300 font-bold hover:bg-indigo-100 dark:hover:bg-indigo-900/60 gap-2"
-              >
-                Kup Rodzinny na 30 dni
-                <ExternalLink className="w-4 h-4" />
-              </a>
-            ) : (
-              <button disabled className="w-full inline-flex items-center justify-center whitespace-nowrap px-4 py-3 rounded-xl transition-all bg-gray-100 text-gray-400 font-semibold cursor-not-allowed">
-                Wkrótce
-              </button>
-            )}
+            <button disabled className="w-full inline-flex items-center justify-center whitespace-nowrap px-4 py-3 rounded-xl transition-all bg-gray-100 dark:bg-slate-800/80 text-gray-400 dark:text-slate-500 font-semibold cursor-not-allowed">
+              Dostępne po kontakcie
+            </button>
           </div>
         </div>
       </div>
@@ -292,6 +279,9 @@ export default function PaymentsPage() {
           <p className="text-[var(--omni-text-muted)] mb-2">
             Dla ucznia, który potrzebuje więcej nauki przed sprawdzianem, kartkówką albo powtórką.
           </p>
+          <p className="text-sm text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/30 border border-amber-100 dark:border-amber-900/40 rounded-lg px-4 py-3 mb-3">
+            Pakiety lekcji AI nie są jeszcze aktywowane automatycznie po płatności. Są widoczne jako oferta przyszła/kontaktowa.
+          </p>
           <p className="text-xs text-[var(--omni-text-muted-light)] bg-gray-50 dark:bg-slate-900/50 inline-block px-3 py-1 rounded-full">
             1 lekcja AI = do 5 zdjęć albo 1 dokument PDF/DOCX.
           </p>
@@ -299,9 +289,9 @@ export default function PaymentsPage() {
 
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 max-w-4xl mx-auto">
           {[
-            { pack: '5 lekcji AI', price: '9,99 zł', link: lesson5Link },
-            { pack: '10 lekcji AI', price: '17,99 zł', link: lesson10Link },
-            { pack: '25 lekcji AI', price: '34,99 zł', link: lesson25Link }
+            { pack: '5 lekcji AI', price: '9,99 zł' },
+            { pack: '10 lekcji AI', price: '17,99 zł' },
+            { pack: '25 lekcji AI', price: '34,99 zł' }
           ].map((item, idx) => (
             <div key={idx} className="omni-card p-5 text-center flex flex-col">
               <div className="text-3xl font-bold text-[var(--omni-text)] mb-1" aria-label={item.price}>
@@ -311,15 +301,9 @@ export default function PaymentsPage() {
                 {item.pack}
               </div>
               <div className="mt-auto">
-                {item.link ? (
-                  <a href={buildStripePaymentUrl(item.link, user?.id)} className="w-full py-2 px-4 rounded-lg bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400 font-bold inline-block hover:bg-blue-100 dark:hover:bg-blue-900/60 transition-colors">
-                    Kup pakiet
-                  </a>
-                ) : (
-                  <button disabled className="w-full py-2 px-4 rounded-lg bg-gray-50 dark:bg-slate-900/50 text-gray-400 dark:text-slate-600 font-medium cursor-not-allowed">
-                    Wkrótce
-                  </button>
-                )}
+                <button disabled className="w-full py-2 px-4 rounded-lg bg-gray-50 dark:bg-slate-900/50 text-gray-400 dark:text-slate-600 font-medium cursor-not-allowed">
+                  Dostępne po kontakcie
+                </button>
               </div>
             </div>
           ))}
