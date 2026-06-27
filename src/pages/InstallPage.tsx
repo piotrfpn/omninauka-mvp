@@ -90,17 +90,13 @@ export default function InstallPage() {
         </div>
 
         <div className="flex flex-col items-center text-center mb-8">
-          <div className="flex items-center gap-3 text-left w-fit mx-auto mb-6">
-            <OmniNaukaLogo size={48} showWordmark={false} />
-            <div>
-              <div className="font-bold text-2xl text-[var(--omni-text)] dark:text-slate-50 leading-none mb-1.5">
-                OmniNauka
-              </div>
-              <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-[var(--omni-accent)]/10 text-[var(--omni-accent)] text-[10px] font-bold uppercase tracking-wider">
-                <span className="w-1.5 h-1.5 rounded-full bg-[var(--omni-accent)] animate-pulse" />
-                Progressive Web App
-              </div>
-            </div>
+          <OmniNaukaLogo size={56} showWordmark={false} className="justify-center mb-3" />
+          <div className="font-bold text-3xl text-[var(--omni-text)] dark:text-slate-50 leading-none mb-2">
+            OmniNauka
+          </div>
+          <div className="inline-flex items-center justify-center gap-1.5 px-3 py-1 rounded-full bg-[var(--omni-accent)]/10 text-[var(--omni-accent)] text-xs font-bold uppercase tracking-wider mb-6">
+            <span className="w-1.5 h-1.5 rounded-full bg-[var(--omni-accent)] animate-pulse" />
+            Progressive Web App
           </div>
           <h1 className="omni-heading-2 text-[var(--omni-text)] dark:text-slate-50 mb-3">
             {t('install.title', 'Zainstaluj OmniNauka na telefonie')}
@@ -149,6 +145,7 @@ export default function InstallPage() {
                     
                     {deferredPrompt ? (
                       <button
+                        type="button"
                         onClick={handleInstallClick}
                         className="omni-btn omni-btn-primary inline-flex items-center gap-2 mt-2"
                         aria-live="polite"
@@ -157,11 +154,16 @@ export default function InstallPage() {
                         {t('install.androidBtn', 'Zainstaluj aplikację')}
                       </button>
                     ) : (
-                      <div className="flex items-center gap-2 text-amber-500 text-xs mt-2 bg-amber-500/10 p-2.5 rounded border border-amber-500/20">
-                        <AlertCircle className="w-4 h-4 shrink-0" />
-                        <span>
-                          {t('install.androidFallback', 'Jeśli przycisk nie jest dostępny, użyj menu przeglądarki i wybierz „Dodaj do ekranu głównego”.')}
-                        </span>
+                      <div className="space-y-2">
+                        <div className="flex items-start gap-2 text-amber-500 text-xs mt-2 bg-amber-500/10 p-2.5 rounded border border-amber-500/20">
+                          <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+                          <span>
+                            {t('install.androidFallback', 'Jeśli przycisk nie jest dostępny, użyj menu przeglądarki i wybierz „Dodaj do ekranu głównego”.')}
+                          </span>
+                        </div>
+                        <p className="text-[11px] text-[var(--omni-text-muted)]">
+                          {t('install.androidFallbackNote', 'Przycisk może nie pojawić się, jeśli aplikacja jest już zainstalowana lub przeglądarka nie udostępniła jeszcze instalacji.')}
+                        </p>
                       </div>
                     )}
                   </div>
