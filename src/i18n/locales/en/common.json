@@ -4,17 +4,16 @@
     "password": "Password",
     "backToHome": "← Back to home",
     "login": {
-      "title": "Welcome back",
-      "subtitle": "Log in to continue learning",
+      "title": "Log in to OmniNauka",
+      "subtitle": "Go back to learning, quizzes, and chatting with the AI Tutor.",
       "parent": {
-        "title": "Parent Dashboard — Login",
-        "desc": "Log in as a parent or guardian below to check your child's progress. Use the details provided during registration."
+        "desc": "Parents can log in using this same screen and access the Parent Dashboard after signing in."
       },
       "forgot": "Forgot password?",
       "submit": "Log in",
-      "demo": "Demo mode - enter without logging in",
+      "demo": "Enter demo mode",
       "noAccount": "Don't have an account?",
-      "register": "Sign up",
+      "register": "Create an account",
       "error": {
         "invalid": "Invalid email or password",
         "generic": "An error occurred during login"

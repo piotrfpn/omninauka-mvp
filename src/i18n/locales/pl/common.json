@@ -4,17 +4,16 @@
     "password": "Hasło",
     "backToHome": "← Wróć na stronę główną",
     "login": {
-      "title": "Witaj z powrotem",
-      "subtitle": "Zaloguj się, by kontynuować naukę",
+      "title": "Zaloguj się do OmniNauka",
+      "subtitle": "Wróć do nauki, quizów i rozmowy z AI Tutorem.",
       "parent": {
-        "title": "Panel Rodzica — logowanie",
-        "desc": "Zaloguj się jako rodzic lub opiekun (poniżej), aby sprawdzić postępy dziecka. Użyj danych podanych przy rejestracji."
+        "desc": "Rodzic może zalogować się tym samym ekranem i przejść do Panelu Rodzica po zalogowaniu."
       },
-      "forgot": "Zapomniałem hasła?",
+      "forgot": "Nie pamiętasz hasła?",
       "submit": "Zaloguj się",
-      "demo": "Tryb demo - wejdź bez logowania",
+      "demo": "Wejdź w tryb demo",
       "noAccount": "Nie masz konta?",
-      "register": "Zarejestruj się",
+      "register": "Załóż konto",
       "error": {
         "invalid": "Nieprawidłowy email lub hasło",
         "generic": "Wystąpił błąd podczas logowania"

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../lib/auth-context';
-import { Eye, EyeOff, Mail, Lock, ArrowRight, Sparkles, ShieldCheck } from 'lucide-react';
+import { Eye, EyeOff, Mail, Lock, ArrowRight, Sparkles } from 'lucide-react';
 import OmniNaukaLogo from '../components/brand/OmniNaukaLogo';
 import { useTranslation } from 'react-i18next';
 import { LanguageSwitcher } from '../components/LanguageSwitcher';
@@ -66,17 +66,6 @@ export default function LoginPage() {
           <p className="text-[var(--omni-text-muted)]">
             {t('auth.login.subtitle')}
           </p>
-        </div>
-
-        {/* Parent Info Card */}
-        <div className="mb-6 p-4 bg-[var(--omni-lavender)] rounded-xl flex items-start gap-4">
-          <ShieldCheck className="w-6 h-6 text-[var(--omni-primary)] shrink-0" />
-          <div className="text-left">
-            <h3 className="font-semibold text-[var(--omni-text)] text-sm">{t('auth.login.parent.title')}</h3>
-            <p className="text-xs text-[var(--omni-text-muted)] mt-1">
-              {t('auth.login.parent.desc')}
-            </p>
-          </div>
         </div>
 
         {/* Login Form */}
@@ -178,6 +167,13 @@ export default function LoginPage() {
               >
                 {t('auth.login.register')}
               </Link>
+            </p>
+          </div>
+
+          {/* Parent Info Note */}
+          <div className="mt-4 text-center border-t border-gray-100/50 pt-4">
+            <p className="text-xs text-[var(--omni-text-muted)] leading-relaxed">
+              {t('auth.login.parent.desc')}
             </p>
           </div>
         </div>

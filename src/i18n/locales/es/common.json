@@ -4,17 +4,16 @@
     "password": "Contraseña",
     "backToHome": "← Volver al inicio",
     "login": {
-      "title": "Bienvenido de nuevo",
-      "subtitle": "Inicia sesión para seguir aprendiendo",
+      "title": "Inicia sesión en OmniNauka",
+      "subtitle": "Vuelve a estudiar, a los cuestionarios y a chatear con el tutor de IA.",
       "parent": {
-        "title": "Panel de Padres — Iniciar sesión",
-        "desc": "Inicie sesión como padre o tutor a continuación para verificar el progreso de su hijo."
+        "desc": "Los padres pueden iniciar sesión usando esta misma pantalla y acceder al Panel de Padres después de iniciar sesión."
       },
       "forgot": "¿Olvidaste tu contraseña?",
       "submit": "Iniciar sesión",
-      "demo": "Modo de demostración - entrar sin iniciar sesión",
+      "demo": "Entrar en modo demo",
       "noAccount": "¿No tienes una cuenta?",
-      "register": "Regístrate",
+      "register": "Crear una cuenta",
       "error": {
         "invalid": "Correo o contraseña no válidos",
         "generic": "Ocurrió un error al iniciar sesión"

@@ -4,17 +4,16 @@
     "password": "Password",
     "backToHome": "← Torna alla home",
     "login": {
-      "title": "Bentornato",
-      "subtitle": "Accedi per continuare a imparare",
+      "title": "Accedi a OmniNauka",
+      "subtitle": "Torna allo studio, ai quiz e alla chat con il tutor IA.",
       "parent": {
-        "title": "Dashboard Genitori — Accesso",
-        "desc": "Accedi come genitore o tutore qui sotto per controllare i progressi di tuo figlio."
+        "desc": "I genitori possono accedere usando questa stessa schermata per accedere alla Dashboard Genitori dopo l'accesso."
       },
       "forgot": "Password dimenticata?",
       "submit": "Accedi",
-      "demo": "Modalità demo - entra senza accedere",
+      "demo": "Entra in modalità demo",
       "noAccount": "Non hai un account?",
-      "register": "Iscriviti",
+      "register": "Crea un account",
       "error": {
         "invalid": "E-mail o password non validi",
         "generic": "Si è verificato un errore durante l'accesso"

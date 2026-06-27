@@ -4,17 +4,16 @@
     "password": "Passwort",
     "backToHome": "← Zurück zur Startseite",
     "login": {
-      "title": "Willkommen zurück",
-      "subtitle": "Melden Sie sich an, um weiterzulernen",
+      "title": "Melden Sie sich bei OmniNauka an",
+      "subtitle": "Kehren Sie zum Lernen, zu Quizzs und Chats mit dem AI-Tutor zurück.",
       "parent": {
-        "title": "Eltern-Dashboard — Login",
-        "desc": "Melden Sie sich unten als Elternteil oder Erziehungsberechtigter an, um den Fortschritt Ihres Kindes zu überprüfen."
+        "desc": "Eltern können sich über denselben Bildschirm anmelden und nach dem Login auf das Eltern-Dashboard zugreifen."
       },
       "forgot": "Passwort vergessen?",
       "submit": "Anmelden",
-      "demo": "Demo-Modus - ohne Login eintreten",
+      "demo": "Demo-Modus starten",
       "noAccount": "Kein Konto?",
-      "register": "Registrieren",
+      "register": "Konto erstellen",
       "error": {
         "invalid": "Ungültige E-Mail oder Passwort",
         "generic": "Beim Anmelden ist ein Fehler aufgetreten"
