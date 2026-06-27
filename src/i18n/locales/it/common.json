@@ -859,5 +859,23 @@
       "uploadFailed": "Errore di caricamento",
       "generic": "Errore"
     }
+  },
+  "install": {
+    "title": "Instala OmniNauka sul tuo telefono",
+    "subtitle": "Aggiungi OmniNauka alla schermata iniziale e usala come un'app.",
+    "androidTitle": "Android / Chrome",
+    "androidDesc": "Fai clic sul pulsante 'Installa app' se disponibile. Se non vedi il pulsante, apri il menu di Chrome e seleziona 'Aggiungi a schermata Home' o 'Installa app'.",
+    "androidBtn": "Installa app",
+    "androidFallback": "Se il pulsante non è disponibile, usa il menu del browser e seleziona 'Aggiungi a schermata Home'.",
+    "iosTitle": "iPhone / Safari",
+    "iosDesc1": "1. Apri OmniNauka in Safari.",
+    "iosDesc2": "2. Fai clic sull'icona Condividi.",
+    "iosDesc3": "3. Seleziona 'Aggiungi a schermata Home'.",
+    "iosDesc4": "4. Fai clic su 'Aggiungi'.",
+    "iosNote": "Su iPhone, l'installazione richiede l'aggiunta manuale tramite il menu di Safari.",
+    "postInstall": "Dopo aver aggiunto l'icona, puoi avviare OmniNauka direttamente dalla schermata iniziale del tuo telefono.",
+    "desktopTitle": "Computer / Desktop",
+    "desktopDesc": "Per godere appieno dell'esperienza dell'app mobile, scansiona il codice QR o apri questa pagina sul tuo smartphone.",
+    "homeCta": "Installa app"
   }
 }

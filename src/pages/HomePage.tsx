@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../lib/auth-context';
-import { Scan, Brain, BookOpen, MessageCircle, BarChart3, ArrowRight, Check } from 'lucide-react';
+import { Scan, Brain, BookOpen, MessageCircle, BarChart3, ArrowRight, Check, Smartphone } from 'lucide-react';
 import OmniNaukaLogo from '../components/brand/OmniNaukaLogo';
 import { useTranslation } from 'react-i18next';
 import { LanguageSwitcher } from '../components/LanguageSwitcher';
@@ -197,6 +197,15 @@ export default function HomePage() {
               className="w-full sm:w-auto inline-flex items-center justify-center px-8 py-4 text-[var(--omni-text-muted)] font-medium hover:text-[var(--omni-text)] transition-colors"
             >
               {t('home.hero.cta.howItWorks')}
+            </Link>
+          </div>
+          <div className="mt-6">
+            <Link
+              to="/install"
+              className="text-xs text-[var(--omni-text-muted)] hover:text-[#2EE6A6] transition-colors underline decoration-dotted underline-offset-4 inline-flex items-center gap-1.5"
+            >
+              <Smartphone className="w-3.5 h-3.5" />
+              {t('install.homeCta', 'Dodaj OmniNauka do telefonu')}
             </Link>
           </div>
         </div>

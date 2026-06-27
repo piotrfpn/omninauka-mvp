@@ -6,6 +6,7 @@ import { ErrorBoundary } from './components/error-boundary';
 import HomePage from './pages/HomePage';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
+import InstallPage from './pages/InstallPage';
 import ContactPage from './pages/ContactPage';
 import TermsPage from './pages/legal/TermsPage';
 import PrivacyPage from './pages/legal/PrivacyPage';
@@ -111,6 +112,7 @@ function AppRoutes() {
       <Route path="/consent/:token" element={<ParentConsentPage />} />
       <Route path="/login" element={<LoginPage />} />
       <Route path="/register" element={<RegisterPage />} />
+      <Route path="/install" element={<InstallPage />} />
       <Route path="/forgot-password" element={<ForgotPasswordPage />} />
       <Route path="/reset-password" element={<ResetPasswordPage />} />
 

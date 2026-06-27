@@ -1032,5 +1032,23 @@
         "dismissLabel": "Dismiss"
       }
     }
+  },
+  "install": {
+    "title": "Install OmniNauka on your phone",
+    "subtitle": "Add OmniNauka to your home screen and use it like an app.",
+    "androidTitle": "Android / Chrome",
+    "androidDesc": "Click the 'Install app' button if available. If you don't see the button, open the Chrome menu and select 'Add to Home screen' or 'Install app'.",
+    "androidBtn": "Install app",
+    "androidFallback": "If the button is not available, use the browser menu and select 'Add to Home screen'.",
+    "iosTitle": "iPhone / Safari",
+    "iosDesc1": "1. Open OmniNauka in Safari.",
+    "iosDesc2": "2. Click the Share icon.",
+    "iosDesc3": "3. Select 'Add to Home Screen'.",
+    "iosDesc4": "4. Click 'Add'.",
+    "iosNote": "On iPhone, installation requires manual adding through the Safari menu.",
+    "postInstall": "After adding the icon, you can launch OmniNauka directly from your phone's home screen.",
+    "desktopTitle": "Desktop / PC",
+    "desktopDesc": "To fully enjoy the mobile app experience, scan the QR code or open this page on your smartphone.",
+    "homeCta": "Add to phone"
   }
 }

@@ -1031,5 +1031,23 @@
         "dismissLabel": "Zamknij"
       }
     }
+  },
+  "install": {
+    "title": "Zainstaluj OmniNauka na telefonie",
+    "subtitle": "Dodaj OmniNauka do ekranu głównego i korzystaj jak z aplikacji.",
+    "androidTitle": "Android / Chrome",
+    "androidDesc": "Kliknij przycisk „Zainstaluj aplikację”, jeśli jest dostępny. Jeśli nie widzisz przycisku, otwórz menu Chrome i wybierz „Dodaj do ekranu głównego” lub „Zainstaluj aplikację”.",
+    "androidBtn": "Zainstaluj aplikację",
+    "androidFallback": "Jeśli przycisk nie jest dostępny, użyj menu przeglądarki i wybierz „Dodaj do ekranu głównego”.",
+    "iosTitle": "iPhone / Safari",
+    "iosDesc1": "1. Otwórz OmniNauka w Safari.",
+    "iosDesc2": "2. Kliknij ikonę Udostępnij.",
+    "iosDesc3": "3. Wybierz „Dodaj do ekranu początkowego”.",
+    "iosDesc4": "4. Kliknij „Dodaj”.",
+    "iosNote": "Na iPhone instalacja wymaga ręcznego dodania przez menu Safari.",
+    "postInstall": "Po dodaniu ikony możesz uruchamiać OmniNauka bezpośrednio z ekranu głównego telefonu.",
+    "desktopTitle": "Komputer / Desktop",
+    "desktopDesc": "Aby w pełni cieszyć się trybem aplikacji mobilnej, zeskanuj kod QR lub otwórz tę stronę na swoim smartfonie.",
+    "homeCta": "Dodaj do telefonu"
   }
 }

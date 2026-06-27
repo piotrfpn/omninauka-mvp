@@ -859,5 +859,23 @@
       "uploadFailed": "Upload-Fehler",
       "generic": "Fehler"
     }
+  },
+  "install": {
+    "title": "Installieren Sie OmniNauka auf Ihrem Telefon",
+    "subtitle": "Fügen Sie OmniNauka zu Ihrem Startbildschirm hinzu und nutzen Sie es wie eine App.",
+    "androidTitle": "Android / Chrome",
+    "androidDesc": "Klicken Sie auf die Schaltfläche 'App installieren', falls verfügbar. Wenn Sie die Schaltfläche nicht sehen, öffnen Sie das Chrome-Menü und wählen Sie 'Zum Startbildschirm hinzufügen' oder 'App installieren'.",
+    "androidBtn": "App installieren",
+    "androidFallback": "Wenn die Schaltfläche nicht verfügbar ist, verwenden Sie das Browsermenü und wählen Sie 'Zum Startbildschirm hinzufügen'.",
+    "iosTitle": "iPhone / Safari",
+    "iosDesc1": "1. Öffnen Sie OmniNauka in Safari.",
+    "iosDesc2": "2. Klicken Sie auf das Teilen-Symbol.",
+    "iosDesc3": "3. Wählen Sie 'Zum Home-Bildschirm'.",
+    "iosDesc4": "4. Klicken Sie auf 'Hinzufügen'.",
+    "iosNote": "Auf dem iPhone erfordert die Installation ein manuelles Hinzufügen über das Safari-Menü.",
+    "postInstall": "Nach dem Hinzufügen des Symbols können Sie OmniNauka direkt vom Startbildschirm Ihres Telefons aus starten.",
+    "desktopTitle": "Computer / Desktop",
+    "desktopDesc": "Um das mobile App-Erlebnis voll zu genießen, scannen Sie den QR-Code oder öffnen Sie diese Seite auf Ihrem Smartphone.",
+    "homeCta": "App installieren"
   }
 }
