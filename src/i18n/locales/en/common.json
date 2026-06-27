@@ -247,14 +247,16 @@
       },
       "extra": {
         "info": "1 AI lesson = up to 5 photos or 1 PDF/DOCX document.",
-        "title": "Additional AI lessons",
+        "title": "Need more learning time?",
         "pack1": "5 AI lessons",
         "price1": "7.99 PLN",
         "pack2": "10 AI lessons",
         "price2": "14.99 PLN",
         "pack3": "25 AI lessons",
         "price3": "29.99 PLN",
-        "note": "Additional lesson packages will be available once payments are launched."
+        "note": "Extra AI lesson packs will be available on request.",
+        "bestValue": "Best value",
+        "cta": "Lesson packs — coming soon"
       }
     },
     "faq": {

@@ -322,24 +322,24 @@ export default function HomePage() {
           </p>
           
           <div className="mt-12 max-w-2xl mx-auto bg-white/60 dark:bg-[#121A2B] border border-gray-100 dark:border-slate-700/60 rounded-2xl p-6 md:p-8 text-center shadow-sm">
-            <h3 className="font-bold text-2xl text-slate-800 dark:text-slate-50 mb-2">Potrzebujesz więcej nauki?</h3>
+            <h3 className="font-bold text-2xl text-slate-800 dark:text-slate-50 mb-2">{t('home.pricing.extra.title', 'Need more learning time?')}</h3>
             <p className="text-slate-600 dark:text-slate-300 mb-6">
-              Pakiety dodatkowych lekcji AI będą dostępne po zakończeniu testów płatności.
+              {t('home.pricing.extra.note', 'Extra AI lesson packs will be available on request.')}
             </p>
             
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
               <div className="bg-white dark:bg-[#0B1220] p-4 rounded-xl border border-gray-100 dark:border-slate-800/80 shadow-sm flex flex-col items-center transition-all hover:scale-[1.02]">
                 <span className="text-xl font-bold text-slate-800 dark:text-slate-50 mb-1">9,99 zł</span>
-                <span className="text-sm font-medium text-slate-500 dark:text-slate-400">5 lekcji AI</span>
+                <span className="text-sm font-medium text-slate-500 dark:text-slate-400">{t('home.pricing.extra.pack1', '5 AI lessons')}</span>
               </div>
               <div className="bg-white dark:bg-[#0B1220] p-4 rounded-xl border border-gray-100 dark:border-slate-800/80 shadow-sm flex flex-col items-center transition-all hover:scale-[1.02]">
                 <span className="text-xl font-bold text-slate-800 dark:text-slate-50 mb-1">17,99 zł</span>
-                <span className="text-sm font-medium text-slate-500 dark:text-slate-400">10 lekcji AI</span>
+                <span className="text-sm font-medium text-slate-500 dark:text-slate-400">{t('home.pricing.extra.pack2', '10 AI lessons')}</span>
               </div>
               <div className="bg-white dark:bg-[#0B1220] p-4 rounded-xl border border-[var(--omni-accent)]/30 dark:border-[#2EE6A6]/30 ring-1 ring-[var(--omni-accent)]/10 dark:ring-[#2EE6A6]/10 shadow-sm flex flex-col items-center relative overflow-hidden transition-all hover:scale-[1.02]">
-                <div className="absolute top-0 right-0 bg-[var(--omni-accent)]/10 dark:bg-[#2EE6A6]/10 text-[var(--omni-accent)] dark:text-[#2EE6A6] text-[10px] font-bold px-2 py-0.5 rounded-bl-lg">Najtaniej</div>
+                <div className="absolute top-0 right-0 bg-[var(--omni-accent)]/10 dark:bg-[#2EE6A6]/10 text-[var(--omni-accent)] dark:text-[#2EE6A6] text-[10px] font-bold px-2 py-0.5 rounded-bl-lg">{t('home.pricing.extra.bestValue', 'Best value')}</div>
                 <span className="text-xl font-bold text-slate-800 dark:text-slate-50 mb-1">34,99 zł</span>
-                <span className="text-sm font-medium text-slate-500 dark:text-slate-400">25 lekcji AI</span>
+                <span className="text-sm font-medium text-slate-500 dark:text-slate-400">{t('home.pricing.extra.pack3', '25 AI lessons')}</span>
               </div>
             </div>
 
@@ -347,7 +347,7 @@ export default function HomePage() {
               disabled
               className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-gray-100 dark:bg-slate-800/80 text-slate-400 dark:text-slate-500 font-bold rounded-xl cursor-not-allowed"
             >
-              Pakiety lekcji — wkrótce
+              {t('home.pricing.extra.cta', 'Lesson packs - coming soon')}
             </button>
           </div>
         </div>

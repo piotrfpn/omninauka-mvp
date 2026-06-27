@@ -247,14 +247,16 @@
       },
       "extra": {
         "info": "1 lekcja AI = do 5 zdjęć albo 1 dokument PDF/DOCX.",
-        "title": "Dodatkowe lekcje AI",
+        "title": "Potrzebujesz więcej nauki?",
         "pack1": "5 lekcji AI",
         "price1": "7,99 zł",
         "pack2": "10 lekcji AI",
         "price2": "14,99 zł",
         "pack3": "25 lekcji AI",
         "price3": "29,99 zł",
-        "note": "Pakiety dodatkowych lekcji będą dostępne po uruchomieniu płatności."
+        "note": "Pakiety dodatkowych lekcji AI będą dostępne po kontakcie.",
+        "bestValue": "Najtaniej",
+        "cta": "Pakiety lekcji — wkrótce"
       }
     },
     "faq": {

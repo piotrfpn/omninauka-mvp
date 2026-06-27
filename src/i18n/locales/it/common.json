@@ -219,14 +219,16 @@
       },
       "extra": {
         "info": "1 lezione IA = fino a 5 foto o 1 documento PDF/DOCX.",
-        "title": "Lezioni IA aggiuntive",
-        "pack1": "5 lezioni IA",
+        "title": "Hai bisogno di più tempo per studiare?",
+        "pack1": "5 lezioni AI",
         "price1": "7,99 PLN",
-        "pack2": "10 lezioni IA",
+        "pack2": "10 lezioni AI",
         "price2": "14,99 PLN",
-        "pack3": "25 lezioni IA",
+        "pack3": "25 lezioni AI",
         "price3": "29,99 PLN",
-        "note": "Pacchetti di lezioni aggiuntive saranno disponibili una vez lanciati i pagamenti."
+        "note": "I pacchetti aggiuntivi di lezioni AI saranno disponibili su richiesta.",
+        "bestValue": "Miglior prezzo",
+        "cta": "Pacchetti di lezioni — prossimamente"
       }
     },
     "faq": {

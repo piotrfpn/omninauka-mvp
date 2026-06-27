@@ -219,14 +219,16 @@
       },
       "extra": {
         "info": "1 KI-Lektion = bis zu 5 Fotos oder 1 PDF/DOCX-Dokument.",
-        "title": "Zusätzliche KI-Lektionen",
+        "title": "Brauchst du mehr Lernzeit?",
         "pack1": "5 KI-Lektionen",
         "price1": "7,99 PLN",
         "pack2": "10 KI-Lektionen",
         "price2": "14,99 PLN",
         "pack3": "25 KI-Lektionen",
         "price3": "29,99 PLN",
-        "note": "Zusätzliche Lektionspakete werden nach Einführung der Zahlungen verfügbar sein."
+        "note": "Zusätzliche KI-Lernpakete werden auf Anfrage verfügbar sein.",
+        "bestValue": "Bester Preis",
+        "cta": "Lernpakete — bald verfügbar"
       }
     },
     "faq": {
