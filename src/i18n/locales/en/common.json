@@ -1015,8 +1015,10 @@
       },
       "description": {
         "active": "You have active Premium until: {{date}}. Extending will add another 30 days to the current expiry date.",
+        "activeNoDate": "You have active Premium. Extending will add another 30 days to your current access.",
         "expired": "Your previous plan has expired. You can renew Premium for another 30 days."
-      }
+      },
+      "noExpiryDate": "You have active Premium. The expiry date is not available."
     }
   },
   "lessonPage": {

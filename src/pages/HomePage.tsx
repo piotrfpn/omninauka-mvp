@@ -62,6 +62,7 @@ export default function HomePage() {
       ],
       cta: t('home.pricing.free.cta', 'Zacznij za darmo'),
       primary: false,
+      link: '/register',
     },
     {
       name: t('home.pricing.premium.title', 'Premium 30 dni'),

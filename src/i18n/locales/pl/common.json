@@ -1014,8 +1014,10 @@
       },
       "description": {
         "active": "Masz aktywny Premium do: {{date}}. Przedłużenie doda kolejne 30 dni do obecnej daty ważności.",
+        "activeNoDate": "Masz aktywny Premium. Przedłużenie doda kolejne 30 dni do obecnego dostępu.",
         "expired": "Twój poprzedni plan wygasł. Możesz odnowić Premium na kolejne 30 dni."
-      }
+      },
+      "noExpiryDate": "Masz aktywny Premium. Data ważności nie jest dostępna."
     }
   },
   "lessonPage": {

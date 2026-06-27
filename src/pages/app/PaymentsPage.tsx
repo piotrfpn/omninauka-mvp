@@ -14,9 +14,12 @@ export default function PaymentsPage() {
   // Plan status computed values
   const isPaidPlan = user?.plan === 'premium' || user?.plan === 'family';
   const expiresDate = user?.planExpiresAt ? new Date(user.planExpiresAt) : null;
-  const isExpired = expiresDate ? expiresDate <= new Date() : false;
+  const hasValidExpiryDate = expiresDate ? !Number.isNaN(expiresDate.getTime()) : false;
+  const isExpired = hasValidExpiryDate && expiresDate ? expiresDate <= new Date() : false;
   const isPlanActiveNow = isPlanActive(user);
-  const hasNoExpiryDate = isPaidPlan && !user?.planExpiresAt;
+  const hasNoExpiryDate = isPaidPlan && !hasValidExpiryDate;
+  const isPaidPlanActiveForDisplay = isPaidPlan && (isPlanActiveNow || hasNoExpiryDate);
+  const showActivationNotice = !isPaidPlanActiveForDisplay;
 
   /**
    * Helper to append client_reference_id (Supabase User ID) to Stripe Payment Links.
@@ -37,13 +40,13 @@ export default function PaymentsPage() {
   const premium30Url = buildStripePaymentUrl(premium30Link, user?.id);
   // Variables removed for MVP phase
 
-  const planLabel = (user?.effectivePlan || user?.plan) === 'premium' && isPlanActiveNow
+  const planLabel = (user?.effectivePlan || user?.plan) === 'premium' && isPaidPlanActiveForDisplay
     ? t('payments.plan.premium', 'Premium')
-    : (user?.effectivePlan || user?.plan) === 'family' && isPlanActiveNow
+    : (user?.effectivePlan || user?.plan) === 'family' && isPaidPlanActiveForDisplay
       ? t('payments.plan.family', 'Rodzinny')
       : t('payments.plan.free', 'Darmowy');
 
-  const expiryDateFormatted = expiresDate
+  const expiryDateFormatted = hasValidExpiryDate && expiresDate
     ? new Intl.DateTimeFormat(i18n.language === 'pl' ? 'pl-PL' : 'en-US', { day: '2-digit', month: '2-digit', year: 'numeric' }).format(expiresDate)
     : null;
 
@@ -55,13 +58,15 @@ export default function PaymentsPage() {
   let premiumDescription = t('payments.premium.description.default', 'Dla ucznia, który chce więcej lekcji AI i wygodniejszą naukę.');
   let premiumCTAIsDisabled = false;
 
-  if (isFamily && isPlanActiveNow) {
+  if (isFamily && isPaidPlanActiveForDisplay) {
     premiumCTA = t('payments.premium.cta.haveFamily', 'Masz plan Rodzinny');
     premiumCTAIsDisabled = true;
   } else if (isPremium) {
-    if (isPlanActiveNow) {
+    if (isPaidPlanActiveForDisplay) {
       premiumCTA = t('payments.premium.cta.extend', 'Przedłuż Premium o 30 dni');
-      premiumDescription = t('payments.premium.description.active', 'Masz aktywny Premium do: {{date}}. Przedłużenie doda kolejne 30 dni do obecnej daty ważności.', { date: expiryDateFormatted });
+      premiumDescription = expiryDateFormatted
+        ? t('payments.premium.description.active', 'Masz aktywny Premium do: {{date}}. Przedłużenie doda kolejne 30 dni do obecnej daty ważności.', { date: expiryDateFormatted })
+        : t('payments.premium.description.activeNoDate', 'Masz aktywny Premium. Przedłużenie doda kolejne 30 dni do obecnego dostępu.');
     } else {
       premiumCTA = t('payments.premium.cta.renew', 'Odnow Premium na 30 dni');
       premiumDescription = t('payments.premium.description.expired', 'Twój poprzedni plan wygasł. Możesz odnowić Premium na kolejne 30 dni.');
@@ -94,7 +99,7 @@ export default function PaymentsPage() {
 
       {/* Sekcja 2: Karta obecnego planu */}
       <section className={`omni-card p-6 border-l-4 ${
-        isPlanActiveNow && isPaidPlan
+        isPaidPlanActiveForDisplay
           ? 'bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950/30 dark:to-indigo-950/30 border-blue-400 dark:border-blue-600'
           : 'bg-gray-50 dark:bg-slate-900/50 border-gray-300 dark:border-slate-800'
       }`}>
@@ -105,7 +110,7 @@ export default function PaymentsPage() {
             </h2>
             <div className="flex items-center gap-3">
               <span className="text-2xl font-bold text-gray-900 dark:text-slate-50">{planLabel}</span>
-              {isPlanActiveNow && (user?.effectivePlan || user?.plan) !== 'free' && (
+              {isPaidPlanActiveForDisplay && (user?.effectivePlan || user?.plan) !== 'free' && (
                 <span className="px-2 py-1 bg-blue-100 dark:bg-blue-950/40 text-blue-700 dark:text-blue-400 text-xs font-semibold rounded-full">
                   {t('payments.status.active', 'Aktywny')}
                 </span>
@@ -125,7 +130,7 @@ export default function PaymentsPage() {
                 </p>
               ) : (
                 <>
-                  {isPaidPlan && expiresDate && !isExpired && expiryDateFormatted && (
+                  {isPaidPlan && hasValidExpiryDate && !isExpired && expiryDateFormatted && (
                     <p className="text-sm font-medium text-blue-600">
                       {t('payments.validUntil', 'Ważny do')}: {expiryDateFormatted}
                     </p>
@@ -139,20 +144,26 @@ export default function PaymentsPage() {
               )}
               {hasNoExpiryDate && !user?.inheritedFromParent && (
                 <p className="text-sm text-amber-600 font-medium">
-                  {t('payments.noExpiryDate', 'Plan aktywny. Brak zapisanej daty wygaśnięcia — skontaktuj się z obsługą.')}
+                  {isPremium
+                    ? t('payments.premium.noExpiryDate', 'Masz aktywny Premium. Data ważności nie jest dostępna.')
+                    : t('payments.noExpiryDate', 'Plan aktywny. Brak zapisanej daty wygaśnięcia — skontaktuj się z obsługą.')}
                 </p>
               )}
-              <p className="text-xs text-gray-500 dark:text-slate-400">
-                {t('payments.currentPlanNote', 'Twój plan Premium zostanie aktywowany po weryfikacji płatności (zazwyczaj do 24 godzin w fazie testowej).')}
-              </p>
+              {showActivationNotice && (
+                <p className="text-xs text-gray-500 dark:text-slate-400">
+                  {t('payments.currentPlanNote', 'Twój plan Premium zostanie aktywowany po weryfikacji płatności (zazwyczaj do 24 godzin w fazie testowej).')}
+                </p>
+              )}
             </div>
           </div>
-          <div className="bg-white dark:bg-slate-900 p-3 rounded-lg border border-blue-100 dark:border-blue-950/50 max-w-xs flex items-start gap-3 shadow-sm">
-            <AlertCircle className="w-5 h-5 text-blue-500 dark:text-blue-400 shrink-0 mt-0.5" />
-            <p className="text-xs text-gray-600 dark:text-slate-300 leading-relaxed">
-              {t('payments.mvpNote', 'W fazie testowej aktywacja planu może wymagać weryfikacji. W razie opóźnień skontaktuj się z obsługą.')}
-            </p>
-          </div>
+          {showActivationNotice && (
+            <div className="bg-white dark:bg-slate-900 p-3 rounded-lg border border-blue-100 dark:border-blue-950/50 max-w-xs flex items-start gap-3 shadow-sm">
+              <AlertCircle className="w-5 h-5 text-blue-500 dark:text-blue-400 shrink-0 mt-0.5" />
+              <p className="text-xs text-gray-600 dark:text-slate-300 leading-relaxed">
+                {t('payments.mvpNote', 'W fazie testowej aktywacja planu może wymagać weryfikacji. W razie opóźnień skontaktuj się z obsługą.')}
+              </p>
+            </div>
+          )}
         </div>
       </section>
 
