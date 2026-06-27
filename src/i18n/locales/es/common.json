@@ -356,7 +356,9 @@
       "premium": "Premium",
       "free": "Gratis"
     },
-    "logout": "Cerrar sesión"
+    "logout": "Cerrar sesión",
+    "openMenu": "Abrir menú",
+    "closeMenu": "Cerrar menú"
   },
   "dashboard": {
     "welcome": "Hola",

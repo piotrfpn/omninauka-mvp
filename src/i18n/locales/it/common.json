@@ -356,7 +356,9 @@
       "premium": "Premium",
       "free": "Gratuito"
     },
-    "logout": "Esci"
+    "logout": "Esci",
+    "openMenu": "Apri menu",
+    "closeMenu": "Chiudi menu"
   },
   "dashboard": {
     "welcome": "Ciao",

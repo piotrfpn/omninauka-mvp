@@ -356,7 +356,9 @@
       "premium": "Преміум",
       "free": "Безкоштовно"
     },
-    "logout": "Вийти"
+    "logout": "Вийти",
+    "openMenu": "Відкрити меню",
+    "closeMenu": "Закрити меню"
   },
   "dashboard": {
     "welcome": "Привіт",

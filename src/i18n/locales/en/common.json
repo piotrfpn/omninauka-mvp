@@ -388,7 +388,9 @@
       "familyInherited": "Family (from parent)",
       "free": "Free"
     },
-    "logout": "Logout"
+    "logout": "Logout",
+    "openMenu": "Open menu",
+    "closeMenu": "Close menu"
   },
   "dashboard": {
     "welcome": "Hi",

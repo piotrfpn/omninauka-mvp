@@ -388,7 +388,9 @@
       "familyInherited": "Rodzinny (od rodzica)",
       "free": "Darmowy"
     },
-    "logout": "Wyloguj"
+    "logout": "Wyloguj",
+    "openMenu": "Otwórz menu",
+    "closeMenu": "Zamknij menu"
   },
   "dashboard": {
     "welcome": "Cześć",

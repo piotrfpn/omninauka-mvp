@@ -213,6 +213,7 @@ export function AppShell({ children }: AppShellProps) {
               onClick={handleLogout}
               className="p-2 text-[var(--omni-text-muted)] hover:text-red-500 transition-colors"
               title={t('appShell.logout', 'Wyloguj')}
+              aria-label={t('appShell.logout', 'Wyloguj')}
             >
               <LogOut className="w-5 h-5" />
             </button>
@@ -229,6 +230,7 @@ export function AppShell({ children }: AppShellProps) {
           <button
             onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
             className="p-2 text-foreground hover:bg-muted rounded-lg transition-colors"
+            aria-label={isMobileMenuOpen ? t('appShell.closeMenu', 'Zamknij menu') : t('appShell.openMenu', 'Otwórz menu')}
           >
             {isMobileMenuOpen ? (
               <X className="w-6 h-6" />
