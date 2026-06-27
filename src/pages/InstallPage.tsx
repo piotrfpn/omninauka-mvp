@@ -89,13 +89,18 @@ export default function InstallPage() {
           </Link>
         </div>
 
-        <div className="text-center mb-8">
-          <div className="mb-4 inline-block">
-            <OmniNaukaLogo size={56} className="mx-auto" />
-          </div>
-          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[var(--omni-accent)]/10 text-[var(--omni-accent)] text-xs font-bold uppercase tracking-wider mb-3">
-            <span className="w-1.5 h-1.5 rounded-full bg-[var(--omni-accent)] animate-pulse" />
-            Progressive Web App
+        <div className="flex flex-col items-center text-center mb-8">
+          <div className="flex items-center gap-3 text-left w-fit mx-auto mb-6">
+            <OmniNaukaLogo size={48} showWordmark={false} />
+            <div>
+              <div className="font-bold text-2xl text-[var(--omni-text)] dark:text-slate-50 leading-none mb-1.5">
+                OmniNauka
+              </div>
+              <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-[var(--omni-accent)]/10 text-[var(--omni-accent)] text-[10px] font-bold uppercase tracking-wider">
+                <span className="w-1.5 h-1.5 rounded-full bg-[var(--omni-accent)] animate-pulse" />
+                Progressive Web App
+              </div>
+            </div>
           </div>
           <h1 className="omni-heading-2 text-[var(--omni-text)] dark:text-slate-50 mb-3">
             {t('install.title', 'Zainstaluj OmniNauka na telefonie')}
