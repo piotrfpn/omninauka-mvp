@@ -1,8 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
-// hashConsentToken is used only in handleSubmit for approve_parental_consent RPC
-import { hashConsentToken } from '../../lib/consent';
+import { approveParentalConsent } from '../../lib/consent';
 import { ShieldCheck, CheckCircle2, AlertTriangle, Loader2, ArrowRight, ExternalLink } from 'lucide-react';
 import OmniNaukaLogo from '../../components/brand/OmniNaukaLogo';
 import { useTranslation } from 'react-i18next';
@@ -84,17 +83,8 @@ export default function ParentConsentPage() {
 
     setIsSubmitting(true);
     try {
-      const tokenHash = await hashConsentToken(token);
-      
-      // Call the secure RPC function we created in the migration
-      // This function handles both consent update and profile status update
-      const { data, error } = await supabase.rpc('approve_parental_consent', {
-        p_token_hash: tokenHash,
-        p_ip: 'parent-approved', // In a real app we'd get real IP if possible
-        p_user_agent: window.navigator.userAgent
-      });
-
-      if (error || data === false) throw error || new Error('Approval failed');
+      const approved = await approveParentalConsent(token);
+      if (!approved) throw new Error('Approval failed');
 
       setStatus('success');
     } catch (err) {

@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { getAiAccountDenial } from "../_shared/account-access.ts";
 import { createRemoteJWKSet, jwtVerify, decodeProtectedHeader } from "npm:jose";
 
 const corsHeaders = {
@@ -84,37 +85,14 @@ serve(async (req) => {
     }
     const userId = user.id;
 
-    // Verify user account status and plan
-    const { data: profile, error: profileError } = await adminClient
-      .from('profiles')
-      .select('age_band, account_status, plan, plan_expires_at')
-      .eq('id', userId)
-      .single();
-
-    if (profileError || !profile) {
-      console.error("[analyze-notes] 404: Profile not found");
+    const accountDenial = await getAiAccountDenial(
+      adminClient.from('profiles').select('account_status').eq('id', userId).maybeSingle(),
+      corsHeaders,
+    );
+    if (accountDenial) {
       markTiming('response_ready', { status: 'error', errorCode: 'auth_failed' });
       markTiming('request_done', { status: 'error' });
-      return new Response(JSON.stringify({ error: 'User profile not found' }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 404,
-      });
-    }
-
-    if (
-      (profile.age_band === '13_15' && profile.account_status === 'pending_parent_consent') ||
-      profile.account_status === 'parent_withdrawn' ||
-      profile.account_status === 'suspended'
-    ) {
-      console.warn(`[analyze-notes] 403: Access blocked for status ${profile.account_status}`);
-      markTiming('response_ready', { status: 'error', errorCode: 'auth_failed' });
-      markTiming('request_done', { status: 'error' });
-      return new Response(JSON.stringify({ 
-        error: `Dostęp zablokowany: status konta ${profile.account_status}` 
-      }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 403,
-      });
+      return accountDenial;
     }
 
     markTiming('auth_check');

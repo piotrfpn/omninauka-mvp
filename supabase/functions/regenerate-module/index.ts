@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { getAiAccountDenial } from "../_shared/account-access.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -70,6 +71,12 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
       { auth: { persistSession: false } }
     );
+
+    const accountDenial = await getAiAccountDenial(
+      adminClient.from('profiles').select('account_status').eq('id', userId).maybeSingle(),
+      corsHeaders,
+    );
+    if (accountDenial) return accountDenial;
 
     // --- Plan Verification (Sprint 23A) ---
     // We use get_my_effective_plan() to respect inherited family plans.

@@ -23,7 +23,7 @@ const mapSupabaseUser = (sbUser: any, dbProfile?: any): User => ({
   plan: dbProfile?.plan || 'free',
   createdAt: new Date(sbUser.created_at),
   ageBand: dbProfile?.age_band || sbUser.user_metadata?.ageBand,
-  accountStatus: dbProfile?.account_status || sbUser.user_metadata?.accountStatus || 'active',
+  accountStatus: dbProfile?.account_status,
   userRole: dbProfile?.user_role,
   schoolType: dbProfile?.school_type,
   educationLevel: dbProfile?.education_level,
@@ -221,11 +221,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const register = async (email: string, password: string, name: string, ageBand: string, userRole: string = 'student') => {
     setIsDemoMode(false);
     
-    // Initial status based on age band logic (matching the DB trigger and guard)
-    let initialStatus = 'active';
-    if (ageBand === '13_15') initialStatus = 'pending_parent_consent';
-    if (ageBand === 'under_13') initialStatus = 'pending_parent_preapproval';
-
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
@@ -233,7 +228,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         data: {
           name,
           ageBand,
-          accountStatus: initialStatus,
           user_role: userRole
         }
       }

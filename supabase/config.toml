@@ -8,5 +8,8 @@ verify_jwt = false
 verify_jwt = false
 [functions.send-consent-email]
 verify_jwt = false
+[functions.approve-parental-consent]
+# Public email bearer-token flow. Authorization is the raw token, not a JWT.
+verify_jwt = false
 [functions.stripe-webhook]
 verify_jwt = false
