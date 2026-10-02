@@ -8,12 +8,21 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+function usageGuardUnavailable(): Response {
+  return new Response(JSON.stringify({ error: 'usage_guard_unavailable' }), {
+    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    status: 503,
+  });
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
   }
 
   let markTimingFn: ((stage: string, extra?: Record<string, unknown>) => void) | null = null;
+  let reservationId: string | null = null;
+  let cleanupReservation: (() => Promise<void>) | null = null;
 
   try {
     const requestStartedAt = performance.now();
@@ -36,7 +45,7 @@ serve(async (req) => {
 
     markTiming('request_start');
     console.log("--- ANALYZE-NOTES INVOCATION START ---");
-    
+
     const authHeader = req.headers.get('Authorization') || req.headers.get('authorization');
     if (!authHeader) {
       console.error("[analyze-notes] 401: Missing Authorization header");
@@ -97,57 +106,7 @@ serve(async (req) => {
 
     markTiming('auth_check');
 
-    // --- USAGE LIMITS GUARD (Sprint 23A) ---
-    // We use get_my_effective_plan() to respect inherited family plans.
-    let effectivePlan = 'free';
-    try {
-      const { data: effectiveData, error: planError } = await supabaseClient
-        .rpc('get_my_effective_plan');
 
-      if (planError) {
-        console.warn('[analyze-notes] get_my_effective_plan failed in analyze-notes, falling back to free');
-      } else if (effectiveData?.effective_plan) {
-        effectivePlan = effectiveData.effective_plan;
-      }
-    } catch (err) {
-      console.warn('[analyze-notes] get_my_effective_plan threw in analyze-notes, falling back to free');
-    }
-    const dailyLimit = (effectivePlan === 'premium' || effectivePlan === 'family') ? 10 : 2;
-    const maxCards = (effectivePlan === 'premium' || effectivePlan === 'family') ? 20 : 5;
-
-    // Count today's lessons (UTC)
-    const startOfToday = new Date();
-    startOfToday.setUTCHours(0, 0, 0, 0);
-
-    const { count: usageCount, error: usageError } = await adminClient
-      .from('usage_events')
-      .select('*', { count: 'exact', head: true })
-      .eq('user_id', userId)
-      .eq('event_type', 'lesson_analysis')
-      .gte('created_at', startOfToday.toISOString());
-
-    if (usageError) {
-      console.error("[analyze-notes] Usage count error");
-    }
-
-    if ((usageCount || 0) >= dailyLimit) {
-      console.warn(`[analyze-notes] 403: Usage limit reached`);
-      markTiming('response_ready', { status: 'error', errorCode: 'auth_failed' });
-      markTiming('request_done', { status: 'error' });
-      return new Response(JSON.stringify({ 
-        error: "usage_limit_reached",
-        feature: "ai_lessons",
-        limit: dailyLimit,
-        plan: effectivePlan === 'family' || effectivePlan === 'premium' ? 'premium' : 'free',
-        message: effectivePlan === 'free' 
-          ? "Osiągnąłeś dzienny limit lekcji AI w planie Darmowym. Sprawdź Premium, aby korzystać z większego limitu."
-          : "Osiągnąłeś dzienny limit lekcji AI dla swojego planu (fair use)."
-      }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 403,
-      });
-    }
-    // --------------------------
 
     const body = await req.json();
     const sessionId = body.sessionId;
@@ -192,6 +151,18 @@ serve(async (req) => {
 
     markTiming('load_session');
 
+    let effectivePlan = 'free';
+    try {
+      const { data: effectiveData, error: planError } = await supabaseClient.rpc('get_my_effective_plan');
+      if (!planError && effectiveData?.effective_plan) {
+        effectivePlan = effectiveData.effective_plan === 'premium' || effectiveData.effective_plan === 'family'
+          ? effectiveData.effective_plan : 'free';
+      }
+    } catch (err) {
+      console.warn('[analyze-notes] get_my_effective_plan threw, falling back to free');
+    }
+    const maxCards = (effectivePlan === 'premium' || effectivePlan === 'family') ? 20 : 5;
+
     // Idempotency guard: skip if already processed
     if (sessionData.subject) {
       markTiming('response_ready', { status: 'success' });
@@ -201,6 +172,63 @@ serve(async (req) => {
         status: 200
       });
     }
+
+    // --- ATOMIC USAGE GUARD ---
+    let usageData: unknown;
+    try {
+      const { data, error } = await adminClient.rpc('check_and_reserve_ai_usage', {
+        p_user_id: userId,
+        p_session_id: sessionId,
+        p_event_type: 'lesson_analysis',
+        p_plan: effectivePlan || 'free'
+      });
+      if (error) {
+        console.error('[analyze-notes] Usage guard DB failure');
+        return usageGuardUnavailable();
+      }
+      usageData = data;
+    } catch {
+      console.error('[analyze-notes] Usage guard transport failure');
+      return usageGuardUnavailable();
+    }
+
+    if (!usageData || typeof usageData !== 'object' || Array.isArray(usageData)) {
+      return usageGuardUnavailable();
+    }
+    const usage = usageData as Record<string, unknown>;
+    if (usage.allowed === false && usage.error === 'usage_limit_reached' &&
+      usage.feature === 'ai_lessons' && typeof usage.limit === 'number' &&
+      Number.isFinite(usage.limit) && typeof usage.message === 'string' && usage.message.trim()) {
+      return new Response(JSON.stringify({
+        error: 'usage_limit_reached', feature: usage.feature, limit: usage.limit,
+        plan: effectivePlan === 'premium' || effectivePlan === 'family' ? effectivePlan : 'free',
+        message: usage.message,
+      }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 403,
+      });
+    }
+    if (usage.allowed !== true || typeof usage.reservation_id !== 'string' || usage.reservation_id.length !== 36 ||
+      !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(usage.reservation_id)) {
+      return usageGuardUnavailable();
+    }
+
+    reservationId = usage.reservation_id;
+    cleanupReservation = async () => {
+      if (!reservationId) return;
+      try {
+        const { error } = await adminClient.from('usage_events').delete()
+          .eq('id', reservationId).eq('user_id', userId);
+        if (error) {
+          console.error('[analyze-notes] Reservation cleanup failure', error);
+          return;
+        }
+        reservationId = null;
+      } catch (err) {
+        console.error('[analyze-notes] Reservation cleanup failure', err);
+      }
+    };
+    // --------------------------
 
     let ocrText = "";
 
@@ -268,6 +296,7 @@ serve(async (req) => {
           if (imagePaths.length === 1) {
             markTiming('response_ready', { status: 'error', errorCode: 'storage_download_failed' });
             markTiming('request_done', { status: 'error' });
+            await cleanupReservation();
             return new Response(JSON.stringify({ error: `Storage download failed: ${downloadError?.message || 'no payload'}` }), {
               headers: { ...corsHeaders, 'Content-Type': 'application/json' },
               status: 500
@@ -343,6 +372,7 @@ serve(async (req) => {
           if (imagePaths.length === 1) {
             markTiming('response_ready', { status: 'error', errorCode: 'ocr_failed' });
             markTiming('request_done', { status: 'error' });
+            await cleanupReservation();
             return new Response(JSON.stringify({ error: 'Google Vision error: ocr_failed' }), {
               headers: { ...corsHeaders, 'Content-Type': 'application/json' },
               status: 502
@@ -386,6 +416,7 @@ serve(async (req) => {
       if (!ocrText || ocrText.trim().length === 0) {
         markTiming('response_ready', { status: 'error', errorCode: 'ocr_failed' });
         markTiming('request_done', { status: 'error' });
+        await cleanupReservation();
         return new Response(JSON.stringify({ error: "Nie wykryto żadnego tekstu na zdjęciach." }), {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
           status: 422
@@ -506,20 +537,29 @@ ZASADY QUIZU — KRYTYCZNE, MUSZĄ BYĆ BEZWZGLĘDNIE PRZESTRZEGANE:
       });
       markTiming('response_ready', { status: 'error', errorCode: 'ai_analysis_failed' });
       markTiming('request_done', { status: 'error' });
+      await cleanupReservation();
       return new Response(JSON.stringify({ error: "AI processing error: invalid response format" }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 502
       });
+    } finally {
+      if (aiData?.error || !openAiResponse.ok) {
+        console.error('[analyze-notes] OpenAI provider error', {
+          status: openAiResponse.status,
+          type: typeof aiData?.error?.type === 'string' ? aiData.error.type : null,
+          code: typeof aiData?.error?.code === 'string' ? aiData.error.code : null,
+        });
+      }
     }
 
     if (aiData.error) {
-      console.error("[analyze-notes] 502: OpenAI API error");
       markTiming('openai_analysis_failed', {
         durationMs: openAiDuration,
         errorCode: 'ai_analysis_failed'
       });
       markTiming('response_ready', { status: 'error', errorCode: 'ai_analysis_failed' });
       markTiming('request_done', { status: 'error' });
+      await cleanupReservation();
       return new Response(JSON.stringify({ error: "OpenAI API error: ai_analysis_failed" }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 502
@@ -527,13 +567,13 @@ ZASADY QUIZU — KRYTYCZNE, MUSZĄ BYĆ BEZWZGLĘDNIE PRZESTRZEGANE:
     }
 
     if (!openAiResponse.ok) {
-      console.error("[analyze-notes] OpenAI non-ok status ->", openAiResponse.status);
       markTiming('openai_analysis_failed', {
         durationMs: openAiDuration,
         errorCode: 'ai_analysis_failed'
       });
       markTiming('response_ready', { status: 'error', errorCode: 'ai_analysis_failed' });
       markTiming('request_done', { status: 'error' });
+      await cleanupReservation();
       return new Response(JSON.stringify({ error: `OpenAI HTTP error ${openAiResponse.status}` }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 502
@@ -554,7 +594,8 @@ ZASADY QUIZU — KRYTYCZNE, MUSZĄ BYĆ BEZWZGLĘDNIE PRZESTRZEGANE:
          });
          markTiming('response_ready', { status: 'error', errorCode: 'ai_analysis_failed' });
          markTiming('request_done', { status: 'error' });
-         return new Response(JSON.stringify({ error: "AI processing error: unexpected response shape" }), {
+          await cleanupReservation();
+          return new Response(JSON.stringify({ error: "AI processing error: unexpected response shape" }), {
            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
            status: 502
          });
@@ -567,6 +608,7 @@ ZASADY QUIZU — KRYTYCZNE, MUSZĄ BYĆ BEZWZGLĘDNIE PRZESTRZEGANE:
        });
        markTiming('response_ready', { status: 'error', errorCode: 'ai_analysis_failed' });
        markTiming('request_done', { status: 'error' });
+       await cleanupReservation();
        return new Response(JSON.stringify({ error: `AI processing error: JSON parse failed` }), {
          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
          status: 502
@@ -678,13 +720,8 @@ ZASADY QUIZU — KRYTYCZNE, MUSZĄ BYĆ BEZWZGLĘDNIE PRZESTRZEGANE:
       durationMs: dbUpdateDuration
     });
 
-    // Log usage event on success
-    await adminClient.from('usage_events').insert({
-      user_id: userId,
-      event_type: 'lesson_analysis',
-      session_id: sessionId,
-      metadata: { effectivePlan }
-    });
+    // Successful analysis consumes the reservation created by the RPC.
+    reservationId = null;
 
     markTiming('response_ready', { status: 'success' });
     markTiming('request_done', { status: 'success' });
@@ -695,6 +732,9 @@ ZASADY QUIZU — KRYTYCZNE, MUSZĄ BYĆ BEZWZGLĘDNIE PRZESTRZEGANE:
     });
 
   } catch (error: any) {
+    if (cleanupReservation) {
+      await cleanupReservation();
+    }
     let safeErrorCode = 'unknown_error';
     const errMsg = (error?.message || '').toLowerCase();
     if (errMsg.includes('auth')) {

@@ -7,10 +7,20 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+function usageGuardUnavailable(): Response {
+  return new Response(JSON.stringify({ error: 'usage_guard_unavailable' }), {
+    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    status: 503,
+  });
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
   }
+
+  let reservationId: string | null = null;
+  let cleanupReservation: (() => Promise<void>) | null = null;
 
   try {
     console.log("--- REGENERATE-MODULE INVOCATION START ---");
@@ -88,7 +98,8 @@ serve(async (req) => {
       if (planError) {
         console.warn('[regenerate-module] get_my_effective_plan failed, falling back to free plan', planError);
       } else if (effectiveData?.effective_plan) {
-        effectivePlan = effectiveData.effective_plan;
+        effectivePlan = effectiveData.effective_plan === 'premium' || effectiveData.effective_plan === 'family'
+          ? effectiveData.effective_plan : 'free';
       }
     } catch (err) {
       console.warn('[regenerate-module] get_my_effective_plan threw, falling back to free plan', err);
@@ -124,37 +135,62 @@ serve(async (req) => {
       });
     }
 
-    // --- USAGE LIMITS GUARD ---
-    if (module === 'flashcards') {
-      const { count: regenCount, error: regenError } = await adminClient
-        .from('usage_events')
-        .select('*', { count: 'exact', head: true })
-        .eq('user_id', userId)
-        .eq('session_id', sessionId)
-        .eq('event_type', 'flashcard_regen');
-
-      if (regenError) {
-        console.error("[regenerate-module] Regen count error:", regenError.message);
+    // --- ATOMIC USAGE GUARD ---
+    const eventType = module === 'flashcards' ? 'flashcard_regen' : 'quiz_regen';
+    let usageData: unknown;
+    try {
+      const { data, error } = await adminClient.rpc('check_and_reserve_ai_usage', {
+        p_user_id: userId,
+        p_session_id: sessionId,
+        p_event_type: eventType,
+        p_plan: effectivePlan || 'free'
+      });
+      if (error) {
+        console.error('[regenerate-module] Usage guard DB failure');
+        return usageGuardUnavailable();
       }
-
-      const regenLimit = effectivePlan === 'free' ? 1 : 5;
-
-      if ((regenCount || 0) >= regenLimit) {
-        console.warn(`[regenerate-module] 403: Regen limit reached for user ${userId}, session ${sessionId} (${regenCount}/${regenLimit})`);
-        return new Response(JSON.stringify({ 
-          error: "usage_limit_reached",
-          feature: "flashcard_regen",
-          limit: regenLimit,
-          plan: effectivePlan === 'family' || effectivePlan === 'premium' ? 'premium' : 'free',
-          message: effectivePlan === 'free' 
-            ? "W planie Darmowym możesz wygenerować jedną dodatkową serię fiszek. Sprawdź Premium, aby odblokować więcej powtórek."
-            : "Osiągnąłeś limit regeneracji fiszek dla tej lekcji (fair use)."
-        }), {
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          status: 403,
-        });
-      }
+      usageData = data;
+    } catch {
+      console.error('[regenerate-module] Usage guard transport failure');
+      return usageGuardUnavailable();
     }
+
+    if (!usageData || typeof usageData !== 'object' || Array.isArray(usageData)) {
+      return usageGuardUnavailable();
+    }
+    const usage = usageData as Record<string, unknown>;
+    if (usage.allowed === false && usage.error === 'usage_limit_reached' &&
+      usage.feature === eventType && typeof usage.limit === 'number' &&
+      Number.isFinite(usage.limit) && typeof usage.message === 'string' && usage.message.trim()) {
+      return new Response(JSON.stringify({
+        error: 'usage_limit_reached', feature: usage.feature, limit: usage.limit,
+        plan: effectivePlan === 'premium' || effectivePlan === 'family' ? effectivePlan : 'free',
+        message: usage.message,
+      }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 403,
+      });
+    }
+    if (usage.allowed !== true || typeof usage.reservation_id !== 'string' || usage.reservation_id.length !== 36 ||
+      !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(usage.reservation_id)) {
+      return usageGuardUnavailable();
+    }
+
+    reservationId = usage.reservation_id;
+    cleanupReservation = async () => {
+      if (!reservationId) return;
+      try {
+        const { error } = await adminClient.from('usage_events').delete()
+          .eq('id', reservationId).eq('user_id', userId);
+        if (error) {
+          console.error('[regenerate-module] Reservation cleanup failure', error);
+          return;
+        }
+        reservationId = null;
+      } catch (err) {
+        console.error('[regenerate-module] Reservation cleanup failure', err);
+      }
+    };
     // --------------------------
 
     console.log(`[regenerate-module] Regenerating module="${module}" for session=${sessionId}`);
@@ -255,15 +291,8 @@ serve(async (req) => {
 
     if (updateError) throw new Error(`DB update failed: ${updateError.message}`);
 
-    // Log usage event on success
-    if (module === 'flashcards') {
-      await adminClient.from('usage_events').insert({
-        user_id: userId,
-        event_type: 'flashcard_regen',
-        session_id: sessionId,
-        metadata: { effectivePlan, maxCards, count: finalData.length }
-      });
-    }
+    // Successful regeneration consumes the reservation created by the RPC.
+    reservationId = null;
 
     return new Response(JSON.stringify({ success: true, module, data: finalData }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -271,6 +300,9 @@ serve(async (req) => {
     });
 
   } catch (error: any) {
+    if (cleanupReservation) {
+      await cleanupReservation();
+    }
     console.error('[regenerate-module] Fatal error:', error?.message ?? error);
     return new Response(JSON.stringify({ error: error?.message || 'Server error' }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },

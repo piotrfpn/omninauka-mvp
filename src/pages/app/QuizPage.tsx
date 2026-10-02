@@ -170,6 +170,17 @@ export default function QuizPage() {
       });
 
       if (!response.ok) {
+        if (response.status === 403) {
+          const quotaBody = await response.clone().json().catch(() => null) as {
+            error?: unknown; message?: unknown;
+          } | null;
+          if (quotaBody?.error === 'usage_limit_reached') {
+            alert(typeof quotaBody.message === 'string' && quotaBody.message.trim()
+              ? quotaBody.message : t('quiz.notifications.error'));
+            setRegenerationMessage(null);
+            return;
+          }
+        }
         const errText = await response.text();
         throw new Error(`HTTP ${response.status}: ${errText}`);
       }
