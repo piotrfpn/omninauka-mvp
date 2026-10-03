@@ -2,6 +2,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import ts from 'typescript';
+import { createElement } from 'react';
+import { renderToStaticMarkup } from 'react-dom/server';
 import { getAiAccountDenial } from '../supabase/functions/_shared/account-access.ts';
 
 const userId = '11111111-1111-4111-8111-111111111111';
@@ -23,7 +25,21 @@ async function loadEndpoint(name, options = {}) {
       compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.None },
     }).outputText);
   }
-  const state = { reservations: [], providers: [], deletes: [], updates: [], logs: [], order: [] };
+  const state = { reservations: [], providers: [], deletes: [], updates: [], logs: [], order: [], timers: new Map(), clearedTimers: [], aborted: false };
+  let nextTimerId = 0;
+  const setTimer = (callback, delay) => { const id = ++nextTimerId; state.timers.set(id, { callback, delay }); return id; };
+  const clearTimer = id => { state.clearedTimers.push(id); state.timers.delete(id); };
+  const waitForAbort = signal => new Promise((resolve, reject) => {
+    signal.addEventListener('abort', () => {
+      state.aborted = true;
+      reject(new DOMException('PRIVATE_ABORT_DETAILS', 'AbortError'));
+    }, { once: true });
+    queueMicrotask(() => {
+      const timer = [...state.timers.values()].find(timer => timer.delay === 60000);
+      assert.ok(timer, 'Provider deadline must remain active');
+      timer.callback();
+    });
+  });
   const session = { user_id: userId, subject: null, raw_ocr_text: 'OCR text', ...options.session };
   const createClient = (url, key) => ({
     auth: { async getUser() {
@@ -94,7 +110,7 @@ async function loadEndpoint(name, options = {}) {
       } };
     } },
   });
-  const fetchProvider = async url => {
+  const fetchProvider = async (url, init) => {
     const kind = url.includes('vision.googleapis.com') ? 'vision' : 'openai';
     state.providers.push(kind); state.order.push(kind);
     if (options.providerThrow) throw new Error('provider transport failure');
@@ -103,6 +119,9 @@ async function loadEndpoint(name, options = {}) {
         : { responses: [{ fullTextAnnotation: { text: options.emptyOcr ? '' : 'OCR text' } }] };
       return new Response(JSON.stringify(payload), { status: options.visionError ? 502 : 200 });
     }
+    assert.ok(init.signal instanceof AbortSignal);
+    if (options.providerTimeout) return waitForAbort(init.signal);
+    if (options.bodyTimeout) return { ok: true, status: 200, text: () => waitForAbort(init.signal) };
     const generation = options.generation ?? {
       subject: 'Biology', topic: 'Cells', summary: 'Summary', keyConcepts: [],
       flashcards: [{ front: 'Question', back: 'Answer', difficulty: 'easy' }],
@@ -112,15 +131,15 @@ async function loadEndpoint(name, options = {}) {
     return new Response(options.rawOpenAi ?? JSON.stringify(payload), { status: options.providerStatus ?? 200 });
   };
   let handler;
-  const boot = new Function('serve', 'createClient', 'getAiAccountDenial', 'Deno', 'fetch', 'console', 'crypto', 'performance', compiled.get(name));
+  const boot = new Function('serve', 'createClient', 'getAiAccountDenial', 'Deno', 'fetch', 'console', 'crypto', 'performance', 'setTimeout', 'clearTimeout', compiled.get(name));
   boot(fn => { handler = fn; }, createClient, getAiAccountDenial, {
     env: { get(key) {
       if (key === options.missingKey) return undefined;
       return key === 'SUPABASE_SERVICE_ROLE_KEY' ? 'test-service' : 'test-config';
     } },
   }, fetchProvider, {
-    log() {}, warn() {}, info() {}, error(...args) { state.logs.push(args); },
-  }, crypto, performance);
+    log() {}, warn() {}, info(...args) { state.logs.push(args); }, error(...args) { state.logs.push(args); },
+  }, crypto, performance, setTimer, clearTimer);
   return { state, async request(body = { sessionId, module: options.module ?? 'quiz' }, authorized = true) {
     const response = await handler(new Request('https://example.invalid/ai', {
       method: 'POST', headers: {
@@ -150,6 +169,7 @@ for (const [name, module, event, feature] of [
     assert.ok(state.order.indexOf('reserve') < state.order.indexOf('openai'));
     assert.equal(state.updates.length, 1);
     assert.equal(state.deletes.length, 0);
+    assert.equal(state.timers.size, 0);
     assert.ok(!state.logs.some(args => args[0] === '[analyze-notes] OpenAI provider error'));
   });
   for (const [reason, guard] of [
@@ -223,13 +243,47 @@ for (const [name, module, event, feature] of [
     test(`${label}: cleanup ${failure.deleteThrow ? 'throw' : 'returned error'} is logged; original error survives`, async () => {
       const { state, request } = await loadEndpoint(name, { module, providerThrow: true, ...failure });
       const response = await request();
-      assert.equal(response.status, 500);
-      assert.deepEqual(await response.json(), { error: 'provider transport failure' });
+      assert.equal(response.status, 502);
+      assert.deepEqual(await response.json(), { error: 'provider_error' });
       assert.deepEqual(state.deletes, [{ id: reservationId, userId }]);
       assert.ok(state.logs.some(args => String(args[0]).includes('Reservation cleanup failure')));
     });
   }
+  for (const phase of ['providerTimeout', 'bodyTimeout']) {
+    test(`${label}: ${phase} aborts once, releases exact reservation, clears deadline`, async () => {
+      const { state, request } = await loadEndpoint(name, { module, [phase]: true });
+      const response = await request();
+      assert.equal(response.status, 504);
+      assert.deepEqual(await response.json(), { error: 'provider_timeout' });
+      assert.equal(state.aborted, true);
+      assert.deepEqual(state.providers, ['openai']);
+      assertExactRelease(state);
+      assert.equal(state.timers.size, 0);
+      assert.equal(state.clearedTimers.length, 1);
+      assert.equal(state.updates.length, 0);
+    });
+  }
 }
+
+for (const [errorCode, status, options] of [
+  ['provider_timeout', 504, { providerTimeout: true }],
+  ['provider_error', 502, { providerThrow: true }],
+]) test(`analyze: request_failed timing preserves ${errorCode} without private details`, async () => {
+  const { state, request } = await loadEndpoint('analyze-notes', options);
+  const response = await request();
+  assert.equal(response.status, status);
+  assert.deepEqual(await response.json(), { error: errorCode });
+  assertExactRelease(state);
+  const markers = state.logs.filter(args => typeof args[0] === 'string' && args[0].startsWith('{'))
+    .map(args => JSON.parse(args[0])).filter(entry => entry.marker === 'analyze-notes-timing' && entry.stage === 'request_failed');
+  assert.equal(markers.length, 1);
+  assert.equal(markers[0].errorCode, errorCode);
+  assert.equal(markers[0].status, 'error');
+  assert.ok(Number.isFinite(markers[0].elapsedMs));
+  assert.equal(typeof markers[0].requestId, 'string');
+  assert.deepEqual(Object.keys(markers[0]).sort(), ['elapsedMs', 'errorCode', 'marker', 'requestId', 'stage', 'status']);
+  assert.equal(state.providers.length, 1);
+});
 
 for (const [label, status, error, expectedType, expectedCode] of [
   ['rate limit', 429, { type: 'rate_limit_error', code: 'rate_limit_exceeded' }, 'rate_limit_error', 'rate_limit_exceeded'],
@@ -254,9 +308,7 @@ for (const [label, status, error, expectedType, expectedCode] of [
   });
   const response = await request();
   assert.equal(response.status, 502);
-  assert.deepEqual(await response.json(), { error: error === undefined
-    ? 'AI processing error: invalid response format'
-    : error ? 'OpenAI API error: ai_analysis_failed' : `OpenAI HTTP error ${status}` });
+  assert.deepEqual(await response.json(), { error: 'provider_error' });
   assertExactRelease(state);
   const diagnostics = state.logs.filter(args => args[0] === '[analyze-notes] OpenAI provider error');
   assert.deepEqual(diagnostics, [['[analyze-notes] OpenAI provider error', {
@@ -374,20 +426,59 @@ test('SQL contract: ownership before lock, COUNT and single reservation INSERT',
   assert.match(sqlCode, /created_at >= \(timezone\('utc', now\(\)\)::date\)::timestamp AT TIME ZONE 'UTC'/);
 });
 
-// Execute the actual UI action in isolation, including generic error handling.
-async function quizErrorAction(status, body) {
-  const quiz = await source('src/pages/app/QuizPage.tsx');
-  const action = quiz.slice(quiz.indexOf('  const handleRegenerate = async'), quiz.indexOf('  const currentQuestion ='))
+// Execute the actual UI actions; fake timers exercise deadlines without wall-clock waits.
+async function loadRegenerationAction(page, options = {}) {
+  const sourceText = await source('src/pages/app/' + page + '.tsx');
+  const action = sourceText.slice(sourceText.indexOf('  const handleRegenerate = async'), sourceText.indexOf('  const currentQuestion =') >= 0
+    ? sourceText.indexOf('  const currentQuestion =') : sourceText.indexOf('  const currentCard ='))
     .replaceAll('import.meta.env.VITE_SUPABASE_URL', "'https://example.invalid'")
     .replaceAll('import.meta.env.VITE_SUPABASE_ANON_KEY', "'test-anon'");
   const js = ts.transpileModule(action, { compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.None } }).outputText;
-  const alerts = [], messages = [], busy = [];
-  const actionFn = new Function('routeId', 'supabase', 'confirm', 't', 'fetch', 'alert', 'setIsRegenerating', 'setRegenerationMessage', 'console', `${js}\nreturn handleRegenerate;`)(
-    sessionId, { auth: { async getSession() { return { data: { session: { access_token: 'test' } } }; } } },
-    () => true, key => key, async () => new Response(JSON.stringify(body), { status }),
-    message => alerts.push(message), value => busy.push(value), value => messages.push(value), { error() {} },
-  );
-  await actionFn(); return { alerts, messages, busy };
+  const state = { alerts: [], messages: [], busy: [], fetches: 0, timers: new Map(), aborted: false, guard: { current: false } };
+  let timerId = 0;
+  let finishFetch;
+  const waitForAbort = signal => new Promise((resolve, reject) => {
+    signal.addEventListener('abort', () => { state.aborted = true; reject(new DOMException('PRIVATE_TIMEOUT', 'AbortError')); }, { once: true });
+    queueMicrotask(() => {
+      const timer = [...state.timers.values()].find(timer => timer.delay === 90000);
+      assert.ok(timer, 'Frontend deadline must cover fetch and body');
+      timer.callback();
+    });
+  });
+  const noop = () => {};
+  const env = {
+    routeId: sessionId, regenerationInFlight: state.guard,
+    supabase: { auth: { async getSession() { return { data: { session: { access_token: 'test' } } }; } } },
+    confirm: () => true, t: key => key,
+    fetch: async (url, init) => {
+      state.fetches++;
+      assert.ok(init.signal instanceof AbortSignal);
+      if (options.networkFailure) throw new TypeError('PRIVATE_NETWORK_DETAILS');
+      if (options.fetchTimeout) return waitForAbort(init.signal);
+      if (options.bodyTimeout) return { ok: true, status: 200, text: () => waitForAbort(init.signal) };
+      if (options.bodyNetworkFailure) return { ok: true, status: 200, async text() { throw new TypeError('PRIVATE_BODY_NETWORK_DETAILS'); } };
+      const response = new Response(JSON.stringify(options.body ?? { data: [] }), { status: options.status ?? 200 });
+      if (options.pending) return new Promise(resolve => { finishFetch = () => resolve(response); });
+      return response;
+    },
+    alert: message => state.alerts.push(message),
+    setIsRegenerating: value => state.busy.push(value),
+    setRegenerationMessage: value => state.messages.push(value),
+    console: { error: noop }, effectivePlan: 'premium', hasUsedFreeRegen: false,
+    quizQuestionCount: 12, maxFlashcardsPerLesson: 20,
+    setQuestions: noop, setAttemptId: noop, setOrderMaps: noop, setCurrentIndex: noop,
+    setAnswers: noop, setIsFinished: noop, setShowFeedback: noop, setFlashcards: noop,
+    setKnownCards: noop, setFlashcardProgress: noop, setIsFlipped: noop, setHasUsedFreeRegen: noop,
+    localStorage: { removeItem: noop }, sessionStorage: { setItem: noop }, crypto,
+    setTimeout: (callback, delay) => { const id = ++timerId; state.timers.set(id, { callback, delay }); return id; },
+    clearTimeout: id => state.timers.delete(id),
+  };
+  const run = new Function(...Object.keys(env), js + '\nreturn handleRegenerate;')(...Object.values(env));
+  return { state, run, finish: () => finishFetch() };
+}
+async function quizErrorAction(status, body) {
+  const { state, run } = await loadRegenerationAction('QuizPage', { status, body });
+  await run(); return state;
 }
 test('QuizPage: exact 403 quota shows readable message without raw JSON', async () => {
   const result = await quizErrorAction(403, { error: 'usage_limit_reached', message: 'Osiągnięto limit quizu.' });
@@ -398,8 +489,170 @@ for (const [status, body] of [
   [401, { error: 'usage_limit_reached', message: 'must not be quota' }],
   [403, { error: 'account_access_denied', message: 'must not be quota' }],
   [500, { error: 'server_error' }], [503, { error: 'usage_guard_unavailable' }],
-]) test(`QuizPage: ${status}/${body.error} remains generic`, async () => {
+]) test('QuizPage: ' + status + '/' + body.error + ' remains a safe non-quota error', async () => {
   const result = await quizErrorAction(status, body);
-  assert.ok(result.alerts[0].startsWith(`quiz.notifications.error: HTTP ${status}:`));
+  assert.deepEqual(result.alerts, [status === 503
+    ? 'Usługa jest chwilowo niedostępna. Spróbuj ponownie za chwilę.'
+    : 'Nie udało się wygenerować materiału. Spróbuj ponownie za chwilę.']);
   assert.deepEqual(result.busy, [true, false]);
 });
+for (const page of ['QuizPage', 'FlashcardsPage']) {
+  for (const [label, options, message] of [
+    ['network', { networkFailure: true }, 'Nie udało się połączyć z usługą. Sprawdź połączenie i spróbuj ponownie.'],
+    ['body network', { bodyNetworkFailure: true }, 'Nie udało się połączyć z usługą. Sprawdź połączenie i spróbuj ponownie.'],
+    ['fetch timeout', { fetchTimeout: true }, 'Generowanie trwało zbyt długo. Spróbuj ponownie za chwilę.'],
+    ['body timeout', { bodyTimeout: true }, 'Generowanie trwało zbyt długo. Spróbuj ponownie za chwilę.'],
+    ['backend timeout', { status: 504, body: { error: 'provider_timeout', message: 'PRIVATE_PROVIDER_MESSAGE' } }, 'Generowanie trwało zbyt długo. Spróbuj ponownie za chwilę.'],
+    ['backend provider failure', { status: 502, body: { error: 'provider_error', message: 'PRIVATE_PROVIDER_MESSAGE' } }, 'Nie udało się wygenerować materiału. Spróbuj ponownie za chwilę.'],
+    ['guard unavailable', { status: 503, body: { error: 'usage_guard_unavailable' } }, 'Usługa jest chwilowo niedostępna. Spróbuj ponownie za chwilę.'],
+    ['quota', { status: 403, body: { error: 'usage_limit_reached', message: 'Osiągnięto limit.' } }, 'Osiągnięto limit.'],
+  ]) test(page + ': ' + label + ' has safe UX and releases local guard', async () => {
+    const { state, run } = await loadRegenerationAction(page, options);
+    await run();
+    assert.deepEqual(state.alerts, [message]);
+    assert.deepEqual(state.busy, [true, false]);
+    assert.equal(state.messages.at(-1), null);
+    assert.equal(state.guard.current, false);
+    assert.equal(state.fetches, 1);
+    assert.equal(state.timers.size, 0);
+    if (options.fetchTimeout || options.bodyTimeout) assert.equal(state.aborted, true);
+    await run();
+    assert.equal(state.fetches, 2, 'A subsequent explicit invocation works after failure');
+  });
+  test(page + ': two immediate invocations share one local in-flight operation; success clears it', async () => {
+    const { state, run, finish } = await loadRegenerationAction(page, { pending: true });
+    const first = run(); const duplicate = run();
+    await Promise.resolve();
+    assert.equal(state.fetches, 1);
+    assert.deepEqual(state.busy, [true]);
+    finish(); await Promise.all([first, duplicate]);
+    assert.deepEqual(state.alerts, []);
+    assert.deepEqual(state.busy, [true, false]);
+    assert.equal(state.messages.at(-1), null);
+    assert.equal(state.guard.current, false);
+    assert.equal(state.timers.size, 0);
+    const next = run(); await Promise.resolve(); finish(); await next;
+    assert.equal(state.fetches, 2, 'Guard resets after success');
+  });
+}
+
+for (const [label, options, expected] of [
+  ['network', { network: true }, 'Nie udało się połączyć z usługą. Sprawdź połączenie i spróbuj ponownie.'],
+  ['fetch deadline', { fetchTimeout: true }, 'Generowanie trwało zbyt długo. Spróbuj ponownie za chwilę.'],
+  ['body deadline', { bodyTimeout: true }, 'Generowanie trwało zbyt długo. Spróbuj ponownie za chwilę.'],
+  ['provider timeout', { status: 504, error: 'provider_timeout' }, 'Generowanie trwało zbyt długo. Spróbuj ponownie za chwilę.'],
+  ['guard unavailable', { status: 503, error: 'usage_guard_unavailable' }, 'Usługa jest chwilowo niedostępna. Spróbuj ponownie za chwilę.'],
+  ['provider failure', { status: 502, error: 'provider_error' }, 'Nie udało się wygenerować materiału. Spróbuj ponownie za chwilę.'],
+  ['quota', { status: 403, error: 'usage_limit_reached', message: 'Osiągnięto limit.' }, 'usage_limit:Osiągnięto limit.'],
+]) test('AnalysisPage: ' + label + ' has safe UX; 90s timer covers body', async () => {
+  const text = (await source('src/pages/app/AnalysisPage.tsx')).replaceAll('\r\n', '\n');
+  const start = text.indexOf('  useEffect(() => {\n    const sessionId');
+  const end = text.indexOf('  }, [navigate]);', start);
+  assert.ok(start >= 0 && end > start);
+  const action = ('const effect = () => {' + text.slice(start + '  useEffect(() => {'.length, end) + '};')
+    .replaceAll('import.meta.env.VITE_SUPABASE_URL', "'https://example.invalid'")
+    .replaceAll('import.meta.env.VITE_SUPABASE_ANON_KEY', "'test-anon'");
+  const js = ts.transpileModule(action, { compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.None } }).outputText;
+  let complete;
+  const done = new Promise(resolve => { complete = resolve; });
+  const state = { message: null, timers: new Map(), fetches: 0, aborted: false };
+  const waitForAbort = signal => new Promise((resolve, reject) => {
+    signal.addEventListener('abort', () => { state.aborted = true; reject(new DOMException('PRIVATE_ABORT', 'AbortError')); }, { once: true });
+    queueMicrotask(() => {
+      const timer = [...state.timers.values()].find(timer => timer.delay === 90000);
+      assert.ok(timer); timer.callback();
+    });
+  });
+  const env = {
+    currentSessionId: sessionId, navigate() {}, t: key => key, console: { log() {}, warn() {}, error() {} },
+    supabase: { auth: { async getSession() { return { data: { session: { access_token: 'test' } } }; } },
+      from(table) { return { select() { return { eq() { return {
+        async single() { return { data: { subject: null, image_url: null } }; },
+        async order() { assert.equal(table, 'session_images'); return { data: [] }; },
+      }; } }; } }; },
+    },
+    fetch: async (url, init) => {
+      state.fetches++;
+      if (options.network) throw new TypeError('PRIVATE_NETWORK_DETAILS');
+      if (options.fetchTimeout) return waitForAbort(init.signal);
+      if (options.bodyTimeout) return { ok: true, status: 200, text: () => waitForAbort(init.signal) };
+      return new Response(JSON.stringify({ error: options.error, message: options.message ?? 'PRIVATE_PROVIDER_MESSAGE' }), { status: options.status });
+    },
+    setAnalysisError: message => { state.message = message; }, setIsLoading: value => { if (!value) complete(); },
+    setTimeout: (callback, delay) => { state.timers.set(1, { callback, delay }); return 1; },
+    clearTimeout: id => state.timers.delete(id),
+  };
+  new Function(...Object.keys(env), js + '\nreturn effect;')(...Object.values(env))();
+  await done;
+  assert.equal(state.message, expected);
+  assert.equal(state.fetches, 1);
+  assert.equal(state.timers.size, 0);
+  if (options.fetchTimeout || options.bodyTimeout) assert.equal(state.aborted, true);
+});
+
+for (const status of [401, 429, 502]) {
+  test(`regenerate: provider ${status} never exposes raw provider data`, async () => {
+    const privateValues = ['PRIVATE_PROVIDER_MESSAGE', 'PRIVATE_PROMPT', 'PRIVATE_OCR', 'Authorization', 'Bearer test-config'];
+    const { state, request } = await loadEndpoint('regenerate-module', {
+      providerStatus: status, rawOpenAi: JSON.stringify({ error: {
+        type: 'provider_failure', code: 'test_code', message: privateValues.join(' '),
+      }, prompt: 'PRIVATE_PROMPT', ocr: 'PRIVATE_OCR' }),
+    });
+    const response = await request();
+    assert.equal(response.status, 502);
+    assert.deepEqual(await response.json(), { error: 'provider_error' });
+    assertExactRelease(state);
+    const diagnostics = state.logs.filter(args => args[0] === '[regenerate-module] OpenAI provider error');
+    assert.equal(diagnostics.length, 1);
+    assert.deepEqual(Object.keys(diagnostics[0][1]).sort(), ['code', 'requestId', 'status', 'type']);
+    assert.equal(diagnostics[0][1].status, status);
+    for (const value of privateValues) assert.ok(!JSON.stringify(state.logs).includes(value));
+  });
+}
+test('regenerate: timing markers split provider/save/total and close failed requests', async () => {
+  for (const failure of [false, true]) {
+    const { state, request } = await loadEndpoint('regenerate-module', { providerTimeout: failure });
+    await request();
+    const markers = state.logs.filter(args => typeof args[0] === 'string' && args[0].startsWith('{'))
+      .map(args => JSON.parse(args[0])).filter(entry => entry.marker === 'regenerate-module-timing');
+    assert.deepEqual(markers.map(entry => entry.stage), failure
+      ? ['request_start', 'provider_start', 'provider_done', 'request_done']
+      : ['request_start', 'provider_start', 'provider_done', 'db_save_start', 'db_save_done', 'request_done']);
+    assert.equal(new Set(markers.map(entry => entry.requestId)).size, 1);
+    for (const marker of markers) {
+      assert.equal(typeof marker.requestId, 'string');
+      assert.ok(Number.isFinite(marker.elapsedMs));
+      if (['provider_done', 'db_save_done'].includes(marker.stage)) assert.ok(Number.isFinite(marker.durationMs));
+    }
+    assert.equal(markers.at(-1).status, failure ? 'error' : 'success');
+  }
+});
+
+for (const page of ['QuizPage', 'FlashcardsPage']) {
+  test(page + ': actual completion state renders loader and no competing CTA', async () => {
+    const code = (await source('src/pages/app/' + page + '.tsx')).replace(/^import .*;\r?\n/gm, '')
+      .replace('export default function', 'function')
+      .replaceAll('import.meta.env.VITE_SUPABASE_URL', "'https://example.invalid'")
+      .replaceAll('import.meta.env.VITE_SUPABASE_ANON_KEY', "'test-anon'");
+    const quiz = page === 'QuizPage';
+    const states = quiz
+      ? [[{ id: 'q' }], 0, [], null, false, true, 0, false, true, 'Generuję nowy quiz...', null, {}]
+      : [[{ id: 'f' }], 1, false, new Set(), [], false, false, {}, false, true, 'Generuję nowe fiszki...'];
+    let stateIndex = 0;
+    const noop = () => {};
+    const env = { React: { createElement }, useState: () => [states[stateIndex++], noop],
+      useRef: value => ({ current: value }), useEffect: noop, useMemo: callback => callback(),
+      useNavigate: () => noop, useParams: () => ({ id: sessionId }),
+      useAuth: () => ({ user: {}, isDemoMode: false }), useTranslation: () => ({ t: key => key }),
+      getEffectivePlan: () => 'premium', getFeatureAccess: () => ({ quizQuestionCount: 12, maxFlashcardsPerLesson: 20 }),
+    };
+    const js = ts.transpileModule(code, { compilerOptions: { target: ts.ScriptTarget.ES2022,
+      module: ts.ModuleKind.None, jsx: ts.JsxEmit.React } }).outputText;
+    const component = new Function(...Object.keys(env), js + '\nreturn ' + page + ';')(...Object.values(env));
+    const html = renderToStaticMarkup(component());
+    assert.ok(html.includes('role="status"'));
+    assert.ok(html.includes('animate-spin'));
+    assert.ok(html.includes(quiz ? 'Generuję nowy quiz...' : 'Generuję nowe fiszki...'));
+    assert.ok(!html.includes('<button') && !html.includes('<a '), 'Completion CTAs must not remain active');
+  });
+}

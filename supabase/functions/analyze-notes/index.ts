@@ -447,7 +447,13 @@ serve(async (req) => {
     });
 
     const openAiStart = performance.now();
-    const openAiResponse = await fetch("https://api.openai.com/v1/chat/completions", {
+    const providerController = new AbortController();
+    const providerTimeout = setTimeout(() => providerController.abort(), 60000);
+    let openAiResponse: Response;
+    let rawAiText: string;
+    try {
+    openAiResponse = await fetch("https://api.openai.com/v1/chat/completions", {
+      signal: providerController.signal,
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -524,7 +530,12 @@ ZASADY QUIZU — KRYTYCZNE, MUSZĄ BYĆ BEZWZGLĘDNIE PRZESTRZEGANE:
       })
     });
 
-    const rawAiText = await openAiResponse.text();
+    rawAiText = await openAiResponse.text();
+    } catch {
+      throw new Error(providerController.signal.aborted ? 'provider_timeout' : 'provider_error');
+    } finally {
+      clearTimeout(providerTimeout);
+    }
     const openAiDuration = Math.round(performance.now() - openAiStart);
     let aiData: any = {};
     try {
@@ -538,7 +549,7 @@ ZASADY QUIZU — KRYTYCZNE, MUSZĄ BYĆ BEZWZGLĘDNIE PRZESTRZEGANE:
       markTiming('response_ready', { status: 'error', errorCode: 'ai_analysis_failed' });
       markTiming('request_done', { status: 'error' });
       await cleanupReservation();
-      return new Response(JSON.stringify({ error: "AI processing error: invalid response format" }), {
+      return new Response(JSON.stringify({ error: 'provider_error' }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 502
       });
@@ -560,7 +571,7 @@ ZASADY QUIZU — KRYTYCZNE, MUSZĄ BYĆ BEZWZGLĘDNIE PRZESTRZEGANE:
       markTiming('response_ready', { status: 'error', errorCode: 'ai_analysis_failed' });
       markTiming('request_done', { status: 'error' });
       await cleanupReservation();
-      return new Response(JSON.stringify({ error: "OpenAI API error: ai_analysis_failed" }), {
+      return new Response(JSON.stringify({ error: 'provider_error' }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 502
       });
@@ -574,7 +585,7 @@ ZASADY QUIZU — KRYTYCZNE, MUSZĄ BYĆ BEZWZGLĘDNIE PRZESTRZEGANE:
       markTiming('response_ready', { status: 'error', errorCode: 'ai_analysis_failed' });
       markTiming('request_done', { status: 'error' });
       await cleanupReservation();
-      return new Response(JSON.stringify({ error: `OpenAI HTTP error ${openAiResponse.status}` }), {
+      return new Response(JSON.stringify({ error: 'provider_error' }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 502
       });
@@ -595,7 +606,7 @@ ZASADY QUIZU — KRYTYCZNE, MUSZĄ BYĆ BEZWZGLĘDNIE PRZESTRZEGANE:
          markTiming('response_ready', { status: 'error', errorCode: 'ai_analysis_failed' });
          markTiming('request_done', { status: 'error' });
           await cleanupReservation();
-          return new Response(JSON.stringify({ error: "AI processing error: unexpected response shape" }), {
+          return new Response(JSON.stringify({ error: 'provider_error' }), {
            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
            status: 502
          });
@@ -609,7 +620,7 @@ ZASADY QUIZU — KRYTYCZNE, MUSZĄ BYĆ BEZWZGLĘDNIE PRZESTRZEGANE:
        markTiming('response_ready', { status: 'error', errorCode: 'ai_analysis_failed' });
        markTiming('request_done', { status: 'error' });
        await cleanupReservation();
-       return new Response(JSON.stringify({ error: `AI processing error: JSON parse failed` }), {
+       return new Response(JSON.stringify({ error: 'provider_error' }), {
          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
          status: 502
        });
@@ -737,7 +748,9 @@ ZASADY QUIZU — KRYTYCZNE, MUSZĄ BYĆ BEZWZGLĘDNIE PRZESTRZEGANE:
     }
     let safeErrorCode = 'unknown_error';
     const errMsg = (error?.message || '').toLowerCase();
-    if (errMsg.includes('auth')) {
+    if (errMsg === 'provider_timeout' || errMsg === 'provider_error') {
+      safeErrorCode = errMsg;
+    } else if (errMsg.includes('auth')) {
       safeErrorCode = 'auth_failed';
     } else if (errMsg.includes('missing session')) {
       safeErrorCode = 'missing_session_id';
@@ -764,9 +777,11 @@ ZASADY QUIZU — KRYTYCZNE, MUSZĄ BYĆ BEZWZGLĘDNIE PRZESTRZEGANE:
       }));
     }
 
-    return new Response(JSON.stringify({ error: error?.message || "Unknown server error" }), {
+    const providerTimeout = error?.message === 'provider_timeout';
+    const providerError = error?.message === 'provider_error';
+    return new Response(JSON.stringify({ error: providerTimeout ? 'provider_timeout' : providerError ? 'provider_error' : 'server_error' }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      status: 500,
+      status: providerTimeout ? 504 : providerError ? 502 : 500,
     });
   }
 });

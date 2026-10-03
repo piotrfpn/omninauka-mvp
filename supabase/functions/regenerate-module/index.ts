@@ -21,6 +21,14 @@ serve(async (req) => {
 
   let reservationId: string | null = null;
   let cleanupReservation: (() => Promise<void>) | null = null;
+  const requestId = crypto.randomUUID();
+  const requestStartedAt = performance.now();
+  let requestStatus = 'error';
+  const markTiming = (stage: string, extra: Record<string, unknown> = {}) => {
+    console.info(JSON.stringify({ marker: 'regenerate-module-timing', requestId, stage,
+      elapsedMs: Math.round(performance.now() - requestStartedAt), ...extra }));
+  };
+  markTiming('request_start');
 
   try {
     console.log("--- REGENERATE-MODULE INVOCATION START ---");
@@ -47,7 +55,7 @@ serve(async (req) => {
     const { data: { user }, error: authError } = await supabaseClient.auth.getUser();
 
     if (authError || !user) {
-      console.error("[regenerate-module] 401: getUser() failed ->", authError?.message);
+      console.error("[regenerate-module] 401: getUser() failed");
       return new Response(JSON.stringify({ error: `Unauthorized: ${authError?.message || 'invalid token'}` }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 401,
@@ -55,7 +63,6 @@ serve(async (req) => {
     }
 
     const userId = user.id;
-    console.log(`[regenerate-module] Auth OK, userId: ${userId}`);
 
     // Step 3: Parse request body
     const body = await req.json();
@@ -96,13 +103,13 @@ serve(async (req) => {
         .rpc('get_my_effective_plan');
 
       if (planError) {
-        console.warn('[regenerate-module] get_my_effective_plan failed, falling back to free plan', planError);
+        console.warn('[regenerate-module] get_my_effective_plan failed, falling back to free plan');
       } else if (effectiveData?.effective_plan) {
         effectivePlan = effectiveData.effective_plan === 'premium' || effectiveData.effective_plan === 'family'
           ? effectiveData.effective_plan : 'free';
       }
-    } catch (err) {
-      console.warn('[regenerate-module] get_my_effective_plan threw, falling back to free plan', err);
+    } catch {
+      console.warn('[regenerate-module] get_my_effective_plan threw, falling back to free plan');
     }
 
     const { data: sessionData, error: dbError } = await adminClient
@@ -112,7 +119,7 @@ serve(async (req) => {
       .single();
 
     if (dbError || !sessionData) {
-      console.error(`[regenerate-module] Session not found: ${sessionId}`, dbError?.message);
+      console.error('[regenerate-module] Session not found');
       return new Response(JSON.stringify({ error: 'Session not found' }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 404,
@@ -121,7 +128,7 @@ serve(async (req) => {
 
     // Ownership check
     if (sessionData.user_id !== userId) {
-      console.error(`[regenerate-module] 403: owner mismatch. session.user_id=${sessionData.user_id}, caller=${userId}`);
+      console.error('[regenerate-module] 403: owner mismatch');
       return new Response(JSON.stringify({ error: 'Forbidden' }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 403,
@@ -193,7 +200,6 @@ serve(async (req) => {
     };
     // --------------------------
 
-    console.log(`[regenerate-module] Regenerating module="${module}" for session=${sessionId}`);
 
     // Step 5: Build module-specific prompt
     let schema = '';
@@ -211,7 +217,14 @@ serve(async (req) => {
     const OPENAI_KEY = Deno.env.get('OPENAI_API_KEY');
     if (!OPENAI_KEY) throw new Error("OpenAI API Key missing");
 
+    const providerController = new AbortController();
+    const providerTimeout = setTimeout(() => providerController.abort(), 60000);
+    const providerStartedAt = performance.now();
+    markTiming('provider_start');
+    let generation;
+    try {
     const openAiResponse = await fetch("https://api.openai.com/v1/chat/completions", {
+      signal: providerController.signal,
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -235,13 +248,35 @@ serve(async (req) => {
       }),
     });
 
-    if (!openAiResponse.ok) {
-      const errText = await openAiResponse.text();
-      throw new Error(`OpenAI error ${openAiResponse.status}: ${errText}`);
+    const rawProviderText = await openAiResponse.text();
+    let aiPayload: {
+      error?: { type?: unknown; code?: unknown };
+      choices?: { message?: { content?: string } }[];
+    };
+    try {
+      aiPayload = JSON.parse(rawProviderText);
+    } catch {
+      console.error('[regenerate-module] OpenAI provider error', {
+        status: openAiResponse.status, type: null, code: null, requestId,
+      });
+      throw new Error('provider_error');
     }
-
-    const aiPayload = await openAiResponse.json();
-    const generation = JSON.parse(aiPayload.choices[0].message.content);
+    if (!openAiResponse.ok || aiPayload?.error) {
+      console.error('[regenerate-module] OpenAI provider error', {
+        status: openAiResponse.status,
+        type: typeof aiPayload?.error?.type === 'string' ? aiPayload.error.type : null,
+        code: typeof aiPayload?.error?.code === 'string' ? aiPayload.error.code : null,
+        requestId,
+      });
+      throw new Error('provider_error');
+    }
+    generation = JSON.parse(aiPayload.choices?.[0]?.message?.content ?? '');
+    } catch {
+      throw new Error(providerController.signal.aborted ? 'provider_timeout' : 'provider_error');
+    } finally {
+      clearTimeout(providerTimeout);
+      markTiming('provider_done', { durationMs: Math.round(performance.now() - providerStartedAt) });
+    }
 
     // Deduplication helpers
     const normalise = (s: string) =>
@@ -284,15 +319,19 @@ serve(async (req) => {
     console.log(`[regenerate-module] Generated ${finalData.length} items for module=${module}`);
 
     // Step 6: Write ONLY the targeted column — no other fields touched
+    markTiming('db_save_start');
+    const dbSaveStartedAt = performance.now();
     const { error: updateError } = await adminClient
       .from('study_sessions')
       .update(finalUpdate)
       .eq('id', sessionId);
 
     if (updateError) throw new Error(`DB update failed: ${updateError.message}`);
+    markTiming('db_save_done', { durationMs: Math.round(performance.now() - dbSaveStartedAt) });
 
     // Successful regeneration consumes the reservation created by the RPC.
     reservationId = null;
+    requestStatus = 'success';
 
     return new Response(JSON.stringify({ success: true, module, data: finalData }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -303,10 +342,15 @@ serve(async (req) => {
     if (cleanupReservation) {
       await cleanupReservation();
     }
-    console.error('[regenerate-module] Fatal error:', error?.message ?? error);
-    return new Response(JSON.stringify({ error: error?.message || 'Server error' }), {
+    const providerTimeout = error?.message === 'provider_timeout';
+    const providerError = error?.message === 'provider_error';
+    const errorCode = providerTimeout ? 'provider_timeout' : providerError ? 'provider_error' : 'server_error';
+    console.error('[regenerate-module] Request failed', { requestId, error: errorCode });
+    return new Response(JSON.stringify({ error: errorCode }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      status: 500,
+      status: providerTimeout ? 504 : providerError ? 502 : 500,
     });
+  } finally {
+    markTiming('request_done', { status: requestStatus });
   }
 });

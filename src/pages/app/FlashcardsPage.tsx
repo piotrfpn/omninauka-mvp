@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import type { FlashcardData } from '../../types';
 import { RotateCw, ChevronLeft, ChevronRight, BookOpen } from 'lucide-react';
@@ -32,6 +32,7 @@ export default function FlashcardsPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isRegenerating, setIsRegenerating] = useState(false);
   const [regenerationMessage, setRegenerationMessage] = useState<string | null>(null);
+  const regenerationInFlight = useRef(false);
 
   const { user } = useAuth();
   const effectivePlan = getEffectivePlan(user);
@@ -142,6 +143,7 @@ export default function FlashcardsPage() {
   }, [currentIndex, knownCards, routeId, flashcards.length]);
 
   const handleRegenerate = async () => {
+    if (regenerationInFlight.current) return;
     const sessionId = routeId || sessionStorage.getItem('currentSessionId');
     if (!sessionId) return;
 
@@ -153,13 +155,19 @@ export default function FlashcardsPage() {
       return;
     }
 
+    regenerationInFlight.current = true;
     setIsRegenerating(true);
-    setRegenerationMessage(t('flashcards.notifications.regenerating'));
+    setRegenerationMessage('Generuję nowe fiszki...');
+    const controller = new AbortController();
+    let timeoutId: ReturnType<typeof setTimeout> | undefined;
+    let responseReceived = false;
 
     try {
       const { data: { session: authSession } } = await supabase.auth.getSession();
       const functionUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/regenerate-module`;
+      timeoutId = setTimeout(() => controller.abort(), 90000);
       const response = await fetch(functionUrl, {
+        signal: controller.signal,
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -168,15 +176,19 @@ export default function FlashcardsPage() {
         },
         body: JSON.stringify({ sessionId, module: 'flashcards' })
       });
+      const responseText = await response.text();
+      responseReceived = true;
 
       if (!response.ok) {
-        const errText = await response.text();
         let isUsageLimit = false;
+        let errorCode: unknown;
         try {
-          const errObj = JSON.parse(errText);
-          if (errObj.error === 'usage_limit_reached') {
+          const errObj = JSON.parse(responseText);
+          errorCode = errObj?.error;
+          if (response.status === 403 && errorCode === 'usage_limit_reached') {
             isUsageLimit = true;
-            alert(errObj.message);
+            alert(typeof errObj.message === 'string' && errObj.message.trim()
+              ? errObj.message : t('flashcards.notifications.error'));
             // If it was a free plan, mark as used to show the upsell UI immediately
             if (effectivePlan === 'free') {
               const regenKey = `omninauka_free_flashcard_regen_used_${sessionId}`;
@@ -184,19 +196,22 @@ export default function FlashcardsPage() {
               setHasUsedFreeRegen(true);
             }
           }
-        } catch (e) {
+        } catch {
           // Not JSON
         }
         
         if (isUsageLimit) {
-          setIsRegenerating(false);
-          setRegenerationMessage(null);
           return;
         }
-        throw new Error(`HTTP ${response.status}: ${errText}`);
+        alert(errorCode === 'usage_guard_unavailable'
+          ? 'Usługa jest chwilowo niedostępna. Spróbuj ponownie za chwilę.'
+          : errorCode === 'provider_timeout'
+            ? 'Generowanie trwało zbyt długo. Spróbuj ponownie za chwilę.'
+            : 'Nie udało się wygenerować materiału. Spróbuj ponownie za chwilę.');
+        return;
       }
 
-      const result = await response.json();
+      const result = JSON.parse(responseText);
 
       // 1. Update state with new data, ensuring deterministic IDs
       const mappedCards = (result.data || []).map((fc: any, i: number) => ({
@@ -223,13 +238,17 @@ export default function FlashcardsPage() {
         setHasUsedFreeRegen(true);
       }
 
-      setRegenerationMessage(t('flashcards.notifications.success'));
-      setTimeout(() => setRegenerationMessage(null), 3000);
-    } catch (err: any) {
-      console.error("Regeneration failed:", err);
-      alert(t('flashcards.notifications.error') + ": " + err.message);
+    } catch {
+      alert(controller.signal.aborted
+        ? 'Generowanie trwało zbyt długo. Spróbuj ponownie za chwilę.'
+        : !responseReceived
+          ? 'Nie udało się połączyć z usługą. Sprawdź połączenie i spróbuj ponownie.'
+          : 'Nie udało się wygenerować materiału. Spróbuj ponownie za chwilę.');
     } finally {
+      if (timeoutId !== undefined) clearTimeout(timeoutId);
+      regenerationInFlight.current = false;
       setIsRegenerating(false);
+      setRegenerationMessage(null);
     }
   };
 
@@ -341,6 +360,15 @@ export default function FlashcardsPage() {
       handleNext();
     }
   };
+
+  if (isRegenerating) {
+    return (
+      <div role="status" aria-live="polite" className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
+        <div className="w-12 h-12 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin" />
+        <p className="text-lg font-bold text-[var(--omni-text)]">{regenerationMessage}</p>
+      </div>
+    );
+  }
 
   if (isLoading) {
     return (
@@ -527,23 +555,6 @@ export default function FlashcardsPage() {
 
   return (
     <div className="relative space-y-6">
-      {/* Regeneration Overlay */}
-      {isRegenerating && (
-        <div className="absolute inset-0 z-50 bg-white/80 backdrop-blur-sm flex flex-col items-center justify-center rounded-3xl transition-opacity animate-in fade-in duration-300">
-          <div className="w-12 h-12 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin mb-4" />
-          <p className="text-lg font-bold text-[var(--omni-text)] animate-pulse">
-            {regenerationMessage}
-          </p>
-        </div>
-      )}
-
-      {/* Success Notification */}
-      {regenerationMessage && !isRegenerating && (
-        <div className="fixed top-24 left-1/2 -translate-x-1/2 z-[60] bg-green-500 text-white px-6 py-3 rounded-full shadow-lg font-bold animate-in slide-in-from-top duration-300">
-          {regenerationMessage}
-        </div>
-      )}
-
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>

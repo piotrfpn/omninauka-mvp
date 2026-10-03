@@ -29,6 +29,7 @@ export default function QuizPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isRegenerating, setIsRegenerating] = useState(false);
   const [regenerationMessage, setRegenerationMessage] = useState<string | null>(null);
+  const regenerationInFlight = useRef(false);
 
   // Stores the fully-resolved last answer object so handleNext can read it synchronously
   // (React state updates are async, so answers[] in handleNext won't have the last item yet)
@@ -146,6 +147,7 @@ export default function QuizPage() {
   }, [currentIndex, answers, isFinished, routeId, questions.length, attemptId, orderMaps]);
 
   const handleRegenerate = async () => {
+    if (regenerationInFlight.current) return;
     const sessionId = routeId || sessionStorage.getItem('currentSessionId');
     if (!sessionId) return;
 
@@ -153,13 +155,19 @@ export default function QuizPage() {
       return;
     }
 
+    regenerationInFlight.current = true;
     setIsRegenerating(true);
-    setRegenerationMessage(t('quiz.notifications.regenerating'));
+    setRegenerationMessage('Generuję nowy quiz...');
+    const controller = new AbortController();
+    let timeoutId: ReturnType<typeof setTimeout> | undefined;
+    let responseReceived = false;
 
     try {
       const { data: { session: authSession } } = await supabase.auth.getSession();
       const functionUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/regenerate-module`;
+      timeoutId = setTimeout(() => controller.abort(), 90000);
       const response = await fetch(functionUrl, {
+        signal: controller.signal,
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -168,24 +176,30 @@ export default function QuizPage() {
         },
         body: JSON.stringify({ sessionId, module: 'quiz' })
       });
+      const responseText = await response.text();
+      responseReceived = true;
 
       if (!response.ok) {
-        if (response.status === 403) {
-          const quotaBody = await response.clone().json().catch(() => null) as {
+        let quotaBody: {
             error?: unknown; message?: unknown;
-          } | null;
+          } | null = null;
+        try { quotaBody = JSON.parse(responseText); } catch { /* Non-JSON errors use a safe message. */ }
+        if (response.status === 403) {
           if (quotaBody?.error === 'usage_limit_reached') {
             alert(typeof quotaBody.message === 'string' && quotaBody.message.trim()
               ? quotaBody.message : t('quiz.notifications.error'));
-            setRegenerationMessage(null);
             return;
           }
         }
-        const errText = await response.text();
-        throw new Error(`HTTP ${response.status}: ${errText}`);
+        alert(quotaBody?.error === 'usage_guard_unavailable'
+          ? 'Usługa jest chwilowo niedostępna. Spróbuj ponownie za chwilę.'
+          : quotaBody?.error === 'provider_timeout'
+            ? 'Generowanie trwało zbyt długo. Spróbuj ponownie za chwilę.'
+            : 'Nie udało się wygenerować materiału. Spróbuj ponownie za chwilę.');
+        return;
       }
 
-      const result = await response.json();
+      const result = JSON.parse(responseText);
 
       // 1. Update state with new data
       const mappedQuestions = (result.data || []).map((qq: any) => ({
@@ -220,13 +234,17 @@ export default function QuizPage() {
       setShowFeedback(false);
       localStorage.removeItem(`quiz-progress-${sessionId}`);
 
-      setRegenerationMessage(t('quiz.notifications.success'));
-      setTimeout(() => setRegenerationMessage(null), 3000);
-    } catch (err: any) {
-      console.error("Regeneration failed:", err);
-      alert(t('quiz.notifications.error') + ": " + err.message);
+    } catch {
+      alert(controller.signal.aborted
+        ? 'Generowanie trwało zbyt długo. Spróbuj ponownie za chwilę.'
+        : !responseReceived
+          ? 'Nie udało się połączyć z usługą. Sprawdź połączenie i spróbuj ponownie.'
+          : 'Nie udało się wygenerować materiału. Spróbuj ponownie za chwilę.');
     } finally {
+      if (timeoutId !== undefined) clearTimeout(timeoutId);
+      regenerationInFlight.current = false;
       setIsRegenerating(false);
+      setRegenerationMessage(null);
     }
   };
 
@@ -329,6 +347,15 @@ export default function QuizPage() {
       }
     }
   };
+
+  if (isRegenerating) {
+    return (
+      <div role="status" aria-live="polite" className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
+        <div className="w-12 h-12 border-4 border-[var(--omni-accent)] border-t-transparent rounded-full animate-spin" />
+        <p className="text-lg font-bold text-foreground">{regenerationMessage}</p>
+      </div>
+    );
+  }
 
   if (isLoading) {
     return (
@@ -453,23 +480,6 @@ export default function QuizPage() {
 
   return (
     <div className="relative space-y-6">
-      {/* Regeneration Overlay */}
-      {isRegenerating && (
-        <div className="absolute inset-0 z-50 bg-background/80 backdrop-blur-sm flex flex-col items-center justify-center rounded-3xl transition-opacity animate-in fade-in duration-300">
-          <div className="w-12 h-12 border-4 border-[var(--omni-accent)] border-t-transparent rounded-full animate-spin mb-4" />
-          <p className="text-lg font-bold text-foreground animate-pulse">
-            {regenerationMessage}
-          </p>
-        </div>
-      )}
-
-      {/* Success Notification */}
-      {regenerationMessage && !isRegenerating && (
-        <div className="fixed top-24 left-1/2 -translate-x-1/2 z-[60] bg-green-500 text-white px-6 py-3 rounded-full shadow-lg font-bold animate-in slide-in-from-top duration-300">
-          {regenerationMessage}
-        </div>
-      )}
-
       {/* Header */}
       <div>
         <h1 className="omni-heading-3 text-[var(--omni-text)] mb-2">

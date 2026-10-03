@@ -195,9 +195,7 @@ export default function AnalysisPage() {
             controller.abort();
           }, 90000); // Generous 90 seconds timeout
 
-          let rawResponse;
-          try {
-            rawResponse = await fetch(functionUrl, {
+          const rawResponse = await fetch(functionUrl, {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json',
@@ -206,13 +204,7 @@ export default function AnalysisPage() {
               },
               body: JSON.stringify({ sessionId }),
               signal: controller.signal
-            });
-          } finally {
-            if (timeoutId) {
-              clearTimeout(timeoutId);
-              timeoutId = undefined;
-            }
-          }
+          });
 
           if (!isMounted) return;
 
@@ -223,21 +215,18 @@ export default function AnalysisPage() {
             status: rawResponse.status
           });
 
-          let backendPayload = "";
-          try {
-            backendPayload = await rawResponse.text();
-          } catch (e) {
-            backendPayload = "Failed to parse body text";
-          }
+          const backendPayload = await rawResponse.text();
 
           if (!isMounted) return;
 
           if (!rawResponse.ok || (backendPayload.includes("error") && !rawResponse.ok)) {
             let errorMsg = t('analysis.backendErrors.generic');
             let isUsageLimit = false;
+            let errorCode: unknown;
             
             try {
               const errorObj = JSON.parse(backendPayload);
+              errorCode = errorObj?.error;
               if (errorObj.error === 'usage_limit_reached') {
                 isUsageLimit = true;
                 errorMsg = errorObj.message;
@@ -247,7 +236,13 @@ export default function AnalysisPage() {
             }
 
             if (!isUsageLimit) {
-              if (rawResponse.status === 422 || backendPayload.includes("Nie wykryto") || backendPayload.includes("no text")) {
+              if (errorCode === 'usage_guard_unavailable') {
+                errorMsg = 'Usługa jest chwilowo niedostępna. Spróbuj ponownie za chwilę.';
+              } else if (errorCode === 'provider_timeout') {
+                errorMsg = 'Generowanie trwało zbyt długo. Spróbuj ponownie za chwilę.';
+              } else if (rawResponse.status >= 500 || errorCode === 'provider_error') {
+                errorMsg = 'Nie udało się wygenerować materiału. Spróbuj ponownie za chwilę.';
+              } else if (rawResponse.status === 422 || backendPayload.includes("Nie wykryto") || backendPayload.includes("no text")) {
                 errorMsg = t('analysis.backendErrors.unreadableText');
               } else if (rawResponse.status === 401 || rawResponse.status === 403 || backendPayload.includes("Unauthorized") || backendPayload.includes("validation failed")) {
                 errorMsg = t('analysis.backendErrors.unauthorized');
@@ -256,9 +251,7 @@ export default function AnalysisPage() {
               } else if (backendPayload.includes("Failed to download image")) {
                 errorMsg = t('analysis.backendErrors.downloadFailed');
               } else if (backendPayload.includes("interpretacji tekstu") || backendPayload.includes("OpenAI")) {
-                errorMsg = t('analysis.backendErrors.aiUnderstanding');
-              } else if (rawResponse.status >= 500) {
-                errorMsg = t('analysis.backendErrors.serverError');
+                errorMsg = 'Nie udało się wygenerować materiału. Spróbuj ponownie za chwilę.';
               }
             }
 
@@ -318,20 +311,16 @@ export default function AnalysisPage() {
         }
       } catch (err: any) {
         if (!isMounted) return;
-        console.error("Failed to resolve active DB session:", err);
-
-        let errorMsg = t('analysis.error.network', 'Problem z połączeniem sieciowym. Spróbuj ponownie.');
-
-        if (err.name === 'AbortError' || err.message?.toLowerCase().includes('timeout') || err.message?.toLowerCase().includes('failed to fetch')) {
-          errorMsg = t('analysis.backendErrors.timeout', 'Analiza trwa zbyt długo. Spróbuj mniejszego pliku lub wyraźniejszego zdjęcia.');
-        } else if (err.message) {
-          errorMsg = err.message;
-        }
+        const errorMsg = controller.signal.aborted || err?.name === 'AbortError'
+          ? 'Generowanie trwało zbyt długo. Spróbuj ponownie za chwilę.'
+          : 'Nie udało się połączyć z usługą. Sprawdź połączenie i spróbuj ponownie.';
 
         if (isMounted) {
           setAnalysisError(errorMsg);
           setIsLoading(false);
         }
+      } finally {
+        if (timeoutId) clearTimeout(timeoutId);
       }
     };
 
