@@ -662,11 +662,16 @@ test('29D.1C frontend AST inventory has no direct profiles INSERT/UPSERT calls',
   assert.deepEqual(await profileCreationCalls(new URL('../src/', import.meta.url)), []);
 });
 
-test('29D.1C Edge Functions have no profiles INSERT/UPSERT calls or source changes', async () => {
+test('29D.1D Edge Functions cannot create profiles; only admin-plan-management may change', async () => {
   assert.deepEqual(await profileCreationCalls(new URL('../supabase/functions/', import.meta.url)), []);
-  assert.equal(execFileSync('git', ['diff', '--name-only', 'HEAD', '--', 'supabase/functions'], {
+  const trustedCreation = await readFile(new URL('../supabase/migrations/00074_identity_consent_account_security.sql', import.meta.url), 'utf8');
+  assert.match(trustedCreation, /CREATE OR REPLACE FUNCTION public\.handle_new_user\(\)\s+RETURNS trigger\s+LANGUAGE plpgsql\s+SECURITY DEFINER\s+SET search_path = public[\s\S]*?INSERT INTO public\.profiles/);
+  const authTrigger = await readFile(new URL('../supabase/migrations/00001_init.sql', import.meta.url), 'utf8');
+  assert.match(authTrigger, /CREATE TRIGGER on_auth_user_created\s+AFTER INSERT ON auth\.users\s+FOR EACH ROW EXECUTE PROCEDURE public\.handle_new_user\(\);/);
+  const changed = execFileSync('git', ['diff', '--name-only', 'HEAD', '--', 'supabase/functions'], {
     cwd: new URL('../', import.meta.url), encoding: 'utf8',
-  }).trim(), '');
+  }).trim().split(/\r?\n/).filter(Boolean);
+  assert.deepEqual(changed.filter(path => path !== 'supabase/functions/admin-plan-management/index.ts'), []);
 });
 
 test('29D.1C historical migrations 00001-00076 stay immutable', () => {

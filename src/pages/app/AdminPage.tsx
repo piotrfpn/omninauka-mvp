@@ -1,16 +1,16 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
+import AdminUserDirectory from '../../components/admin/AdminUserDirectory';
 import { useAuth } from '../../lib/auth-context';
 import { supabase } from '../../lib/supabase';
 import { Link } from 'react-router-dom';
 import {
-  Search, Shield, ShieldOff, AlertTriangle, Loader2,
+  Shield, ShieldOff, AlertTriangle, Loader2,
   User, Calendar, Crown, FileText, Activity, History, Users, Inbox
 } from 'lucide-react';
 import { toast } from 'sonner';
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
-import { Input } from '../../components/ui/input';
 import { Textarea } from '../../components/ui/textarea';
 import { Badge } from '../../components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../components/ui/table';
@@ -136,11 +136,6 @@ export default function AdminPage() {
   const [isForbidden, setIsForbidden] = useState(false);
   const [newTicketsCount, setNewTicketsCount] = useState(0);
 
-  // Search state
-  const [searchQuery, setSearchQuery] = useState('');
-  const [isSearching, setIsSearching] = useState(false);
-  const [searchResults, setSearchResults] = useState<AdminUserProfile[] | null>(null);
-
   // Data state
   const [adminData, setAdminData] = useState<AdminData | null>(null);
   const [isLoadingDetails, setIsLoadingDetails] = useState(false);
@@ -223,7 +218,7 @@ export default function AdminPage() {
 
   // ── API call helper ────────────────────────────────────────────────────────
 
-  const callAdminFunction = async (body: Record<string, unknown>) => {
+  const callAdminFunction = useCallback(async (body: Record<string, unknown>) => {
     const { data: { session } } = await supabase.auth.getSession();
     const token = session?.access_token;
     if (!token) throw new Error('Brak tokenu sesji. Zaloguj się ponownie.');
@@ -248,35 +243,7 @@ export default function AdminPage() {
     }
 
     return await response.json();
-  };
-
-  // ── Search handler ─────────────────────────────────────────────────────────
-
-  const handleSearch = async (e: React.FormEvent) => {
-    e.preventDefault();
-    const q = searchQuery.trim();
-    if (q.length < 3) {
-      toast.error('Wpisz minimum 3 znaki.');
-      return;
-    }
-
-    setIsSearching(true);
-    setAdminData(null);
-    setSearchResults(null);
-
-    try {
-      const result = await callAdminFunction({ action: 'search_user', query: q });
-      setSearchResults(result.users || []);
-    } catch (err: unknown) {
-      if (err instanceof Error && err.message === 'forbidden') {
-        // Handled by state
-      } else {
-        toast.error(err instanceof Error ? err.message : 'Błąd wyszukiwania.');
-      }
-    } finally {
-      setIsSearching(false);
-    }
-  };
+  }, []);
 
   // ── User Selection ─────────────────────────────────────────────────────────
 
@@ -416,7 +383,7 @@ export default function AdminPage() {
   }
 
   return (
-    <div className="max-w-4xl mx-auto space-y-8 animate-in fade-in duration-300 pb-12">
+    <div className="max-w-7xl mx-auto space-y-8 animate-in fade-in duration-300 pb-12">
 
       {/* Header */}
       <header>
@@ -451,99 +418,13 @@ export default function AdminPage() {
         </div>
       </header>
 
-      {/* Search Section */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Search className="w-5 h-5" />
-            Wyszukaj użytkownika
-          </CardTitle>
-          <CardDescription>
-            Szukaj po fragmencie e-maila lub nazwy (minimum 3 znaki).
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSearch} className="flex gap-2">
-            <Input
-              id="admin-search-query"
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="np. tomek@gmail.com lub tomek"
-              autoComplete="off"
-              className="flex-1"
-            />
-            <Button
-              id="admin-search-btn"
-              type="submit"
-              disabled={isSearching || searchQuery.trim().length < 3}
-              className="min-w-[120px]"
-            >
-              {isSearching ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Search className="w-4 h-4 mr-2" />}
-              Szukaj
-            </Button>
-          </form>
-
-          {searchResults && searchResults.length === 0 && (
-            <p className="text-sm text-muted-foreground flex items-center gap-1.5 mt-4">
-              <User className="w-4 h-4" />
-              Brak wyników. Sprawdź wpisaną frazę.
-            </p>
-          )}
-
-          {searchResults && searchResults.length > 0 && (
-            <div className="mt-6 overflow-x-auto">
-              <h4 className="text-sm font-semibold mb-3">
-                Wyniki wyszukiwania ({searchResults.length})
-              </h4>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>E-mail / Nazwa</TableHead>
-                    <TableHead>Rola</TableHead>
-                    <TableHead>Plan</TableHead>
-                    <TableHead>Utworzono</TableHead>
-                    <TableHead className="text-right">Akcja</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {searchResults.map((u) => (
-                    <TableRow key={u.id}>
-                      <TableCell>
-                        <div className="font-medium text-sm">{u.email}</div>
-                        {u.name && <div className="text-xs text-muted-foreground">{u.name}</div>}
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant="outline" className="text-[10px]">
-                          {u.user_role || '—'}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant="secondary" className="text-[10px]">
-                          {getPlanLabel(u.plan)}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-xs text-muted-foreground">
-                        {formatDate(u.created_at)}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <Button
-                          variant="secondary"
-                          size="sm"
-                          onClick={() => handleSelectUser(u.id)}
-                          disabled={isLoadingDetails}
-                        >
-                          {isLoadingDetails ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Wybierz'}
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+      {isLoadingDetails ? <div role="status" className="flex justify-center items-center gap-2 py-12"><Loader2 className="w-5 h-5 animate-spin" />Ładuję szczegóły...</div>
+        : adminData?.user ? <Button variant="outline" disabled={isUpdatingPlan} onClick={() => {
+          setAdminData(null);
+          setReason('');
+          setActionModal({ isOpen: false, action: null, label: '' });
+        }}>Powrót do użytkowników</Button>
+        : <AdminUserDirectory callAdminFunction={callAdminFunction} onSelectUser={handleSelectUser} />}
 
       {/* Found User Section */}
       {adminData?.user && (() => {

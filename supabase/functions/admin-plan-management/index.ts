@@ -21,6 +21,169 @@ const sanitizeReason = (raw: unknown): string | null => {
   return trimmed.substring(0, 500);
 };
 
+// Directory reads are called only after JWT verification and ADMIN_EMAILS.
+const directoryStatuses = ['active', 'pending_parent_consent', 'parent_approved', 'suspended',
+  'parent_withdrawn', 'pending_parent_preapproval', 'expired_pending_preapproval'];
+const unknownRoleFilter = 'user_role.is.null,user_role.not.in.(parent,student)';
+const profileColumns = 'id,email,name,created_at,user_role,age_band,account_status,plan,plan_expires_at';
+type DirectoryProfile = {
+  id: string; email: string | null; name: string | null; created_at: string | null;
+  user_role: string | null; age_band: string | null; account_status: string | null;
+  plan: string | null; plan_expires_at: string | null;
+};
+type DirectoryParent = Pick<DirectoryProfile, 'id' | 'email' | 'name' | 'user_role' | 'plan' | 'plan_expires_at'>;
+type DirectoryRelation = {
+  id: string; parent_user_id: string | null; child_user_id: string | null; status: string;
+  preapproval_integrity_version: number | null; guardian_consent_acknowledged_at: string | null;
+  guardian_consent_version: string | null;
+};
+
+function directoryInput(body: Record<string, unknown>) {
+  const page = body.page === undefined ? 1 : body.page;
+  const pageSize = body.pageSize === undefined ? 25 : body.pageSize;
+  const search = body.search === undefined ? '' : body.search;
+  const typeFilter = body.typeFilter === undefined ? 'all' : body.typeFilter;
+  const ownPlanFilter = body.ownPlanFilter === undefined ? 'all' : body.ownPlanFilter;
+  const statusFilter = body.statusFilter === undefined ? 'all' : body.statusFilter;
+  if (typeof page !== 'number' || !Number.isSafeInteger(page) || page < 1
+    || typeof pageSize !== 'number' || !Number.isSafeInteger(pageSize) || pageSize < 1 || pageSize > 50
+    || !Number.isSafeInteger(page * pageSize)
+    || typeof search !== 'string' || search.trim().length > 100
+    || typeof typeFilter !== 'string' || !['all', 'parent', 'child_under_13', 'student', 'unknown'].includes(typeFilter)
+    || typeof ownPlanFilter !== 'string' || !['all', 'free', 'premium', 'family'].includes(ownPlanFilter)
+    || typeof statusFilter !== 'string' || !['all', ...directoryStatuses].includes(statusFilter)) return null;
+  return { page, pageSize, search: search.trim().replace(/[%_*]/g, ''), typeFilter, ownPlanFilter, statusFilter };
+}
+
+function trustedDirectoryRelation(relation: DirectoryRelation, parents: Map<string, DirectoryParent>) {
+  return relation.child_user_id !== null && relation.parent_user_id !== null
+    && relation.child_user_id !== relation.parent_user_id
+    && ['linked', 'active'].includes(relation.status)
+    && relation.preapproval_integrity_version === 1
+    && parents.get(relation.parent_user_id)?.user_role === 'parent';
+}
+
+function directoryUser(profile: DirectoryProfile, relations: DirectoryRelation[], parents: Map<string, DirectoryParent>, now: number) {
+  const businessType = profile.user_role === 'parent' ? 'parent'
+    : profile.user_role === 'student' ? (profile.age_band === 'under_13' ? 'child_under_13' : 'student') : 'unknown';
+  const childRelations = relations.filter(relation => relation.child_user_id === profile.id && trustedDirectoryRelation(relation, parents));
+  const displayedParent = childRelations.length ? parents.get(childRelations[0].parent_user_id!) : null;
+  const validExpiry = (expiry: string | null) => expiry === null || Date.parse(expiry) > now;
+  let effectivePlan = 'free';
+  let planSource = 'own';
+  let sourcePlanExpiresAt = profile.plan_expires_at;
+  if (['premium', 'family'].includes(profile.plan ?? '') && validExpiry(profile.plan_expires_at)) {
+    effectivePlan = profile.plan!;
+  } else {
+    const familyRelation = childRelations.find(relation => {
+      const parent = parents.get(relation.parent_user_id!)!;
+      return relation.guardian_consent_acknowledged_at !== null
+        && relation.guardian_consent_version === 'child_email_preapproval_v1'
+        && parent.plan === 'family' && validExpiry(parent.plan_expires_at);
+    });
+    if (familyRelation) {
+      effectivePlan = 'family';
+      planSource = 'parent_family';
+      sourcePlanExpiresAt = parents.get(familyRelation.parent_user_id!)!.plan_expires_at;
+    }
+  }
+  return {
+    userId: profile.id, email: profile.email, name: profile.name, createdAt: profile.created_at,
+    businessType, rawUserRole: profile.user_role, ageBand: profile.age_band, accountStatus: profile.account_status,
+    ownPlan: profile.plan, effectivePlan, planSource, planExpiresAt: profile.plan_expires_at, sourcePlanExpiresAt,
+    parent: displayedParent ? { userId: displayedParent.id, name: displayedParent.name, email: displayedParent.email } : null,
+    linkedChildrenCount: businessType === 'parent' ? relations.filter(relation => relation.parent_user_id === profile.id && trustedDirectoryRelation(relation, parents)).length : 0,
+    pendingChildrenCount: businessType === 'parent' ? relations.filter(relation => relation.parent_user_id === profile.id && relation.status === 'pending_child_registration' && relation.preapproval_integrity_version === 1).length : 0,
+    relationStatus: childRelations[0]?.status ?? null,
+  };
+}
+
+async function listDirectory(client: ReturnType<typeof createClient>, input: NonNullable<ReturnType<typeof directoryInput>>) {
+  let query = client.from('profiles').select(profileColumns, { count: 'exact' });
+  if (input.search) {
+    // PostgREST quoted values: commas/parentheses remain data, never operators.
+    const pattern = `"%${input.search.replace(/\\/g, '\\\\').replace(/"/g, '\\"')}%"`;
+    query = query.or(`email.ilike.${pattern},name.ilike.${pattern}`);
+  }
+  if (input.typeFilter === 'parent') query = query.eq('user_role', 'parent');
+  if (input.typeFilter === 'child_under_13') query = query.eq('user_role', 'student').eq('age_band', 'under_13');
+  // NULL age is still a student; NULL role never enters this branch.
+  if (input.typeFilter === 'student') query = query.eq('user_role', 'student').or('age_band.neq.under_13,age_band.is.null');
+  if (input.typeFilter === 'unknown') query = query.or(unknownRoleFilter);
+  if (input.ownPlanFilter !== 'all') query = query.eq('plan', input.ownPlanFilter);
+  if (input.statusFilter !== 'all') query = query.eq('account_status', input.statusFilter);
+  const from = (input.page - 1) * input.pageSize;
+  const [pageResult, totalResult, parentResult, childResult, unknownResult] = await Promise.all([
+    query.order('created_at', { ascending: false }).order('id', { ascending: false }).range(from, from + input.pageSize - 1),
+    client.from('profiles').select('id', { count: 'exact', head: true }),
+    client.from('profiles').select('id', { count: 'exact', head: true }).eq('user_role', 'parent'),
+    client.from('profiles').select('id', { count: 'exact', head: true }).eq('user_role', 'student').eq('age_band', 'under_13'),
+    client.from('profiles').select('id', { count: 'exact', head: true }).or(unknownRoleFilter),
+  ]);
+  for (const result of [pageResult, totalResult, parentResult, childResult, unknownResult]) {
+    if (result.error || result.count === null) throw new Error('Directory query failed');
+  }
+  const profiles: DirectoryProfile[] = pageResult.data ?? [];
+  const ids = profiles.map(profile => profile.id);
+  let relations: DirectoryRelation[] = [];
+  const parents = new Map<string, DirectoryParent>();
+  if (ids.length) {
+    // IDs come from DB profiles, not request expressions. Reject schema anomalies.
+    if (ids.some(id => !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id))) throw new Error('Invalid directory IDs');
+    const relationResult = await client.from('child_profiles')
+      .select('id,parent_user_id,child_user_id,status,preapproval_integrity_version,guardian_consent_acknowledged_at,guardian_consent_version', { count: 'exact' })
+      .or(`parent_user_id.in.(${ids.join(',')}),child_user_id.in.(${ids.join(',')})`);
+    if (relationResult.error || relationResult.count !== relationResult.data?.length) throw new Error('Incomplete relations');
+    relations = relationResult.data ?? [];
+    const parentIds = [...new Set(relations.map(relation => relation.parent_user_id).filter((id): id is string => id !== null))];
+    if (parentIds.length) {
+      const result = await client.from('profiles').select('id,name,email,user_role,plan,plan_expires_at').in('id', parentIds);
+      if (result.error) throw new Error('Parent query failed');
+      for (const parent of result.data ?? []) parents.set(parent.id, parent);
+    }
+  }
+  const now = Date.now();
+  return {
+    users: profiles.map(profile => directoryUser(profile, relations, parents, now)),
+    pagination: { page: input.page, pageSize: input.pageSize, total: pageResult.count!, totalPages: Math.ceil(pageResult.count! / input.pageSize) },
+    summary: { totalProfiles: totalResult.count!, parents: parentResult.count!, childrenUnder13: childResult.count!, unknownRoleProfiles: unknownResult.count! },
+  };
+}
+
+async function listAccountIssues(client: ReturnType<typeof createClient>) {
+  const unknown = await client.from('profiles').select('id,email,name,created_at,user_role', { count: 'exact' }).or(unknownRoleFilter)
+    .order('created_at', { ascending: false }).order('id', { ascending: false }).limit(1000);
+  if (unknown.error || unknown.count === null) throw new Error('Issue query failed');
+  let scanTruncated = unknown.count > (unknown.data?.length ?? 0);
+  const authUsers: { id: string; email?: string; created_at: string; last_sign_in_at?: string }[] = [];
+  // At most 4 Auth pages / 1000 users. A full final page is conservatively incomplete.
+  for (let page = 1; page <= 4; page++) {
+    const { data, error } = await client.auth.admin.listUsers({ page, perPage: 250 });
+    if (error) throw new Error('Auth scan failed');
+    authUsers.push(...data.users.slice(0, 250));
+    if (data.users.length < 250) break;
+    if (page === 4) scanTruncated = true;
+  }
+  const profileIds = new Set<string>();
+  // Fixed maximum of five batches; avoid an oversized URI and never use in([]).
+  for (let offset = 0; offset < authUsers.length; offset += 200) {
+    const ids = authUsers.slice(offset, offset + 200).map(user => user.id);
+    const result = await client.from('profiles').select('id', { count: 'exact' }).in('id', ids);
+    if (result.error || result.count !== result.data?.length) throw new Error('Profile comparison failed');
+    for (const profile of result.data ?? []) profileIds.add(profile.id);
+  }
+  const missing = authUsers.filter(user => !profileIds.has(user.id)).map(user => ({
+    issueType: 'missing_profile', userId: user.id, email: user.email ?? null,
+    createdAt: user.created_at, lastSignInAt: user.last_sign_in_at ?? null,
+  }));
+  const unknownIssues = (unknown.data ?? []).map(profile => ({
+    issueType: 'unknown_role', userId: profile.id, email: profile.email, name: profile.name, createdAt: profile.created_at,
+  }));
+  return { issues: [...missing, ...unknownIssues], summary: {
+    missingProfiles: missing.length, unknownRoleProfiles: unknownIssues.length, totalIssues: missing.length + unknownIssues.length,
+  }, scanTruncated };
+}
+
 serve(async (req) => {
   // Handle CORS preflight
   if (req.method === 'OPTIONS') {
@@ -90,6 +253,18 @@ serve(async (req) => {
     const adminClient = createClient(supabaseUrl, supabaseServiceKey, {
       auth: { persistSession: false },
     });
+
+    if (action === 'list_users' || action === 'list_account_issues') {
+      try {
+        if (action === 'list_account_issues') return jsonResponse(await listAccountIssues(adminClient));
+        const input = directoryInput(body);
+        if (!input) return jsonResponse({ error: 'Nieprawidłowe kryteria wyszukiwania.' }, 400);
+        return jsonResponse(await listDirectory(adminClient, input));
+      } catch {
+        console.error('[admin-plan-management] Directory read failed');
+        return jsonResponse({ error: 'Nie udało się pobrać listy użytkowników.' }, 503);
+      }
+    }
 
     // ── 6. Helpers ─────────────────────────────────────────────────────────────
 
