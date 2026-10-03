@@ -328,6 +328,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return { success: true };
     }
 
+    const profileUpdateError = 'Nie udało się zaktualizować profilu.';
+
     try {
       // 1. Update Auth user metadata (for fields like name)
       const authUpdates: any = {};
@@ -354,7 +356,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (Object.keys(dbUpdates).length > 0 && state.user?.id) {
         dbUpdates.id = state.user.id;
         
-        // Strategy A: Update first
+        // Update existing profiles only; creation belongs to the Auth trigger.
         const { data: updateData, error: updateError } = await supabase
           .from('profiles')
           .update(dbUpdates)
@@ -363,20 +365,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           
         if (updateError) throw updateError;
         
-        // If profile doesn't exist yet, fallback to upsert with required NOT NULL columns
         if (!updateData || updateData.length === 0) {
-          const fullPayload = {
-            ...dbUpdates,
-            email: state.user.email || '',
-            name: state.user.name || "User",
-            plan: state.user.plan || "free"
-          };
-          
-          const { error: upsertError } = await supabase
-            .from('profiles')
-            .upsert(fullPayload, { onConflict: 'id' });
-            
-          if (upsertError) throw upsertError;
+          return { success: false, error: profileUpdateError };
         }
       }
 
@@ -384,9 +374,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       await refreshUser();
       
       return { success: true };
-    } catch (error: any) {
-      console.error("Update Profile Error:", error);
-      return { success: false, error: error.message };
+    } catch {
+      console.error("Update Profile Error");
+      return { success: false, error: profileUpdateError };
     }
   };
 

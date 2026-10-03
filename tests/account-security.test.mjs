@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
-import { readFile } from 'node:fs/promises';
+import { readFile, readdir } from 'node:fs/promises';
 import { execFileSync } from 'node:child_process';
 import ts from 'typescript';
 import { getAiAccountDenial } from '../supabase/functions/_shared/account-access.ts';
@@ -441,6 +441,237 @@ test('29D historical migrations 00001-00075 remain unchanged relative to HEAD', 
   const changed = execFileSync('git', ['diff', '--name-only', 'HEAD', '--', 'supabase/migrations'], {
     cwd: new URL('../', import.meta.url), encoding: 'utf8',
   }).trim().split(/\r?\n/).filter(Boolean);
-  assert.deepEqual(changed.filter(path => !path.endsWith('/00076_child_profiles_authorization_hardening.sql')), []);
+  assert.deepEqual(changed.filter(path => Number(path.split('/').at(-1).split('_')[0]) <= 75), []);
   assert.doesNotMatch(childMigration, /CREATE OR REPLACE FUNCTION public\.check_child_limit/);
+});
+
+// 29D.1C: SQL checks prove source contracts only. Handler tests execute the
+// actual updateProfile arrow with Supabase doubles, not a copied implementation.
+// LIVE_DB_TEST_REQUIRED=YES for ACL, RLS and the Auth SECURITY DEFINER trigger.
+const profileMigration = (await readFile(new URL('../supabase/migrations/00077_profiles_insert_hardening.sql', import.meta.url), 'utf8')).replace(/\r\n/g, '\n');
+const authContextSource = await readFile(new URL('../src/lib/auth-context.tsx', import.meta.url), 'utf8');
+const safeProfileError = 'Nie udało się zaktualizować profilu.';
+
+function authArrowSource(source, name) {
+  const file = ts.createSourceFile('auth-context.tsx', source, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
+  let arrow;
+  function visit(node) {
+    if (ts.isVariableDeclaration(node) && node.name.getText(file) === name) {
+      assert.ok(node.initializer && ts.isArrowFunction(node.initializer));
+      arrow = node.initializer.getText(file);
+    }
+    ts.forEachChild(node, visit);
+  }
+  visit(file);
+  assert.equal(typeof arrow, 'string', `Missing ${name} handler`);
+  return arrow;
+}
+
+function loadProfileUpdate(options = {}) {
+  const calls = { updates: [], authUpdates: [], creates: 0, refreshes: 0, signouts: 0, logs: [] };
+  const client = {
+    auth: {
+      async updateUser(payload) { calls.authUpdates.push(payload); return { error: options.authError ?? null }; },
+      async signOut() { calls.signouts++; },
+    },
+    from(table) {
+      assert.equal(table, 'profiles');
+      return {
+        insert() { calls.creates++; throw new Error('Forbidden profile INSERT'); },
+        upsert() { calls.creates++; throw new Error('Forbidden profile UPSERT'); },
+        update(payload) {
+          calls.updates.push({ ...payload });
+          return { eq(column, owner) {
+            assert.equal(column, 'id');
+            assert.equal(owner, userId);
+            return { async select() {
+              if (options.throwUpdate) throw options.throwUpdate;
+              return {
+                data: Object.hasOwn(options, 'data') ? options.data : [{ id: userId }],
+                error: options.updateError ?? null,
+              };
+            } };
+          } };
+        },
+      };
+    },
+  };
+  const js = ts.transpileModule(`const updateProfile = ${authArrowSource(authContextSource, 'updateProfile')};`, {
+    compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.None },
+  }).outputText;
+  const handler = new Function('supabase', 'state', 'isDemoMode', 'setState', 'refreshUser', 'console', `${js}\nreturn updateProfile;`)(
+    client, { user: { id: userId, email: 'test@example.invalid', name: 'Test', plan: 'free' } }, false,
+    () => { throw new Error('Unexpected local state mutation'); },
+    async () => { calls.refreshes++; },
+    { error: (...args) => { calls.logs.push(args); } },
+  );
+  return { handler, calls };
+}
+
+async function profileCreationCalls(directory) {
+  const found = [];
+  for (const entry of await readdir(directory, { withFileTypes: true })) {
+    const path = new URL(entry.name + (entry.isDirectory() ? '/' : ''), directory);
+    if (entry.isDirectory()) {
+      found.push(...await profileCreationCalls(path));
+      continue;
+    }
+    if (!/\.tsx?$/.test(entry.name)) continue;
+    const text = await readFile(path, 'utf8');
+    const file = ts.createSourceFile(entry.name, text, ts.ScriptTarget.Latest, true,
+      entry.name.endsWith('.tsx') ? ts.ScriptKind.TSX : ts.ScriptKind.TS);
+    function visit(node) {
+      if (ts.isCallExpression(node) && ts.isPropertyAccessExpression(node.expression)
+          && ['insert', 'upsert'].includes(node.expression.name.text)) {
+        let receiver = node.expression.expression;
+        while (ts.isCallExpression(receiver) || ts.isPropertyAccessExpression(receiver)) {
+          if (ts.isCallExpression(receiver) && ts.isPropertyAccessExpression(receiver.expression)
+              && receiver.expression.name.text === 'from'
+              && receiver.arguments[0] && ts.isStringLiteral(receiver.arguments[0])
+              && receiver.arguments[0].text === 'profiles') {
+            found.push({ file: path.pathname, method: node.expression.name.text });
+            break;
+          }
+          receiver = receiver.expression;
+        }
+      }
+      ts.forEachChild(node, visit);
+    }
+    visit(file);
+  }
+  return found;
+}
+
+test('29D.1C migration exists and wraps INSERT hardening in BEGIN/COMMIT', () => {
+  assert.match(profileMigration, /\nBEGIN;\s/);
+  assert.match(profileMigration, /\nCOMMIT;\s*$/);
+  assert.equal(profileMigration.split('$insert_acl$').length - 1, 2);
+});
+
+test('29D.1C drops the exact live/repo INSERT policy and creates no replacement', () => {
+  assert.match(profileMigration, /DROP POLICY IF EXISTS "Users can insert own profile" ON public\.profiles;/);
+  assert.doesNotMatch(profileMigration, /CREATE POLICY/i);
+  assert.match(profileMigration, /cmd IN \('INSERT', 'ALL'\)/);
+  assert.match(profileMigration, /roles && ARRAY\['public', 'anon', 'authenticated'\]::name\[\]/);
+  assert.match(profileMigration, /RAISE EXCEPTION 'Unexpected profile creation permissions'/);
+});
+
+for (const role of ['anon', 'authenticated']) {
+  test(`29D.1C ${role} table INSERT is revoked and effective privilege is checked`, () => {
+    assert.match(profileMigration, /REVOKE INSERT ON TABLE public\.profiles FROM anon, authenticated;/);
+    assert.ok(profileMigration.includes(`has_table_privilege('${role}', 'public.profiles', 'INSERT')`));
+  });
+  test(`29D.1C ${role} column INSERT is explicitly revoked across the current schema`, () => {
+    assert.match(profileMigration, /FROM pg_attribute\s+WHERE attrelid = 'public\.profiles'::regclass\s+AND attnum > 0 AND NOT attisdropped/);
+    assert.match(profileMigration, /string_agg\(format\('%I', attname\), ', ' ORDER BY attnum\)/);
+    assert.match(profileMigration, /'REVOKE INSERT \(%s\) ON TABLE public\.profiles FROM anon, authenticated'/);
+    assert.ok(profileMigration.includes(`has_any_column_privilege('${role}', 'public.profiles', 'INSERT')`));
+  });
+}
+
+test('29D.1C service_role and postgres privileges are untouched; no global revoke/grant', () => {
+  assert.doesNotMatch(profileMigration, /REVOKE ALL|GRANT\s|FROM[^;]*\bservice_role\b|FROM[^;]*\bpostgres\b/i);
+  const revokes = [...profileMigration.matchAll(/REVOKE ([^;\n]+)/g)].map(match => match[1]);
+  assert.equal(revokes.length, 2);
+  for (const revoke of revokes) assert.match(revoke, /^INSERT /);
+});
+
+for (const policy of ['Users can view own profile', 'Users can update own profile']) {
+  test(`29D.1C leaves ${policy} and SELECT/UPDATE grants untouched`, () => {
+    assert.ok(!profileMigration.includes(policy));
+    assert.doesNotMatch(profileMigration, /REVOKE\s+(?:SELECT|UPDATE|DELETE|ALL)\b/i);
+  });
+}
+
+test('29D.1C leaves profile protection trigger and handle_new_user definition untouched', () => {
+  assert.doesNotMatch(profileMigration, /CREATE (?:OR REPLACE )?FUNCTION|ALTER FUNCTION|CREATE TRIGGER|DROP TRIGGER|ALTER TRIGGER/i);
+  assert.doesNotMatch(profileMigration, /protect_sensitive_profile_fields/);
+  assert.doesNotMatch(profileMigration, /\b(?:INSERT INTO|UPDATE|DELETE FROM)\s+(?:public\.)?(?:profiles|users)\b/i);
+});
+
+test('29D.1C actual updateProfile contains no INSERT/UPSERT fallback and remains UPDATE-only', () => {
+  const arrow = authArrowSource(authContextSource, 'updateProfile');
+  assert.doesNotMatch(arrow, /\.(?:insert|upsert)\s*\(/);
+  assert.match(arrow, /\.from\('profiles'\)\s+\.update\(dbUpdates\)\s+\.eq\('id', state\.user\.id\)\s+\.select\(\)/);
+});
+
+for (const [label, data] of [['zero rows', []], ['null result', null], ['undefined result', undefined]]) {
+  test(`29D.1C actual updateProfile: ${label} fails safely, never creates or signs out`, async () => {
+    const { handler, calls } = loadProfileUpdate({ data });
+    assert.deepEqual(await handler({ schoolType: 'primary' }), { success: false, error: safeProfileError });
+    assert.equal(calls.updates.length, 1);
+    assert.equal(calls.creates, 0);
+    assert.equal(calls.refreshes, 0);
+    assert.equal(calls.signouts, 0);
+  });
+}
+
+const privateProfileError = {
+  message: 'SQL profiles RLS policy Users can insert own profile 11111111-1111-4111-8111-111111111111',
+  details: 'private database details', code: '42501',
+};
+for (const [label, options] of [
+  ['DB error', { updateError: privateProfileError }],
+  ['transport throw', { throwUpdate: new Error(privateProfileError.message) }],
+  ['Auth metadata failure', { authError: privateProfileError }],
+]) {
+  test(`29D.1C actual updateProfile: ${label} keeps database details out of result and logs`, async () => {
+    const { handler, calls } = loadProfileUpdate(options);
+    assert.deepEqual(await handler({ name: 'Updated test name' }), { success: false, error: safeProfileError });
+    assert.deepEqual(calls.logs, [['Update Profile Error']]);
+    assert.equal(calls.creates, 0);
+    assert.equal(calls.signouts, 0);
+    assert.equal(calls.refreshes, 0);
+  });
+}
+
+test('29D.1C actual existing profile UPDATE preserves metadata mapping, owner filter and refresh', async () => {
+  const { handler, calls } = loadProfileUpdate();
+  const completedAt = '2026-10-03T00:00:00.000Z';
+  assert.deepEqual(await handler({
+    name: 'Updated test name', schoolType: 'primary', educationLevel: 'primary_4_6',
+    gradeLevel: '4', postalCode: '00-000', profileCompleted: true, profileCompletedAt: completedAt,
+    plan: 'family', accountStatus: 'active', ageBand: '18_plus', id: 'other-user',
+  }), { success: true });
+  assert.deepEqual(calls.updates, [{
+    id: userId, name: 'Updated test name', school_type: 'primary', education_level: 'primary_4_6',
+    grade_level: '4', postal_code: '00-000', profile_completed: true, profile_completed_at: completedAt,
+  }]);
+  assert.deepEqual(calls.authUpdates, [{ data: { name: 'Updated test name' } }]);
+  assert.equal(calls.refreshes, 1);
+  assert.equal(calls.creates, 0);
+});
+
+test('29D.1C preserves existing userRole mapping without adding client role privileges', async () => {
+  const { handler, calls } = loadProfileUpdate({ updateError: privateProfileError });
+  assert.deepEqual(await handler({ userRole: 'admin' }), { success: false, error: safeProfileError });
+  assert.deepEqual(calls.updates, [{ id: userId, user_role: 'admin' }]);
+  assert.equal(calls.creates, 0);
+});
+
+test('29D.1C register still uses signUp and is byte-for-byte unchanged at the handler level', () => {
+  const before = execFileSync('git', ['show', 'HEAD:src/lib/auth-context.tsx'], {
+    cwd: new URL('../', import.meta.url), encoding: 'utf8',
+  });
+  const register = authArrowSource(authContextSource, 'register');
+  assert.equal(register, authArrowSource(before, 'register'));
+  assert.match(register, /supabase\.auth\.signUp\(/);
+});
+
+test('29D.1C frontend AST inventory has no direct profiles INSERT/UPSERT calls', async () => {
+  assert.deepEqual(await profileCreationCalls(new URL('../src/', import.meta.url)), []);
+});
+
+test('29D.1C Edge Functions have no profiles INSERT/UPSERT calls or source changes', async () => {
+  assert.deepEqual(await profileCreationCalls(new URL('../supabase/functions/', import.meta.url)), []);
+  assert.equal(execFileSync('git', ['diff', '--name-only', 'HEAD', '--', 'supabase/functions'], {
+    cwd: new URL('../', import.meta.url), encoding: 'utf8',
+  }).trim(), '');
+});
+
+test('29D.1C historical migrations 00001-00076 stay immutable', () => {
+  const changed = execFileSync('git', ['diff', '--name-only', 'HEAD', '--', 'supabase/migrations'], {
+    cwd: new URL('../', import.meta.url), encoding: 'utf8',
+  }).trim().split(/\r?\n/).filter(Boolean);
+  assert.deepEqual(changed.filter(path => Number(path.split('/').at(-1).split('_')[0]) <= 76), []);
 });
