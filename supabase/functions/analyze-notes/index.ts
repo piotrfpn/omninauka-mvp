@@ -8,6 +8,14 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// Object keys stay opaque: validate the namespace without decoding/rewriting.
+function isValidStudyMaterialPath(path: unknown, userId: string): path is string {
+  if (typeof path !== 'string' || path === '' || path !== path.trim() || path.includes('\\')) return false;
+  const segments = path.split('/');
+  return segments.length >= 2 && (segments[0] === userId || segments[0] === 'uploads')
+    && segments.every(segment => segment !== '' && segment !== '.' && segment !== '..');
+}
+
 function usageGuardUnavailable(): Response {
   return new Response(JSON.stringify({ error: 'usage_guard_unavailable' }), {
     headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -72,17 +80,17 @@ serve(async (req) => {
     }
 
     // User client for plan check + RLS context
-    const supabaseClient = createClient(supabaseUrl, supabaseAnonKey, {
+    const userClient = createClient(supabaseUrl, supabaseAnonKey, {
       global: { headers: { Authorization: authHeader } }
     });
 
-    // Admin client for profile + storage + DB access (bypasses RLS)
+    // Admin client for authorized profile/DB operations only (bypasses DB RLS).
     const adminClient = createClient(supabaseUrl, supabaseServiceKey, {
       auth: { persistSession: false }
     });
 
     // Verify user identity
-    const { data: { user }, error: authError } = await supabaseClient.auth.getUser();
+    const { data: { user }, error: authError } = await userClient.auth.getUser();
     if (authError || !user) {
       console.error("[analyze-notes] 401: Auth verification failed");
       markTiming('response_ready', { status: 'error', errorCode: 'auth_failed' });
@@ -153,7 +161,7 @@ serve(async (req) => {
 
     let effectivePlan = 'free';
     try {
-      const { data: effectiveData, error: planError } = await supabaseClient.rpc('get_my_effective_plan');
+      const { data: effectiveData, error: planError } = await userClient.rpc('get_my_effective_plan');
       if (!planError && effectiveData?.effective_plan) {
         effectivePlan = effectiveData.effective_plan === 'premium' || effectiveData.effective_plan === 'family'
           ? effectiveData.effective_plan : 'free';
@@ -240,10 +248,10 @@ serve(async (req) => {
       // 3. Collect all image paths for this session
       // Primary image from study_sessions.image_url (always present for backward compat)
       // Additional images from session_images child table (Sprint 2)
-      const imagePaths: string[] = [];
+      const candidatePaths: unknown[] = [];
 
-      if (sessionData.image_url) {
-        imagePaths.push(sessionData.image_url);
+      if (sessionData.image_url !== null && sessionData.image_url !== undefined) {
+        candidatePaths.push(sessionData.image_url);
       }
 
       const { data: childImages } = await adminClient
@@ -254,10 +262,24 @@ serve(async (req) => {
 
       if (childImages && childImages.length > 0) {
         for (const ci of childImages) {
-          if (ci.image_url && !imagePaths.includes(ci.image_url)) {
-            imagePaths.push(ci.image_url);
+          if (ci.image_url !== null && ci.image_url !== undefined && !candidatePaths.includes(ci.image_url)) {
+            candidatePaths.push(ci.image_url);
           }
         }
+      }
+
+      const imagePaths: string[] = [];
+      for (const path of candidatePaths) {
+        if (!isValidStudyMaterialPath(path, userId)) {
+          console.warn('[analyze-notes] Unsafe material path rejected');
+          markTiming('response_ready', { status: 'error', errorCode: 'invalid_material_path' });
+          markTiming('request_done', { status: 'error' });
+          await cleanupReservation();
+          return new Response(JSON.stringify({ error: 'invalid_material_path' }), {
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400,
+          });
+        }
+        imagePaths.push(path);
       }
 
       console.log('[analyze-notes] Processing images for OCR', { imageCount: imagePaths.length });
@@ -278,7 +300,7 @@ serve(async (req) => {
         markTiming('load_storage_file_start', { imgIdx, totalImages: imagePaths.length });
 
         // Download image from private Storage
-        const { data: fileData, error: downloadError } = await adminClient.storage
+        const { data: fileData, error: downloadError } = await userClient.storage
           .from('study-materials')
           .download(imgPath);
 

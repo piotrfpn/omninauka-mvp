@@ -7,6 +7,14 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// Object keys stay opaque: validate the namespace without decoding/rewriting.
+function isValidStudyMaterialPath(path: unknown, userId: string): path is string {
+  if (typeof path !== 'string' || path === '' || path !== path.trim() || path.includes('\\')) return false;
+  const segments = path.split('/');
+  return segments.length >= 2 && (segments[0] === userId || segments[0] === 'uploads')
+    && segments.every(segment => segment !== '' && segment !== '.' && segment !== '..');
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
@@ -66,12 +74,16 @@ serve(async (req) => {
       });
     }
 
-    // 3. Admin client for storage + DB (bypasses RLS)
+    // 3. Admin client for authorized DB operations only (bypasses DB RLS).
     const adminClient = createClient(
       supabaseUrl,
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
       { auth: { persistSession: false } }
     );
+    const userClient = createClient(supabaseUrl, Deno.env.get('SUPABASE_ANON_KEY') ?? '', {
+      global: { headers: { Authorization: authHeader } },
+      auth: { persistSession: false },
+    });
 
     // 4. Fetch session and verify ownership
     const { data: sessionData, error: fetchError } = await adminClient
@@ -108,10 +120,16 @@ serve(async (req) => {
     // 5. Delete ALL images from Storage (primary + session_images children)
     // Collect all paths: primary image_url + any session_images rows
     const allPaths: string[] = [];
+    const addStoragePath = (path: unknown) => {
+      if (path === null || path === undefined) return;
+      if (!isValidStudyMaterialPath(path, userId)) {
+        console.warn('[delete-session] Unsafe material path skipped');
+        return;
+      }
+      if (!allPaths.includes(path)) allPaths.push(path);
+    };
 
-    if (sessionData.image_url) {
-      allPaths.push(sessionData.image_url);
-    }
+    addStoragePath(sessionData.image_url);
 
     // Fetch child images (Sprint 2: session_images table)
     const { data: imageRows } = await adminClient
@@ -122,19 +140,17 @@ serve(async (req) => {
     if (imageRows && imageRows.length > 0) {
       for (const row of imageRows) {
         // Avoid duplicating the primary image_url if it was also inserted into session_images
-        if (row.image_url && !allPaths.includes(row.image_url)) {
-          allPaths.push(row.image_url);
-        }
+        addStoragePath(row.image_url);
       }
     }
 
     if (allPaths.length > 0) {
-      const { error: storageError } = await adminClient.storage
+      const { error: storageError } = await userClient.storage
         .from('study-materials')
         .remove(allPaths);
 
       if (storageError) {
-        console.error("[delete-session] Storage delete failed (non-blocking) ->", storageError.message);
+        console.error("[delete-session] Storage delete failed (non-blocking)");
       } else {
         console.log("[delete-session] Storage files deleted:", allPaths.length);
       }

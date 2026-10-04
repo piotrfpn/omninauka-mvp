@@ -6,6 +6,14 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// Object keys stay opaque: validate the namespace without decoding/rewriting.
+function isValidStudyMaterialPath(path: unknown, userId: string): path is string {
+  if (typeof path !== 'string' || path === '' || path !== path.trim() || path.includes('\\')) return false;
+  const segments = path.split('/');
+  return segments.length >= 2 && (segments[0] === userId || segments[0] === 'uploads')
+    && segments.every(segment => segment !== '' && segment !== '.' && segment !== '..');
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
@@ -17,7 +25,9 @@ serve(async (req) => {
 
     // 1. Auth check
     const authHeader = req.headers.get('Authorization') || req.headers.get('authorization');
-    if (!authHeader) throw new Error("Missing Authorization header");
+    if (!authHeader) return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 401,
+    });
 
     const adminClient = createClient(supabaseUrl, supabaseServiceKey, {
       auth: { persistSession: false },
@@ -28,10 +38,16 @@ serve(async (req) => {
     const { data: { user }, error: authError } = await adminClient.auth.getUser(jwtToken);
     
     if (authError || !user) {
-      throw new Error("Unauthorized or invalid session");
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 401,
+      });
     }
 
     const userId = user.id;
+    const userClient = createClient(supabaseUrl, Deno.env.get('SUPABASE_ANON_KEY') ?? '', {
+      global: { headers: { Authorization: authHeader } },
+      auth: { persistSession: false },
+    });
     console.log(`Starting account deletion for user: ${userId}`);
 
     // 2. Collect files to delete from Storage
@@ -51,23 +67,31 @@ serve(async (req) => {
       .in('session_id', sessionIds);
 
     const filesToDelete = new Set<string>();
+    const addStoragePath = (path: unknown) => {
+      if (path === null || path === undefined) return;
+      if (!isValidStudyMaterialPath(path, userId)) {
+        console.warn('[delete-account] Unsafe material path skipped');
+        return;
+      }
+      filesToDelete.add(path);
+    };
     if (sessions) {
-      sessions.forEach(s => { if (s.image_url) filesToDelete.add(s.image_url); });
+      sessions.forEach(s => addStoragePath(s.image_url));
     }
     if (sessionImages) {
-      sessionImages.forEach(si => { if (si.image_url) filesToDelete.add(si.image_url); });
+      sessionImages.forEach(si => addStoragePath(si.image_url));
     }
 
     // 3. Delete files from Storage
     if (filesToDelete.size > 0) {
       const paths = Array.from(filesToDelete);
       console.log(`Deleting ${paths.length} files from storage...`);
-      const { error: storageError } = await adminClient.storage
+      const { error: storageError } = await userClient.storage
         .from('study-materials')
         .remove(paths);
       
       if (storageError) {
-        console.error("Storage deletion error (non-blocking):", storageError);
+        console.error("Storage deletion error (non-blocking)");
       }
     }
 

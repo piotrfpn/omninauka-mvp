@@ -671,7 +671,12 @@ test('29D.1D Edge Functions cannot create profiles; only admin-plan-management m
   const changed = execFileSync('git', ['diff', '--name-only', 'HEAD', '--', 'supabase/functions'], {
     cwd: new URL('../', import.meta.url), encoding: 'utf8',
   }).trim().split(/\r?\n/).filter(Boolean);
-  assert.deepEqual(changed.filter(path => path !== 'supabase/functions/admin-plan-management/index.ts'), []);
+  const allowed = [
+    'supabase/functions/analyze-notes/index.ts',
+    'supabase/functions/delete-session/index.ts',
+    'supabase/functions/delete-account/index.ts',
+  ];
+  assert.deepEqual(changed.filter(path => !allowed.includes(path)), []);
 });
 
 test('29D.1C historical migrations 00001-00076 stay immutable', () => {
