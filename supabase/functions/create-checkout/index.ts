@@ -61,6 +61,16 @@ serve(async (req) => {
     });
   }
 
+  const bearerMatch = authHeader.match(/^Bearer\s+(.+)$/i);
+  const accessToken = bearerMatch?.[1]?.trim();
+
+  if (!accessToken) {
+    return new Response(JSON.stringify({ error: "Unauthorized" }), {
+      status: 401,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+
   const supabaseUrl = Deno.env.get("SUPABASE_URL");
   const supabaseKey = Deno.env.get("SUPABASE_ANON_KEY");
   if (!supabaseUrl || !supabaseKey) {
@@ -93,7 +103,7 @@ serve(async (req) => {
     global: { headers: { Authorization: authHeader } },
   });
 
-  const { data: { user }, error: authError } = await supabaseClient.auth.getUser();
+  const { data: { user }, error: authError } = await supabaseClient.auth.getUser(accessToken);
 
   if (authError || !user) {
     console.error("[create-checkout] auth_failed");

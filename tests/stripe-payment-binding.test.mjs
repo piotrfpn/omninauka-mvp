@@ -41,7 +41,11 @@ test('STATIC_CONTRACT CREATE-CHECKOUT: POST only', () => {
 test('STATIC_CONTRACT CREATE-CHECKOUT: invalid/missing auth', () => {
   assert.ok(checkoutContent.includes('const authHeader = req.headers.get("Authorization");'));
   assert.ok(checkoutContent.includes('if (!authHeader)'));
-  assert.ok(checkoutContent.includes('const { data: { user }, error: authError } = await supabaseClient.auth.getUser();'));
+  assert.ok(checkoutContent.includes('const bearerMatch = authHeader.match(/^Bearer\\s+(.+)$/i);'));
+  assert.ok(checkoutContent.includes('const accessToken = bearerMatch?.[1]?.trim();'));
+  assert.ok(checkoutContent.includes('if (!accessToken)'));
+  assert.ok(checkoutContent.includes('const { data: { user }, error: authError } = await supabaseClient.auth.getUser(accessToken);'));
+  assert.ok(checkoutContent.includes('global: { headers: { Authorization: authHeader } }'));
 });
 test('STATIC_CONTRACT CREATE-CHECKOUT: canonical auth user', () => {
   assert.ok(checkoutContent.includes('const userId = user.id;'));
@@ -369,4 +373,62 @@ test('STATIC_CONTRACT MIGRATION: ACL service_role only, search_path pinned', () 
   assert.ok(migrationContent.includes('SET search_path = public'));
   assert.ok(migrationContent.includes('REVOKE EXECUTE ON FUNCTION public.fulfill_stripe_premium_payment'));
   assert.ok(migrationContent.includes('GRANT EXECUTE ON FUNCTION public.fulfill_stripe_premium_payment'));
+});
+
+async function loadCreateCheckoutHandler(overrideStripe, overrideSupabase, envMap) {
+  const body = checkoutContent.replace(/^import .*;\r?\n/gm, '');
+  const js = ts.transpileModule(body, {
+    compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.None },
+  }).outputText;
+  let handler;
+  const boot = new Function('serve', 'createClient', 'Stripe', 'Deno', 'console', js);
+
+  boot(
+    (fn) => { handler = fn; },
+    overrideSupabase,
+    overrideStripe,
+    { env: { get: (k) => envMap[k] } },
+    { error: () => {} }
+  );
+  return handler;
+}
+
+test('MOCKED_RUNTIME CREATE-CHECKOUT: Missing Authorization -> 401', async () => {
+  const handler = await loadCreateCheckoutHandler(() => ({}), () => ({}), {
+    SUPABASE_URL: 'http://test', SUPABASE_ANON_KEY: 'test', APP_URL: 'https://test.com', STRIPE_SECRET_KEY: 'test', STRIPE_PREMIUM_PRICE_ID: 'test'
+  });
+  const req = new Request('https://example.com', { method: 'POST', body: '{}', headers: { 'Content-Type': 'application/json' } });
+  const res = await handler(req);
+  assert.equal(res.status, 401);
+});
+
+test('MOCKED_RUNTIME CREATE-CHECKOUT: Malformed Bearer header -> 401', async () => {
+  const handler = await loadCreateCheckoutHandler(() => ({}), () => ({}), {
+    SUPABASE_URL: 'http://test', SUPABASE_ANON_KEY: 'test', APP_URL: 'https://test.com', STRIPE_SECRET_KEY: 'test', STRIPE_PREMIUM_PRICE_ID: 'test'
+  });
+  const req = new Request('https://example.com', { method: 'POST', body: '{}', headers: { 'Content-Type': 'application/json', 'Authorization': 'Basic 12345' } });
+  const res = await handler(req);
+  assert.equal(res.status, 401);
+});
+
+test('MOCKED_RUNTIME CREATE-CHECKOUT: Valid Bearer passes token to getUser exactly', async () => {
+  let passedToken = null;
+  const mockSupabase = () => ({
+    auth: { getUser: async (token) => { passedToken = token; return { data: { user: { id: 'u123' } }, error: null }; } },
+    from: () => ({ select: () => ({ eq: () => ({ single: async () => ({ data: { plan: 'free', account_status: 'active' }, error: null }) }) }) })
+  });
+  const mockStripe = function() {
+    return {
+      checkout: { sessions: { create: async (opts) => ({ url: 'https://checkout.stripe.com/test' }) } }
+    };
+  };
+  mockStripe.createFetchHttpClient = () => {};
+
+  const handler = await loadCreateCheckoutHandler(mockStripe, mockSupabase, {
+    SUPABASE_URL: 'http://test', SUPABASE_ANON_KEY: 'test', APP_URL: 'https://test.com', STRIPE_SECRET_KEY: 'test', STRIPE_PREMIUM_PRICE_ID: 'test'
+  });
+  const req = new Request('https://example.com', { method: 'POST', body: '{}', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer   real_token_123  ' } });
+  const res = await handler(req);
+  assert.equal(res.status, 200);
+  assert.equal(passedToken, 'real_token_123');
 });
