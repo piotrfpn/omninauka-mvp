@@ -1,63 +1,92 @@
-# Stripe Webhook Auto Activation MVP (Sprint 22B)
+# Stripe Webhook Auto Activation MVP (Sprint 29D.2B)
 
 ## Cel
-Automatyzacja aktywacji i przedłużania planu **Premium 30 dni** po dokonaniu płatności przez Stripe Payment Link. Eliminuje to konieczność ręcznej interwencji administratora w większości przypadków.
+Automatyzacja aktywacji i przedłużania planu **Premium 30 dni** po dokonaniu płatności przez Stripe Checkout. Zapewnia to maksymalne bezpieczeństwo poprzez weryfikację autentyczności (backend do backend).
 
-## Architektura i Przepływ
-1.  **Frontend (`/app/payments`)**: Do każdego Stripe Payment Link doklejany jest parametr `client_reference_id` zawierający UUID użytkownika z Supabase Auth.
-2.  **Stripe**: Po udanej płatności wysyła zdarzenie `checkout.session.completed` na zarejestrowany endpoint webhooka.
-3.  **Edge Function (`stripe-webhook`)**:
+## Architektura i Przepływ (checkout_v1)
+1.  **Frontend (`/app/payments`)**: Użytkownik klika przycisk "Kup Premium". Frontend wywołuje z autoryzacją `create-checkout` Edge Function.
+2.  **Edge Function (`create-checkout`)**:
+    *   Weryfikuje użytkownika przez `auth.getUser()`.
+    *   Sprawdza czy użytkownik ma `account_status === 'active'`.
+    *   Sprawdza czy użytkownik nie ma aktywnego planu Rodzinnego.
+    *   Tworzy bezpiecznie Stripe Checkout Session z autorytatywnym Price ID.
+    *   Zwraca wygenerowany link do płatności.
+3.  **Stripe**: Po udanej płatności wysyła zdarzenie `checkout.session.completed` na webhook. Płatności asynchroniczne mogą wywołać również `checkout.session.async_payment_succeeded`.
+4.  **Edge Function (`stripe-webhook`)**:
     *   Weryfikuje podpis Stripe (`Stripe-Signature`).
-    *   Sprawdza idempotencję w tabeli `payment_events` (zabezpieczenie przed podwójnym przetworzeniem).
-    *   Wyciąga `client_reference_id` i weryfikuje profil użytkownika.
-    *   Wywołuje istniejącą procedurę składowaną `public.admin_extend_plan_30_days`.
-    *   Rejestruje zdarzenie w `payment_events` oraz wpis audytowy w `admin_plan_actions`.
+    *   Odrzuca stare Payment Linki (`payment_link == null`).
+    *   Weryfikuje niezgodność pomiędzy `metadata.omninauka_user_id` a `client_reference_id`.
+    *   Odpytuje Stripe API o faktycznie opłacone `line_items` by ustalić autentyczny Price ID.
+    *   Wywołuje atomową operację RPC `public.fulfill_stripe_premium_payment`.
 
 ## Konfiguracja (Supabase Secrets)
-Do poprawnego działania wymagane jest ustawienie następujących sekretów w Supabase:
+Wymagane jest ustawienie następujących sekretów w Supabase:
 
 ```bash
-# Wymagane
 npx supabase secrets set STRIPE_SECRET_KEY="sk_live_..."
 npx supabase secrets set STRIPE_WEBHOOK_SECRET="whsec_..."
-npx supabase secrets set STRIPE_PREMIUM_PAYMENT_LINK_ID="plink_..."
-
-# Opcjonalne (walidacja kwoty i waluty)
-npx supabase secrets set STRIPE_PREMIUM_AMOUNT_TOTAL="2999"
-npx supabase secrets set STRIPE_PREMIUM_CURRENCY="pln"
+npx supabase secrets set STRIPE_PREMIUM_PRICE_ID="price_..."
+npx supabase secrets set APP_URL="https://app.omninauka.pl"
 ```
+*(Stare zmienne VITE_STRIPE_PREMIUM_PAYMENT_LINK, STRIPE_PREMIUM_AMOUNT_TOTAL są przestarzałe).*
 
 ## Baza Danych
-### Tabela `public.payment_events`
-Służy do śledzenia statusu płatności i zapewnienia idempotencji.
-*   `stripe_event_id`: Unikalny identyfikator zdarzenia Stripe.
-*   `status`: `processing`, `processed`, `ignored`, `error`.
-*   `user_id`: Powiązany użytkownik Supabase.
+Rozszerzenia w tabeli `public.payment_events` obsługują idempotencję. Atomowa logika jest zamknięta w funkcji PostgreSQL `fulfill_stripe_premium_payment`, która wykorzystuje mechanizm `INSERT ON CONFLICT DO NOTHING` dla idempotencji eventu, a `UNIQUE` index dla idempotencji sesji. Zapewnia `exactly_once` event processing dla webhooków i radzi sobie bezpiecznie ze współbieżnymi płatnościami (dzięki `SELECT FOR UPDATE`).
 
-### Audyt
-Każda automatyczna aktywacja tworzy wpis w `public.admin_plan_actions` z adresem `admin_email = 'stripe-webhook'`.
+## PAID BUT UNFULFILLED (Reconciliation Queue)
+Zdarzenia, które zostały opłacone, ale nie mogły zostać automatycznie zrealizowane z powodów biznesowych, wpadają do kolejki `reconciliation_required`:
+*   `payment_events` status = `error`
+*   `error_message` LIKE `%reconciliation_required%`
 
-## Deploy
-Funkcja musi zostać wdrożona z wyłączoną weryfikacją JWT (Stripe nie wysyła tokenów Supabase).
+Przypadki biznesowe:
+*   `active_family_reconciliation_required` (użytkownik miał plan Rodzinny w momencie płatności Premium)
+*   `target_profile_missing_reconciliation_required` (profil docelowy przestał istnieć)
 
-```bash
-# Jeśli config.toml zawiera [functions.stripe-webhook] verify_jwt = false:
-npx supabase functions deploy stripe-webhook
+Procedura dla administratora/supportu:
+1.  Admin weryfikuje płatność bezpośrednio w Stripe.
+2.  Admin weryfikuje obecną tożsamość konta niezależnie od dawnych logów.
+3.  Admin decyduje czy przedłużyć plan ręcznie, czy wykonać zwrot (refund).
+4.  Admin zapisuje rezultat wsparcia używając istniejącego procesu.
+*Nigdy nie należy ufać historycznym atrybutom client_reference_id jako dowodowi tożsamości.*
 
-# Alternatywnie wymuszenie flagą:
-npx supabase functions deploy stripe-webhook --no-verify-jwt
-```
+## Wdrożenie (Bezpieczny Cutover)
+UWAGA: Zanim system ustabilizuje się na nowej architekturze, wcześniej utworzona (stara) sesja Checkout Session MOŻE zostać opłacona w trakcie trwania tego cutovera. Bezpieczeństwo jest zachowane JEDYNIE dzięki wyłączeniu (disabled) endpointu webhooka w Stripe, dopóki w systemie wciąż działa stara, podatna funkcja, i jego włączeniu (enabled) dopiero, gdy uruchomiona zostanie nowa, utwardzona (hardened) wersja webhooka.
 
-## Testowanie Lokalne
-Możesz przetestować webhook lokalnie przy użyciu Stripe CLI:
+**PHASE A — FREEZE USER PURCHASES**
+1.  Tymczasowo wyłącz przycisk zakupów Premium na frontendzie (CTA) w OmniNauka.
+2.  Zarchiwizuj i wyłącz (disable) stary Stripe Payment Link. Uniemożliwi to tworzenie nowych, starych sesji Payment Link. (Ważne: już utworzone stare sesje nadal mogą zostać opłacone, więc samo wyłączenie Payment Linka nie jest wystarczające).
 
-1.  Uruchom nasłuchiwanie:
-    ```bash
-    stripe listen --forward-to https://[project-ref].functions.supabase.co/stripe-webhook
-    ```
-2.  Wykonaj testowy zakup na `/app/payments` (używając trybu testowego Stripe).
-3.  Sprawdź logi funkcji w panelu Supabase oraz tabele `payment_events` i `admin_plan_actions`.
+**PHASE B — CONTAIN OLD WEBHOOK DELIVERY**
+3.  Wyłącz (disable) istniejący endpoint webhooka w Stripe, który obecnie celuje w legacy `stripe-webhook` w OmniNauka.
+    *   Upewnij się i potwierdź jego status jako: `status = disabled` zanim przejdziesz dalej.
+    *   Jest to granica bezpieczeństwa. Od tego momentu stara, podatna funkcja nie otrzyma już nowych dostaw zdarzeń ze Stripe podczas migracji/deployu.
+    *   **NIE KONTYNUUJ**, jeżeli nie możesz potwierdzić wyłączenia endpointu.
 
-## Ważne Uwagi
-*   **Family Plan**: Jeśli użytkownik ma aktywny plan Rodzinny, webhook **nie obniży go** do Premium. Zdarzenie zostanie oznaczone jako `ignored` z błędem `active_family_plan`.
-*   **Idempotencja**: Funkcja najpierw tworzy rekord w `payment_events` ze statusem `processing`, a dopiero potem wykonuje akcję. Ponowne otrzymanie tego samego `event_id` zostanie zignorowane.
+**PHASE C — BACKEND SWITCH**
+4.  Zastosuj zweryfikowaną migrację ręcznie: `00080_stripe_payment_fulfillment.sql` i **tylko** tę migrację. (Nie używaj: `supabase db push`, `supabase migration up`, `supabase migration repair`, ani powtarzania historycznych migracji).
+5.  Zdeployuj nową, utwardzoną (hardened) funkcję `stripe-webhook` w Edge Functions.
+6.  Zweryfikuj, że na środowisku działa zdeployowana, utwardzona wersja. (NIE włączaj endpointu webhooka zanim to nie zostanie bezwzględnie potwierdzone!).
+
+**PHASE D — RE-ENABLE WEBHOOK DELIVERY**
+7.  Włącz ponownie (re-enable) TEN SAM endpoint webhooka w Stripe **dopiero po** aktywowaniu utwardzonego webhooka.
+    *   Potwierdź status endpointu: `enabled` i że jego docelowy URL to nadal prawidłowy, utwardzony webhook OmniNauka.
+    *   Od tego momentu wszystkie nowe zdarzenia oraz ręcznie ponowione dostawy ze Stripe muszą trafiać do nowej logiki. Nigdy nie kieruj eventów z powrotem do starego, podatnego webhooka.
+    *   **UWAGA NA ZDARZENIA Z OKRESU CONTAINMENT:** Nie zakładaj, że wszystkie zdarzenia zaistniałe w czasie wyłączonego webhooka zostaną automatycznie wysłane (replayed). Po ponownym włączeniu endpointu, wykonaj review historii webhook delivery / Stripe Events dla okresu zablokowania webhooka (containment window).
+    *   Zidentyfikuj: stare sesje Checkout zakończone sukcesem podczas wyłączonego webhooka, faile w dostarczeniu (failed deliveries), zdarzenia pending/retried, zapłacone stare sesje Payment Link oraz eventy wymagające przeglądu manualnego. Jeśli to konieczne, ponów wysyłkę brakujących eventów ze Stripe (resend), ale **tylko po to by trafiły do działającego utwardzonego webhooka**.
+    *   Zdarzenia z Payment Link opłacone w legacy sesjach, odrzucone przez rygorystyczne sprawdzanie w nowym webhooku, muszą przejść MANUALNĄ REKONCYLIACJĘ.
+
+**PHASE E — NEW CHECKOUT**
+Tylko po: zainstalowaniu migracji 00080, wdrożeniu utwardzonego webhooka, ponownym włączeniu endpointu Stripe oraz zakończeniu review zdarzeń z containment window, kontynuuj:
+8.  Zdeployuj funkcję `create-checkout`.
+9.  Zweryfikuj poprawność/konfigurację `create-checkout`.
+10. Zdeployuj bezpieczny frontend.
+11. Przeprowadź wewnętrzne testy QA nowej płatności.
+12. Włącz ponownie CTA Premium (dopiero po udanym teście QA).
+
+### Reguła Wstrzymania Cutovera i Manualnej Rekoncyliacji (Failure / Rollback)
+Jeżeli jakikolwiek proces deployu lub migracji zawiedzie w momencie, gdy endpoint webhooka w Stripe jest wyłączony:
+*   **ZATRZYMAJ:** CTA Premium wyłączone, stary Payment Link wyłączony, endpoint webhooka w Stripe WYŁĄCZONY dopóki nie naprawisz utwardzonego deployu.
+*   **NIE PRZYWRACAJ:** starego, podatnego webhooka, zaufania do starego `client_reference_id`, ani starego przepływu Payment Link.
+*   Napraw "do przodu" (repair forward). Dopiero, gdy utwardzony webhook będzie poprawnie działał, włącz endpoint Stripe, wykonaj review eventów i manualną rekoncyliację.
+
+**Manualna rekoncyliacja**: Dla jakiejkolwiek opłaconej legacy sesji z Payment Linka, Stripe stanowi jedyne źródło prawdy dla statusu płatności. **NIE UFAJ** starym wartościom `client_reference_id` jako dowodowi tożsamości. Admin/support musi niezależnie zweryfikować docelowe konto w systemie OmniNauka przed nadaniem uprawnień (entitlement) lub przekazaniem/wystawieniem zwrotu (refund). Zapisz decyzję z operacji wsparcia.

@@ -1,13 +1,17 @@
+import { useState, useRef } from 'react';
 import { useAuth } from '../../lib/auth-context';
 import { useTranslation } from 'react-i18next';
-import { CheckCircle, AlertCircle, Sparkles, Users, ExternalLink } from 'lucide-react';
+import { CheckCircle, AlertCircle, Sparkles, Users, ExternalLink, Loader2 } from 'lucide-react';
 import { isPlanActive } from '../../lib/plan-utils';
+import { supabase } from '../../lib/supabase';
 
 export default function PaymentsPage() {
   const { t, i18n } = useTranslation();
   const { user } = useAuth();
 
-  const premium30Link = import.meta.env.VITE_STRIPE_PREMIUM_30_DAYS_PAYMENT_LINK || import.meta.env.VITE_STRIPE_PREMIUM_PAYMENT_LINK;
+  const [isLoadingCheckout, setIsLoadingCheckout] = useState(false);
+  const [checkoutError, setCheckoutError] = useState<string | null>(null);
+  const inFlightRef = useRef(false);
 
   // Sub link variables removed for MVP phase
 
@@ -21,23 +25,55 @@ export default function PaymentsPage() {
   const isPaidPlanActiveForDisplay = isPaidPlan && (isPlanActiveNow || hasNoExpiryDate);
   const showActivationNotice = !isPaidPlanActiveForDisplay;
 
-  /**
-   * Helper to append client_reference_id (Supabase User ID) to Stripe Payment Links.
-   * This is critical for the webhook to identify the user for auto-activation.
-   */
-  const buildStripePaymentUrl = (baseUrl: string | undefined, userId: string | undefined): string | undefined => {
-    if (!baseUrl || !userId) return undefined;
+  const handlePremiumClick = async () => {
+    if (inFlightRef.current) return;
+    inFlightRef.current = true;
+
+    setIsLoadingCheckout(true);
+    setCheckoutError(null);
+
     try {
-      const url = new URL(baseUrl);
-      url.searchParams.set('client_reference_id', userId);
-      return url.toString();
-    } catch (e) {
-      console.error('Invalid Stripe URL:', baseUrl);
-      return baseUrl;
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        throw new Error('Nie jesteś zalogowany. Zaloguj się i spróbuj ponownie.');
+      }
+
+      const res = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-checkout`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${session.access_token}`
+          },
+          body: JSON.stringify({})
+        }
+      );
+
+      if (!res.ok) {
+        throw new Error('Problem z serwerem. Spróbuj ponownie później.');
+      }
+
+      const data = await res.json();
+      if (data.url) {
+        const urlObj = new URL(data.url);
+        if (urlObj.protocol === 'https:' && urlObj.hostname === 'checkout.stripe.com') {
+          window.location.href = data.url;
+          return; // Do not reset inFlightRef if navigating away
+        } else {
+          throw new Error('Nieprawidłowy link płatności.');
+        }
+      } else {
+        throw new Error(data.error || 'Nie udało się wygenerować linku płatności.');
+      }
+    } catch (e: any) {
+      console.error('Checkout error:', e.message);
+      setCheckoutError(e.message || 'Wystąpił nieoczekiwany błąd.');
+      inFlightRef.current = false;
+      setIsLoadingCheckout(false);
     }
   };
 
-  const premium30Url = buildStripePaymentUrl(premium30Link, user?.id);
   // Variables removed for MVP phase
 
   const planLabel = (user?.effectivePlan || user?.plan) === 'premium' && isPaidPlanActiveForDisplay
@@ -212,21 +248,21 @@ export default function PaymentsPage() {
             ))}
           </ul>
           <div className="mt-auto">
+            {checkoutError && (
+              <p className="text-sm text-red-500 mb-3 text-center bg-red-50 p-2 rounded-lg">{checkoutError}</p>
+            )}
             {premiumCTAIsDisabled ? (
               <button disabled className="w-full inline-flex items-center justify-center whitespace-nowrap px-4 py-3 rounded-xl transition-all bg-gray-100 dark:bg-slate-800/80 text-gray-400 dark:text-slate-500 font-semibold cursor-not-allowed">
                 {premiumCTA}
               </button>
-            ) : premium30Url ? (
-              <a
-                href={premium30Url}
-                className="w-full inline-flex items-center justify-center whitespace-nowrap px-4 py-3 bg-[#6366f1] dark:bg-[#2EE6A6] text-white dark:text-[#0B1220] font-bold rounded-xl hover:shadow-lg gap-2 active:scale-[0.98] transition-all"
-              >
-                {premiumCTA}
-                <ExternalLink className="w-4 h-4" />
-              </a>
             ) : (
-              <button disabled className="w-full inline-flex items-center justify-center whitespace-nowrap px-4 py-3 rounded-xl transition-all bg-gray-100 text-gray-400 font-semibold cursor-not-allowed">
-                Wkrótce
+              <button
+                onClick={handlePremiumClick}
+                disabled={isLoadingCheckout}
+                className="w-full inline-flex items-center justify-center whitespace-nowrap px-4 py-3 bg-[#6366f1] dark:bg-[#2EE6A6] text-white dark:text-[#0B1220] font-bold rounded-xl hover:shadow-lg gap-2 active:scale-[0.98] transition-all disabled:opacity-70 disabled:cursor-not-allowed"
+              >
+                {isLoadingCheckout ? <Loader2 className="w-5 h-5 animate-spin" /> : premiumCTA}
+                {!isLoadingCheckout && <ExternalLink className="w-4 h-4" />}
               </button>
             )}
           </div>

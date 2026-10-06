@@ -675,6 +675,8 @@ test('29D.1D Edge Functions cannot create profiles; only admin-plan-management m
     'supabase/functions/analyze-notes/index.ts',
     'supabase/functions/delete-session/index.ts',
     'supabase/functions/delete-account/index.ts',
+    'supabase/functions/stripe-webhook/index.ts',
+    'supabase/functions/create-checkout/index.ts',
   ];
   assert.deepEqual(changed.filter(path => !allowed.includes(path)), []);
 });
