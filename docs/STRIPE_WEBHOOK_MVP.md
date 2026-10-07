@@ -31,7 +31,7 @@ npx supabase secrets set APP_URL="https://app.omninauka.pl"
 *(Stare zmienne VITE_STRIPE_PREMIUM_PAYMENT_LINK, STRIPE_PREMIUM_AMOUNT_TOTAL są przestarzałe).*
 
 ## Baza Danych
-Rozszerzenia w tabeli `public.payment_events` obsługują idempotencję. Atomowa logika jest zamknięta w funkcji PostgreSQL `fulfill_stripe_premium_payment`, która wykorzystuje mechanizm `INSERT ON CONFLICT DO NOTHING` dla idempotencji eventu, a `UNIQUE` index dla idempotencji sesji. Zapewnia `exactly_once` event processing dla webhooków i radzi sobie bezpiecznie ze współbieżnymi płatnościami (dzięki `SELECT FOR UPDATE`).
+Rozszerzenia w tabeli `public.payment_events` obsługują idempotencję. Atomowa logika jest zamknięta w funkcji PostgreSQL `fulfill_stripe_premium_payment`, która wykorzystuje mechanizm `INSERT ON CONFLICT DO NOTHING` dla idempotencji eventu, a `UNIQUE` index dla idempotencji sesji. Architektura wykorzystuje `SELECT FOR UPDATE` do serializacji zmian uprawnienia dla jednego profilu. Zakres potwierdzenia runtime i niewykonany test współbieżnych, odrębnych płatności opisuje sekcja akceptacji F-03 poniżej.
 
 ## PAID BUT UNFULFILLED (Reconciliation Queue)
 Zdarzenia, które zostały opłacone, ale nie mogły zostać automatycznie zrealizowane z powodów biznesowych, wpadają do kolejki `reconciliation_required`:
@@ -90,3 +90,84 @@ Jeżeli jakikolwiek proces deployu lub migracji zawiedzie w momencie, gdy endpoi
 *   Napraw "do przodu" (repair forward). Dopiero, gdy utwardzony webhook będzie poprawnie działał, włącz endpoint Stripe, wykonaj review eventów i manualną rekoncyliację.
 
 **Manualna rekoncyliacja**: Dla jakiejkolwiek opłaconej legacy sesji z Payment Linka, Stripe stanowi jedyne źródło prawdy dla statusu płatności. **NIE UFAJ** starym wartościom `client_reference_id` jako dowodowi tożsamości. Admin/support musi niezależnie zweryfikować docelowe konto w systemie OmniNauka przed nadaniem uprawnień (entitlement) lub przekazaniem/wystawieniem zwrotu (refund). Zapisz decyzję z operacji wsparcia.
+
+## F-03 Runtime Acceptance — Sprint 29D.2B
+
+**Status: `F03_STATUS=COMPLETED`** — checkpoint akceptacji z 2026-10-07, faza `R7C1H_F03_RUNTIME_ACCEPTANCE_CLOSURE`.
+
+Akceptowany checkpoint kodu: `main`, HEAD i `origin/main` przed zmianą dokumentacji: `21b0e0cefc73a84016d50faf09236f2b8ef12533`. Podstawą zamknięcia są zakończone kontrole statyczne oraz trzy poniższe dowody runtime. Wyniki A i B oraz wersje wdrożenia pochodzą z zatwierdzonego checkpointu runtime; wynik C został potwierdzony testem CLI w fazie `R7C1G_2_DISTINCT_EVENT_SAME_SESSION_CLI_TRANSACTION`. Ta faza zamknięcia jest wyłącznie dokumentacyjna i nie powtarza operacji płatniczych ani wdrożeń.
+
+Checkpoint środowiska: `stripe-webhook` wersja **10**, `create-checkout` wersja **2**, Stripe **TEST MODE**, stare Payment Links **DISABLED**, endpoint webhooka **ACTIVE**. Obsługiwane zdarzenia: `checkout.session.completed` i `checkout.session.async_payment_succeeded`. Nie jest to dowód płatności w Stripe LIVE MODE.
+
+### A. Real Stripe Sandbox E2E
+
+**Wynik: `PASS_FIRST_REAL_STRIPE_E2E`.** Kontrolowane konto QA **DzieckoTest2**, początkowo `plan=free`, wykonało udaną, jednorazową płatność Sandbox za **Premium 30 dni — 29,99 PLN**.
+
+| Obserwacja | Przed | Po |
+| --- | --- | --- |
+| `payment_events` | 9 | 10 |
+| `admin_plan_actions` | 26 | 27 |
+| Profile `free` | 16 | 15 |
+| Profile `premium` | 5 | 6 |
+| Profile `family` | 3 | 3 |
+| Plan DzieckoTest2 | `free` | `premium` |
+
+Termin uprawnienia wyniósł około +30 dni. Zdarzenie płatności zostało przetworzone (`processed=true`; status rekordu `processed`), z `payment_status=paid`, `amount_total=2999`, `currency=pln` i `event_type=checkout.session.completed`. Zmieniło się wyłącznie zamierzone konto QA; żadne uprawnienie Family nie zostało nadpisane.
+
+### B. Same event replay idempotency
+
+**Wynik: `PASS_SAME_EVENT_REPLAY_IDEMPOTENCY_RUNTIME`.** Oryginalne zdarzenie `checkout.session.completed` zostało ręcznie dostarczone ponownie dwa razy; obie dostawy zwróciły **HTTP 200**.
+
+Stan trwały pozostał dokładnie taki sam: `payment_events=10`, `admin_plan_actions=27`, rozkład planów `free=15`, `premium=6`, `family=3`. Oba znaczniki czasu uprawnienia QA pozostały dokładnie bez zmian: `plan_expires_at=2026-11-05 14:26:29.922858+00`, `plan_updated_at=2026-10-06 14:26:29.922858+00`. Nie powstał dodatkowy rekord płatności ani audytu administracyjnego i nie nastąpiło kolejne przedłużenie o 30 dni.
+
+### C. Distinct event / same session idempotency
+
+**Wynik: `PASS_DISTINCT_EVENT_SAME_SESSION_RUNTIME`.** Kontrolowany test PostgreSQL przez lokalny Supabase CLI wykonał dwa RPC w jednym batchu i jednej jawnej transakcji. Identyfikatory były syntetyczne: dwa różne eventy korzystały z dokładnie tej samej sesji Checkout. Nie wykonano kolejnej płatności ani nie utworzono sesji w Stripe.
+
+| Obserwacja transakcyjna | Po pierwszym RPC | Po drugim RPC |
+| --- | --- | --- |
+| Wynik RPC | `processed` | `duplicate_checkout_session` |
+| `payment_events` | 11 | 11 |
+| `admin_plan_actions` | 28 | 28 |
+| Plan QA | `premium` | `premium` |
+| Odczytany `plan_expires_at` | `2026-12-05 14:26:29.922858+00` | `2026-12-05 14:26:29.922858+00` |
+| Rekordy dla syntetycznej sesji | 1 | 1 |
+
+Pierwsze RPC dodało dokładnie jeden rekord płatności, jeden rekord audytu i 30 dni do bazowego terminu uprawnienia. Drugie RPC dodało **0** rekordów płatności, **0** rekordów audytu i **0** dodatkowego czasu uprawnienia; `plan_updated_at` również pozostał bez zmian względem pierwszego RPC.
+
+Batch zakończył transakcję jawnym **`ROLLBACK`**. Świeże zapytanie tylko do odczytu potwierdziło przywrócenie dokładnego stanu trwałego:
+
+- `payment_events=10`, `admin_plan_actions=27`, `profiles=24`.
+- Rozkład planów: `free=15`, `premium=6`, `family=3`.
+- Dokładnie jedno konto DzieckoTest2: `account_status=active`, `plan=premium`.
+- `plan_expires_at=2026-11-05 14:26:29.922858+00`.
+- `plan_updated_at=2026-10-06 14:26:29.922858+00`.
+- `SYNTHETIC_ROWS_PERSISTED=0`; syntetyczne rekordy audytu również nie pozostały.
+- Niepuste `stripe_session_id`: **10**; różne `stripe_session_id`: **10**; grupy duplikatów sesji i eventów: **0**.
+
+Plik testowy poza repozytorium został usunięty po weryfikacji rollbacku.
+
+### D. Zweryfikowane kontrole bezpieczeństwa
+
+Walidacja dokumentacyjnego checkpointu: `node --test tests/stripe-payment-binding.test.mjs` — **38/38 PASS**, 0 błędów. Zestaw zawiera kontrole statyczne i testy z mockami; nie zastępuje opisanych oddzielnie dowodów runtime A–C.
+
+Kontrole statyczne kodu i testy kontraktu potwierdzają:
+
+- Przeglądarka nie steruje `client_reference_id`; kanoniczny cel pochodzi z uwierzytelnionego użytkownika Supabase (`auth.getUser()`).
+- Serwer ustala Premium Price ID, `quantity=1`, `mode=payment` i generuje metadata wiążące użytkownika.
+- Webhook wymaga poprawnego podpisu Stripe i odrzuca sesje legacy Payment Link.
+- Webhook sprawdza zgodność dwóch powiązań użytkownika: `metadata.omninauka_user_id` i `client_reference_id`.
+- Cena jest niezależnie weryfikowana przez pobranie Stripe line items; płatność musi mieć status `paid`.
+- Profil jest blokowany przez `FOR UPDATE` przed zmianą uprawnienia; ochrona aktywnego Family pozostaje zachowana.
+- Rekord płatności, zmiana uprawnienia i audyt administracyjny są atomowe w RPC.
+- Udane przetworzenie nie zapisuje payloadu (`payload=NULL`).
+
+Metadane PostgreSQL odczytane w fazie C potwierdziły aktywny, poprawny częściowy indeks UNIQUE `payment_events_stripe_session_id_unique` na `stripe_session_id WHERE stripe_session_id IS NOT NULL`, a także RPC `SECURITY DEFINER` z `search_path=public`. Spośród ról aplikacyjnych RPC ma uprawnienie EXECUTE wyłącznie dla `service_role`; `PUBLIC`, `anon` i `authenticated` nie mają tego uprawnienia. Runtime B potwierdził idempotencję `stripe_event_id`, a runtime C potwierdził idempotencję różnych eventów dla tej samej `stripe_session_id`.
+
+### Ograniczenie współbieżności — nie blokuje akceptacji
+
+`CONCURRENT_DISTINCT_VALID_PAYMENTS_RUNTIME_TEST=NOT_PERFORMED`.
+
+Prawdziwy równoczesny test dwóch odrębnych, poprawnych płatności wymagałby kontrolowanych wielu sesji DB i/lub zatwierdzonego, izolowanego stanu testowego. Statyczna architektura zawiera blokadę profilu `FOR UPDATE` i atomową transakcję fulfillment; nie jest to dowód runtime takiego scenariusza współbieżności. Test C sprawdza sekwencyjne RPC wewnątrz jednej transakcji.
+
+Klasyfikacja dodatkowego testu: **`OPTIONAL_POST_MVP_HARDENING`**. Nie blokuje on akceptacji F-03 i nie został oznaczony jako wykonany. Zamknięcie F-03 dotyczy potwierdzonego powiązania celu płatności oraz opisanych dowodów statycznych i runtime.
