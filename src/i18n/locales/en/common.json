@@ -63,13 +63,13 @@
         },
         "noPreapproval": {
           "title": "Parental consent required",
-          "desc": "Ask a parent or guardian to first add this email address in the Parent Dashboard in OmniNauka. If the account is not linked to a parent or legal guardian within 72 hours, it may be deleted or marked for deletion in accordance with data minimization principles.",
+          "desc": "Ask a parent or guardian to first add this email address in the Parent Dashboard in OmniNauka. If an account of a child under 13 is not validly linked to a parent or guardian account within 7 days of registration, it can no longer be activated through parental linking and enters the data deletion process. Data is removed according to the applicable retention and deletion policy.",
           "whatNow": "What's next?",
           "step1": "Ask a parent to log in to their OmniNauka account.",
           "step2": "In the Parent Dashboard, they will click 'Add Child' and enter this same email address.",
           "step3": "Log in again — the account will be automatically linked."
         },
-        "registerHint": "Registration for people under 13 requires a parent to first add this email address in the Parent Dashboard. If the account is not linked to a parent or legal guardian within 72 hours, it may be deleted or marked for deletion in accordance with data minimization principles."
+        "registerHint": "Registration for people under 13 requires a parent to first add this email address in the Parent Dashboard. If an account of a child under 13 is not validly linked to a parent or guardian account within 7 days of registration, it can no longer be activated through parental linking and enters the data deletion process. Data is removed according to the applicable retention and deletion policy."
       }
     },
     "forgot": {
@@ -117,7 +117,7 @@
       "submit": "Send consent request",
       "under13": {
         "title": "Parental consent required",
-        "desc": "To use OmniNauka, your parent or guardian must first add this email address in the Parent Dashboard. Until the account is linked, you cannot use OmniNauka's educational features. If the account is not linked to a parent or legal guardian within 72 hours, it may be deleted or marked for deletion in accordance with data minimization principles.",
+        "desc": "To use OmniNauka, your parent or guardian must first add this email address in the Parent Dashboard. Until the account is linked, you cannot use OmniNauka's educational features. If an account of a child under 13 is not validly linked to a parent or guardian account within 7 days of registration, it can no longer be activated through parental linking and enters the data deletion process. Data is removed according to the applicable retention and deletion policy.",
         "stepTitle": "What's next?",
         "step1": "Ask your parent to log in to their OmniNauka account.",
         "step2": "In the Parent Dashboard, they will click 'Add Child' and enter your email address.",
@@ -129,7 +129,7 @@
         "blockedTitle": "Parental consent required",
         "blockedSubtitle": "Ask a parent or guardian to first add this email address in the Parent Dashboard in OmniNauka.",
         "nextStepsTitle": "What's next?",
-        "cleanupRule": "If the account is not linked to a parent or legal guardian within 72 hours, it may be deleted or marked for deletion in accordance with data minimization principles.",
+        "cleanupRule": "If an account of a child under 13 is not validly linked to a parent or guardian account within 7 days of registration, it can no longer be activated through parental linking and enters the data deletion process. Data is removed according to the applicable retention and deletion policy.",
         "goToLogin": "Go to login",
         "loginAgain": "You can try to log in again to check your status."
       },
@@ -544,7 +544,7 @@
     "open": "Open Parent Dashboard",
     "addChild": {
       "emailHint": "The child will only be able to register an account with this email address. If they try to register with a different address, the account will not be automatically linked to your panel.",
-      "cleanupHint": "Accounts for children <13 without a parental link may be marked for deletion after 72 hours."
+      "cleanupHint": "If an account of a child under 13 is not validly linked to a parent or guardian account within 7 days of registration, it can no longer be activated through parental linking and enters the data deletion process. Data is removed according to the applicable retention and deletion policy."
     },
     "childCard": {
       "pendingRegistration": "We are waiting for the child to register using this email address. After registration, the account will be linked to the Parent Panel."
@@ -556,7 +556,7 @@
       "step1": "Ask your parent to log in to their Parent Dashboard.",
       "step2": "Make sure your parent has added your email address in the \"Add Child\" section.",
       "step3": "After your parent adds you, try to log in again or refresh this page.",
-      "cleanupRule": "Unlinked accounts may be deleted or marked for deletion in accordance with data minimization principles.",
+      "cleanupRule": "If an account of a child under 13 is not validly linked to a parent or guardian account within 7 days of registration, it can no longer be activated through parental linking and enters the data deletion process. Data is removed according to the applicable retention and deletion policy.",
       "loginAgain": "You can try to log in again to check your status."
     }
   },

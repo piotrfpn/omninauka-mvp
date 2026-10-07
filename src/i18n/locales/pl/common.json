@@ -63,13 +63,13 @@
         },
         "noPreapproval": {
           "title": "Wymagana zgoda rodzica",
-          "desc": "Poproś rodzica lub opiekuna, aby najpierw dodał ten adres e-mail w Panelu Rodzica w OmniNauka. Jeżeli konto nie zostanie powiązane z rodzicem lub opiekunem w ciągu 72 godzin, może zostać usunięte lub oznaczone do usunięcia zgodnie z zasadą minimalizacji danych.",
+          "desc": "Poproś rodzica lub opiekuna, aby najpierw dodał ten adres e-mail w Panelu Rodzica w OmniNauka. Jeśli konto dziecka poniżej 13 lat nie zostanie prawidłowo powiązane z kontem rodzica lub opiekuna w ciągu 7 dni od rejestracji, nie można go już aktywować przez powiązanie i rozpoczyna się proces usuwania danych. Dane są usuwane zgodnie z obowiązującymi zasadami retencji i usuwania danych.",
           "whatNow": "Co dalej?",
           "step1": "Poproś rodzica, aby zalogował się na swoje konto w OmniNauka.",
           "step2": "W Panelu Rodzica kliknie „Dodaj dziecko\" i wpisze ten sam adres e-mail.",
           "step3": "Zaloguj się ponownie — konto zostanie automatycznie powiązane."
         },
-        "registerHint": "Rejestracja dla osób poniżej 13 lat wymaga, by rodzic wcześniej dodał ten adres e-mail w Panelu Rodzica. Jeżeli konto nie zostanie powiązane z rodzicem lub opiekunem w ciągu 72 godzin, może zostać usunięte lub oznaczone do usunięcia zgodnie z zasadą minimalizacji danych."
+        "registerHint": "Rejestracja dla osób poniżej 13 lat wymaga, by rodzic wcześniej dodał ten adres e-mail w Panelu Rodzica. Jeśli konto dziecka poniżej 13 lat nie zostanie prawidłowo powiązane z kontem rodzica lub opiekuna w ciągu 7 dni od rejestracji, nie można go już aktywować przez powiązanie i rozpoczyna się proces usuwania danych. Dane są usuwane zgodnie z obowiązującymi zasadami retencji i usuwania danych."
       }
     },
     "forgot": {
@@ -117,7 +117,7 @@
       "submit": "Wyślij prośbę o zgodę",
       "under13": {
         "title": "Wymagana zgoda rodzica",
-        "desc": "Aby korzystać z OmniNauka, Twój rodzic lub opiekun musi najpierw dodać ten adres e-mail w Panelu Rodzica. Do czasu powiązania konta nie możesz korzystać z funkcji edukacyjnych OmniNauka. Jeżeli konto nie zostanie powiązane z rodzicem lub opiekunem w ciągu 72 godzin, może zostać usunięte lub oznaczone do usunięcia zgodnie z zasadą minimalizacji danych.",
+        "desc": "Aby korzystać z OmniNauka, Twój rodzic lub opiekun musi najpierw dodać ten adres e-mail w Panelu Rodzica. Do czasu powiązania konta nie możesz korzystać z funkcji edukacyjnych OmniNauka. Jeśli konto dziecka poniżej 13 lat nie zostanie prawidłowo powiązane z kontem rodzica lub opiekuna w ciągu 7 dni od rejestracji, nie można go już aktywować przez powiązanie i rozpoczyna się proces usuwania danych. Dane są usuwane zgodnie z obowiązującymi zasadami retencji i usuwania danych.",
         "stepTitle": "Co dalej?",
         "step1": "Poproś rodzica, żeby zalogował się na swoje konto w OmniNauka.",
         "step2": "W Panelu Rodzica kliknie „Dodaj dziecko\" i wpisze Twój adres e-mail.",
@@ -129,7 +129,7 @@
         "blockedTitle": "Wymagana zgoda rodzica",
         "blockedSubtitle": "Poproś rodzica lub opiekuna, aby najpierw dodał ten adres e-mail w Panelu Rodzica w OmniNauka.",
         "nextStepsTitle": "Co dalej?",
-        "cleanupRule": "Jeżeli konto nie zostanie powiązane z rodzicem lub opiekunem w ciągu 72 godzin, może zostać usunięte lub oznaczone do usunięcia zgodnie z zasadą minimalizacji danych.",
+        "cleanupRule": "Jeśli konto dziecka poniżej 13 lat nie zostanie prawidłowo powiązane z kontem rodzica lub opiekuna w ciągu 7 dni od rejestracji, nie można go już aktywować przez powiązanie i rozpoczyna się proces usuwania danych. Dane są usuwane zgodnie z obowiązującymi zasadami retencji i usuwania danych.",
         "goToLogin": "Przejdź do logowania",
         "loginAgain": "Możesz spróbować zalogować się ponownie, aby sprawdzić status."
       },
@@ -538,7 +538,7 @@
     "open": "Otwórz Panel Rodzica",
     "addChild": {
       "emailHint": "Dziecko będzie mogło zarejestrować konto tylko tym adresem e-mail. Jeśli spróbuje zarejestrować się innym adresem, konto nie zostanie automatycznie powiązane z Twoim panelem.",
-      "cleanupHint": "Konta dzieci <13 bez powiązania z rodzicem mogą zostać oznaczone do usunięcia po 72 godzinach."
+      "cleanupHint": "Jeśli konto dziecka poniżej 13 lat nie zostanie prawidłowo powiązane z kontem rodzica lub opiekuna w ciągu 7 dni od rejestracji, nie można go już aktywować przez powiązanie i rozpoczyna się proces usuwania danych. Dane są usuwane zgodnie z obowiązującymi zasadami retencji i usuwania danych."
     },
     "childCard": {
       "pendingRegistration": "Oczekujemy na rejestrację dziecka tym adresem e-mail. Po rejestracji konto zostanie automatycznie połączone z Panelem Rodzica."
@@ -555,7 +555,7 @@
       "step1": "Poproś rodzica, aby zalogował się do swojego Panelu Rodzica.",
       "step2": "Upewnij się, że rodzic dodał Twój adres e-mail w sekcji „Dodaj dziecko”.",
       "step3": "Po dodaniu przez rodzica, spróbuj zalogować się ponownie lub odśwież tę stronę.",
-      "cleanupRule": "Konta niepowiązane z rodzicem mogą zostać usunięte lub oznaczone do usunięcia w celu minimalizacji danych.",
+      "cleanupRule": "Jeśli konto dziecka poniżej 13 lat nie zostanie prawidłowo powiązane z kontem rodzica lub opiekuna w ciągu 7 dni od rejestracji, nie można go już aktywować przez powiązanie i rozpoczyna się proces usuwania danych. Dane są usuwane zgodnie z obowiązującymi zasadami retencji i usuwania danych.",
       "loginAgain": "Możesz spróbować zalogować się ponownie, aby sprawdzić status."
     }
   },

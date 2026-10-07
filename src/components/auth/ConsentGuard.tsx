@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { ReactNode } from 'react';
 import { Navigate } from 'react-router-dom';
@@ -23,7 +23,7 @@ interface ConsentGuardProps {
  *      → Show blocked screen
  */
 export function ConsentGuard({ children, requireApproval = true }: ConsentGuardProps) {
-  const { user, isLoading, isProfileLoading, refreshUser, logout } = useAuth();
+  const { user, isLoading, isProfileLoading, isProfileMissing, refreshUser, logout } = useAuth();
   const { t } = useTranslation('common');
 
   const DEBUG_ALLOWED_EMAILS = ['bojki@tlen.pl'];
@@ -38,6 +38,8 @@ export function ConsentGuard({ children, requireApproval = true }: ConsentGuardP
   // State for retroactive link attempt (under_13 who logs in after parent adds their email)
   const [isLinking, setIsLinking] = useState(false);
   const [linkAttempted, setLinkAttempted] = useState(false);
+  const [expiryConfirmed, setExpiryConfirmed] = useState(false);
+  const linkAttemptStarted = useRef(false);
 
   const isUnder13Pending =
     user?.ageBand === 'under_13' &&
@@ -47,16 +49,22 @@ export function ConsentGuard({ children, requireApproval = true }: ConsentGuardP
   // On every mount where the user is under_13 and pending,
   // attempt retroactive linking (parent may have added the email since last login)
   useEffect(() => {
-    if (!isUnder13Pending || linkAttempted) return;
+    if (!isUnder13Pending || linkAttempted || linkAttemptStarted.current || expiryConfirmed || isProfileMissing) return;
 
     const attemptLink = async () => {
+      linkAttemptStarted.current = true;
+      setLinkAttempted(true);
       setIsLinking(true);
       try {
         consentDebug('Attempting retroactive link for under_13');
         const { data } = await supabase.rpc('link_child_account');
-        if (data?.linked === true) {
-          consentDebug('Link successful, refreshing user');
-          // Success: refresh profile so account_status becomes 'active'
+        if (data?.reason === 'preapproval_window_expired') {
+          // Fail closed immediately; a subsequent profile read may fail.
+          setExpiryConfirmed(true);
+        }
+        if (data?.linked === true || data?.reason === 'preapproval_window_expired') {
+          consentDebug('Link status changed, refreshing user');
+          // Read the authoritative profile after activation or deadline expiry.
           await refreshUser();
         }
       } catch (err) {
@@ -64,12 +72,11 @@ export function ConsentGuard({ children, requireApproval = true }: ConsentGuardP
         // Non-fatal — user stays blocked
       } finally {
         setIsLinking(false);
-        setLinkAttempted(true);
       }
     };
 
     attemptLink();
-  }, [isUnder13Pending, linkAttempted, refreshUser]);
+  }, [isUnder13Pending, linkAttempted, expiryConfirmed, isProfileMissing, refreshUser]);
 
   // ANTI-FLICKER: Don't make decisions until INITIAL profile is fully resolved
   // BUT: Do not unmount if we already have a user (prevents remount on background refresh)
@@ -94,7 +101,7 @@ export function ConsentGuard({ children, requireApproval = true }: ConsentGuardP
   }
 
   // ── Case 2: under_13 without parent pre-approval ─────────────────────────
-  if (isUnder13Pending) {
+  if (isUnder13Pending && !expiryConfirmed && !isProfileMissing) {
     if (isLinking) {
       return (
         <div className="min-h-screen flex items-center justify-center bg-[var(--omni-bg)]">
@@ -151,23 +158,30 @@ export function ConsentGuard({ children, requireApproval = true }: ConsentGuardP
   }
 
   // ── Case 3: blocked/withdrawn ─────────────────────────────────────────────
-  const blockingStatuses = ['parent_withdrawn', 'suspended', 'withdrawn', 'under_13'];
-  if (user?.accountStatus && blockingStatuses.includes(user.accountStatus)) {
-    consentDebug('Blocking access due to status', user.accountStatus);
+  const blockingStatuses = ['parent_withdrawn', 'suspended', 'withdrawn', 'under_13', 'expired_pending_preapproval'];
+  const under13StatusUnavailable = user?.ageBand === 'under_13' && requireApproval &&
+    !['active', 'parent_approved', 'pending_parent_preapproval', ...blockingStatuses].includes(user.accountStatus ?? '');
+  if (expiryConfirmed || isProfileMissing || under13StatusUnavailable ||
+      (user?.accountStatus && blockingStatuses.includes(user.accountStatus))) {
+    consentDebug('Blocking access due to status', user?.accountStatus);
     return (
       <div className="min-h-screen flex items-center justify-center bg-[var(--omni-bg)] px-6">
         <div className="omni-card p-8 bg-red-50 border border-red-200 rounded-2xl text-center max-w-md">
           <ShieldAlert className="w-12 h-12 text-red-600 mx-auto mb-4" />
           <h2 className="text-xl font-bold text-red-800 mb-2">Dostęp zablokowany</h2>
           <p className="text-red-700 mb-6">
-            Twoje konto jest obecnie zablokowane lub zgoda rodzicielska została wycofana (Status: {user.accountStatus}).
+            {expiryConfirmed || user?.accountStatus === 'expired_pending_preapproval'
+              ? t('auth.pending.under13.cleanupRule')
+              : isProfileMissing || under13StatusUnavailable
+                ? 'Nie możemy potwierdzić uprawnień tego konta. Wyloguj się i spróbuj ponownie.'
+                : `Twoje konto jest obecnie zablokowane lub zgoda rodzicielska została wycofana (Status: ${user?.accountStatus}).`}
           </p>
           <button
             onClick={() => logout()}
             className="omni-btn-secondary w-full flex items-center justify-center gap-2"
           >
             <LogOut className="w-4 h-4" />
-            Wyloguj się
+            {t('auth.pending.logout')}
           </button>
         </div>
       </div>

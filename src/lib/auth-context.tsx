@@ -3,15 +3,20 @@ import type { AuthState, User } from '../types';
 import { mockUser } from '../mock/data';
 import { supabase } from './supabase';
 
+type RefreshUserResult =
+  | { success: true }
+  | { success: false; reason: 'profile_refresh_failed' | 'profile_missing' | 'auth_unavailable' };
+
 interface AuthContextType extends AuthState {
   login: (email: string, password: string) => Promise<boolean>;
   register: (email: string, password: string, name: string, ageBand: string, userRole?: string) => Promise<{ success: boolean; message?: string; requireEmailVerification?: boolean }>;
   logout: () => void;
   loginAsDemo: () => void;
   updateProfile: (updates: any) => Promise<{ success: boolean; error?: string }>;
-  refreshUser: () => Promise<void>;
+  refreshUser: () => Promise<RefreshUserResult>;
   isDemoMode: boolean;
   isProfileLoading: boolean;
+  isProfileMissing: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -44,6 +49,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   });
 
   const [isProfileLoading, setIsProfileLoading] = useState(true);
+  const [isProfileMissing, setIsProfileMissing] = useState(false);
   const [isDemoMode, setIsDemoMode] = useState(false);
 
   // Debug helper
@@ -115,6 +121,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           void fetchAndMergeProfile(session.user, false);
         } else {
           authDebug('Auth state changed: SIGNED_OUT');
+          setIsProfileMissing(false);
           setState({
             user: null,
             isAuthenticated: false,
@@ -154,7 +161,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const dbProfile = profileRes.data;
       const effectiveData = effectivePlanRes.data;
 
+      if (profileRes.error) return;
+
       if (dbProfile) {
+        setIsProfileMissing(false);
         authDebug('Profile loaded from DB', { status: dbProfile.account_status, isInitial });
         let user = mapSupabaseUser(sbUser, dbProfile);
         
@@ -189,6 +199,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           }).catch(err => authDebug('Self-healing update failed', err));
         }
       } else {
+        setIsProfileMissing(true);
         authDebug('No profile record found in DB during merge');
       }
     } catch (err) {
@@ -260,6 +271,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const logout = async () => {
     if (isDemoMode) {
+      setIsProfileMissing(false);
       setIsDemoMode(false);
       setState({ user: null, isAuthenticated: false, isLoading: false });
     } else {
@@ -268,6 +280,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const loginAsDemo = () => {
+    setIsProfileMissing(false);
     setIsDemoMode(true);
     setState({
       user: mockUser,
@@ -277,12 +290,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setIsProfileLoading(false);
   };
 
-  const refreshUser = async () => {
-    if (isDemoMode || !state.user) return;
+  const refreshUser = async (): Promise<RefreshUserResult> => {
+    if (isDemoMode) return { success: true };
+    if (!state.user) return { success: false, reason: 'auth_unavailable' };
 
     try {
-      const { data: { user: sbUser } } = await supabase.auth.getUser();
-      if (!sbUser) return;
+      const { data: { user: sbUser }, error: authError } = await supabase.auth.getUser();
+      if (authError || !sbUser) return { success: false, reason: 'auth_unavailable' };
 
       const [profileRes, effectivePlanRes] = await Promise.all([
         supabase
@@ -296,7 +310,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const dbProfile = profileRes.data;
       const effectiveData = effectivePlanRes.data;
 
-      let user = mapSupabaseUser(sbUser, dbProfile ?? undefined);
+      // A failed read is not evidence that the authoritative profile is missing.
+      // Keep the last trusted authorization fields until a successful refresh.
+      if (profileRes.error) return { success: false, reason: 'profile_refresh_failed' };
+      if (!dbProfile) {
+        setIsProfileMissing(true);
+        return { success: false, reason: 'profile_missing' };
+      }
+
+      let user = mapSupabaseUser(sbUser, dbProfile);
       
       if (effectiveData && !effectiveData.error) {
         user = {
@@ -312,8 +334,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         ...prev,
         user
       }));
-    } catch (error) {
-      console.error("Refresh User Error:", error);
+      setIsProfileMissing(false);
+      return { success: true };
+    } catch {
+      return { success: false, reason: 'profile_refresh_failed' };
     }
   };
 
@@ -392,6 +416,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         refreshUser,
         isDemoMode,
         isProfileLoading,
+        isProfileMissing,
       }}
     >
       {children}
