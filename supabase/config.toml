@@ -15,3 +15,6 @@ verify_jwt = false
 verify_jwt = true
 [functions.stripe-webhook]
 verify_jwt = false
+[functions.send-under13-parent-reminders]
+# Internal scheduler secret is checked before all privileged work.
+verify_jwt = false

@@ -189,10 +189,16 @@ test('STATIC_CONTRACT migration is transactional, functions replace safely and n
   assert.equal([...sql.matchAll(/CREATE OR REPLACE FUNCTION/g)].length, 4);
   assert.doesNotMatch(sql, /supabase_migrations|migration repair|migration up|db push/);
 });
-test('STATIC_CONTRACT Edge worker is absent and config exactly equals committed config', async () => {
+test('STATIC_CONTRACT expiry Edge worker is absent and prior config is preserved', async () => {
   await assert.rejects(access(new URL('supabase/functions/cleanup-under13-pending/index.ts', root)), { code: 'ENOENT' });
   const before = execFileSync('git', ['show', 'HEAD:supabase/config.toml'], { encoding: 'utf8' });
-  assert.equal(config.replaceAll('\r\n', '\n').trim(), before.replaceAll('\r\n', '\n').trim());
+  // PRIV-01.1 adds a separate scheduler-authenticated email worker. Permit only
+  // its exact section; the expiry architecture and every prior setting stay frozen.
+  const normalized = config.replaceAll('\r\n', '\n');
+  const reminderSection = '\n[functions.send-under13-parent-reminders]\n# Internal scheduler secret is checked before all privileged work.\nverify_jwt = false';
+  assert.equal(normalized.split(reminderSection).length, 2);
+  assert.equal(normalized.replace(reminderSection, '').trim(),
+    before.replaceAll('\r\n', '\n').replace(reminderSection, '').trim());
 });
 test('STATIC_CONTRACT Storage state helper requires current auth profile under SHARE lock', () => {
   assert.match(upload, /IF auth\.uid\(\) IS NULL THEN RETURN false/);
