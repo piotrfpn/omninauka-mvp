@@ -5,6 +5,7 @@ import { execFileSync } from 'node:child_process';
 import ts from 'typescript';
 import React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
+import { createClientStateFixture } from './client-state-fixture.mjs';
 
 // STATIC_CONTRACT checks the actual SQL/copy. POLICY_MODEL checks deadline/state
 // vectors using constants extracted from SQL. Neither executes PostgreSQL or proves
@@ -394,6 +395,12 @@ const testUser = (overrides = {}) => ({
 const expiredResult = { linked: false, reason: 'preapproval_window_expired' };
 const authHarness = ({ user = testUser(), profileResult = { data: null, error: { code: 'LOCAL_READ_FAILURE' } },
   authError = null, missing = false, demo = false, linkResult = expiredResult } = {}) => {
+  // Match AuthProvider accepting an authenticated identity before loading its
+  // profile. Execute the real helper in an isolated synthetic tab, not an
+  // always-true scope stub that would hide stale-result regressions.
+  const clientState = createClientStateFixture();
+  if (user) clientState.helper.activateUserClientState(user.id);
+  const { captureUserClientState } = clientState.helper;
   let state = { user, isAuthenticated: true, isLoading: false };
   let profileMissing = missing;
   const calls = { stateWrites: 0, profileReads: 0, links: 0, missingWrites: [], logs: [] };
@@ -424,12 +431,12 @@ const authHarness = ({ user = testUser(), profileResult = { data: null, error: {
   };
   const writeState = updater => { calls.stateWrites++; state = updater(state); };
   const writeMissing = value => { calls.missingWrites.push(value); profileMissing = value; };
-  const refresh = new Function('supabase', 'state', 'isDemoMode', 'setState', 'setIsProfileMissing', 'mapSupabaseUser', 'console',
+  const refresh = new Function('supabase', 'state', 'isDemoMode', 'setState', 'setIsProfileMissing', 'mapSupabaseUser', 'console', 'captureUserClientState',
     refreshCode + '\nreturn refreshUser;')(client, state, demo, writeState, writeMissing, mapper,
-      { error: (...args) => calls.logs.push(args) });
-  const merge = new Function('supabase', 'setState', 'setIsProfileMissing', 'setIsProfileLoading', 'mapSupabaseUser', 'authDebug',
-    mergeCode + '\nreturn fetchAndMergeProfile;')(client, writeState, writeMissing, () => {}, mapper, () => {});
-  return { calls, client, refresh, merge: () => merge(sbUser, true),
+      { error: (...args) => calls.logs.push(args) }, captureUserClientState);
+  const merge = new Function('supabase', 'setState', 'setIsProfileMissing', 'setIsProfileLoading', 'mapSupabaseUser', 'authDebug', 'captureUserClientState',
+    mergeCode + '\nreturn fetchAndMergeProfile;')(client, writeState, writeMissing, () => {}, mapper, () => {}, captureUserClientState);
+  return { calls, client, clientState, refresh, merge: () => merge(sbUser, true),
     get state() { return state; }, get isProfileMissing() { return profileMissing; } };
 };
 const guardDeclaration = guardAst.statements.find(node => ts.isFunctionDeclaration(node) && node.name?.text === 'ConsentGuard');
@@ -488,6 +495,24 @@ const assertBlocked = html => {
   assert.match(html, /Dostęp zablokowany/);
   assert.match(html, /Wyloguj się/);
 };
+for (const boundary of ['logout', 'account_switch']) {
+  test('MOCKED_AUTH harness rejects a late profile refresh after ' + boundary, async () => {
+    let release;
+    const pending = new Promise(resolve => { release = resolve; });
+    const h = authHarness({ profileResult: () => pending });
+    const before = h.state.user;
+    const refresh = h.refresh();
+    await settle();
+    assert.equal(h.calls.profileReads, 1);
+    if (boundary === 'logout') h.clientState.helper.clearUserClientState('logout');
+    else h.clientState.helper.activateUserClientState('another-synthetic-user');
+    release({ data: { account_status: 'active', age_band: '18_plus' }, error: null });
+    assert.deepEqual(await refresh, { success: false, reason: 'auth_unavailable' });
+    assert.equal(h.state.user, before);
+    assert.equal(h.calls.stateWrites, 0);
+    assert.deepEqual(h.calls.missingWrites, []);
+  });
+}
 for (const [label, result] of [
   ['null data with query error', { data: null, error: { code: 'LOCAL_READ_FAILURE' } }],
   ['data accompanied by query error', { data: { account_status: 'active' }, error: { code: 'LOCAL_READ_FAILURE' } }],
