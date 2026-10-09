@@ -1,7 +1,9 @@
-import { createContext, useContext, useState, useEffect, type ReactNode } from 'react';
+import { createContext, useContext, useState, useEffect, useRef, Fragment, type ReactNode } from 'react';
 import type { AuthState, User } from '../types';
 import { mockUser } from '../mock/data';
 import { supabase } from './supabase';
+import { activateUserClientState, captureUserClientState, clearUserClientState, clientStateOwnerKey,
+  getClientStateVersion, type ClientStateCleanupReason } from './client-state-cleanup';
 
 type RefreshUserResult =
   | { success: true }
@@ -10,7 +12,7 @@ type RefreshUserResult =
 interface AuthContextType extends AuthState {
   login: (email: string, password: string) => Promise<boolean>;
   register: (email: string, password: string, name: string, ageBand: string, userRole?: string) => Promise<{ success: boolean; message?: string; requireEmailVerification?: boolean }>;
-  logout: () => void;
+  logout: (reason?: 'logout' | 'account_delete') => Promise<void>;
   loginAsDemo: () => void;
   updateProfile: (updates: any) => Promise<{ success: boolean; error?: string }>;
   refreshUser: () => Promise<RefreshUserResult>;
@@ -51,6 +53,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [isProfileLoading, setIsProfileLoading] = useState(true);
   const [isProfileMissing, setIsProfileMissing] = useState(false);
   const [isDemoMode, setIsDemoMode] = useState(false);
+  const [clientStateVersion, setClientStateVersion] = useState(0);
+  const logoutRequested = useRef(false);
+  const lastAcceptedUserId = useRef<string | null>(null);
+  const currentClientScope = useRef<() => boolean>(() => true);
+  const profileInitialized = useRef(false);
+
+  const resetClientState = (reason: ClientStateCleanupReason, preserveSharedState = false) => {
+    try {
+      clearUserClientState(reason, preserveSharedState);
+    } catch {
+      // Fail closed: no account workspace is rendered if storage cannot be cleared.
+      console.warn('Client state cleanup unavailable');
+    }
+    setClientStateVersion(getClientStateVersion());
+    setIsProfileMissing(false);
+    setIsProfileLoading(false);
+    setState({ user: null, isAuthenticated: false, isLoading: false });
+  };
 
   // Debug helper
   const authDebug = (msg: string, data?: any) => {
@@ -64,6 +84,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   useEffect(() => {
+    let alive = true;
+    let eventVersion = 0;
+    const initialVersion = getClientStateVersion();
+
+    const acceptSession = (session: { user: any }) => {
+      try {
+        const nextVersion = activateUserClientState(session.user.id);
+        lastAcceptedUserId.current = session.user.id;
+        currentClientScope.current = captureUserClientState(session.user.id);
+        setClientStateVersion(nextVersion);
+        setIsProfileMissing(false);
+        setState({ user: mapSupabaseUser(session.user), isAuthenticated: true, isLoading: false });
+        const initialProfileLoad = !profileInitialized.current;
+        profileInitialized.current = true;
+        void fetchAndMergeProfile(session.user, initialProfileLoad);
+      } catch {
+        resetClientState('auth_invalidated');
+      }
+    };
     // AUTH FIRST, DATA SECOND pattern:
     // 1. Set auth state immediately from Supabase session.
     // 2. Fetch profile metadata non-blocking in background.
@@ -72,67 +111,59 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const initializeAuth = async () => {
       try {
         const { data: { session } } = await supabase.auth.getSession();
+        if (!alive || eventVersion !== 0 || initialVersion !== getClientStateVersion() || logoutRequested.current) return;
 
         if (session && session.user && !isDemoMode) {
           authDebug('Session detected, initializing state');
-          // Step 1: Set authenticated state immediately
-          setState({
-            user: mapSupabaseUser(session.user),
-            isAuthenticated: true,
-            isLoading: false,
-          });
-
-          // Step 2: Enrich with profile data non-blocking (best-effort)
-          // INITIAL load if we just mounted
-          void fetchAndMergeProfile(session.user, true);
+          acceptSession(session);
         } else if (!isDemoMode) {
           authDebug('No session detected');
-          setState(prev => ({ ...prev, isLoading: false }));
-          setIsProfileLoading(false);
+          resetClientState('startup_without_valid_session');
+          profileInitialized.current = false;
         }
       } catch (error) {
-        authDebug('Auth session error', error);
-        console.error("Auth session error:", error);
-        if (!isDemoMode) {
-          setState(prev => ({ ...prev, isLoading: false }));
-          setIsProfileLoading(false);
+        if (alive && eventVersion === 0 && !isDemoMode) {
+          resetClientState('auth_invalidated');
+          profileInitialized.current = false;
         }
       }
     };
 
     initializeAuth();
 
+    // SDK SIGNED_OUT normally handles other tabs. A failed remote sign-out does
+    // not emit it, so the ownership marker supplies a storage-event fallback.
+    const handleStorageChange = (event: StorageEvent) => {
+      if (event.storageArea === window.localStorage && event.key === clientStateOwnerKey &&
+          !currentClientScope.current()) {
+        logoutRequested.current = true;
+        resetClientState('auth_invalidated', true);
+      }
+    };
+    window.addEventListener('storage', handleStorageChange);
+
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (_event, session) => {
-        if (isDemoMode) return;
+      (event, session) => {
+        eventVersion++;
+        if (!alive || isDemoMode) return;
 
         if (session && session.user) {
+          if (logoutRequested.current && session.user.id === lastAcceptedUserId.current) return;
+          logoutRequested.current = false;
           authDebug('Auth state changed: SIGNED_IN');
-          // Step 1: Set authenticated state immediately from Auth data
-          setState({
-            user: mapSupabaseUser(session.user),
-            isAuthenticated: true,
-            isLoading: false,
-          });
-
-          // Step 2: Enrich with profile data non-blocking (best-effort)
-          // BACKGROUND refresh if user already exists
-          void fetchAndMergeProfile(session.user, false);
+          acceptSession(session);
         } else {
           authDebug('Auth state changed: SIGNED_OUT');
-          setIsProfileMissing(false);
-          setState({
-            user: null,
-            isAuthenticated: false,
-            isLoading: false,
-          });
-          setIsProfileLoading(false);
+          resetClientState(event === 'INITIAL_SESSION' ? 'startup_without_valid_session' : 'auth_invalidated', logoutRequested.current);
+          profileInitialized.current = false;
         }
       }
     );
 
     return () => {
+      alive = false;
+      window.removeEventListener('storage', handleStorageChange);
       subscription.unsubscribe();
     };
   }, [isDemoMode]);
@@ -140,6 +171,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // Best-effort: fetch profile and effective plan from DB and merge into state.
   // If this fails for any reason, the user remains logged in from Auth data.
   const fetchAndMergeProfile = async (sbUser: any, isInitial = false) => {
+    const isCurrentUser = captureUserClientState(sbUser.id);
     if (isInitial) {
       setIsProfileLoading(true);
       authDebug('Starting INITIAL profile fetch', sbUser.id);
@@ -157,6 +189,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           .maybeSingle(),
         supabase.rpc('get_my_effective_plan')
       ]);
+      if (!isCurrentUser()) return;
 
       const dbProfile = profileRes.data;
       const effectiveData = effectivePlanRes.data;
@@ -179,10 +212,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           };
         }
 
-        setState(prev => ({
-          ...prev,
-          user,
-        }));
+        setState(prev => isCurrentUser() && prev.user?.id === sbUser.id ? { ...prev, user } : prev);
 
         // ── Self-Healing Metadata ───────────────────────────────────────────
         const activeStatuses = ['active', 'parent_approved'];
@@ -205,16 +235,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } catch (err) {
       authDebug('Profile fetch/merge encountered an error', err);
     } finally {
-      if (isInitial) {
+      if (isCurrentUser() && isInitial) {
         setIsProfileLoading(false);
         authDebug('INITIAL profile fetch complete');
-      } else {
+      } else if (isCurrentUser()) {
         authDebug('BACKGROUND profile refresh complete');
       }
     }
   };
 
   const login = async (email: string, password: string): Promise<boolean> => {
+    logoutRequested.current = false;
     setIsDemoMode(false);
     const { error } = await supabase.auth.signInWithPassword({
       email,
@@ -269,17 +300,32 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return { success: true };
   };
 
-  const logout = async () => {
+  const logout = async (reason: 'logout' | 'account_delete' = 'logout') => {
+    logoutRequested.current = true;
+    resetClientState(reason);
     if (isDemoMode) {
-      setIsProfileMissing(false);
       setIsDemoMode(false);
-      setState({ user: null, isAuthenticated: false, isLoading: false });
     } else {
-      await supabase.auth.signOut();
+      // Preserve the existing SDK default scope (global). Do not edit SDK keys.
+      try {
+        const { error } = await supabase.auth.signOut();
+        if (error) console.warn('Auth sign-out failed; educational client state was cleared');
+      } catch {
+        console.warn('Auth sign-out unavailable; educational client state was cleared');
+      }
     }
   };
 
   const loginAsDemo = () => {
+    logoutRequested.current = false;
+    try {
+      setClientStateVersion(activateUserClientState(mockUser.id));
+      lastAcceptedUserId.current = mockUser.id;
+      currentClientScope.current = captureUserClientState(mockUser.id);
+    } catch {
+      resetClientState('auth_invalidated');
+      return;
+    }
     setIsProfileMissing(false);
     setIsDemoMode(true);
     setState({
@@ -293,10 +339,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const refreshUser = async (): Promise<RefreshUserResult> => {
     if (isDemoMode) return { success: true };
     if (!state.user) return { success: false, reason: 'auth_unavailable' };
+    const isCurrentUser = captureUserClientState(state.user.id);
 
     try {
       const { data: { user: sbUser }, error: authError } = await supabase.auth.getUser();
-      if (authError || !sbUser) return { success: false, reason: 'auth_unavailable' };
+      if (authError || !sbUser || sbUser.id !== state.user.id || !isCurrentUser()) return { success: false, reason: 'auth_unavailable' };
 
       const [profileRes, effectivePlanRes] = await Promise.all([
         supabase
@@ -306,6 +353,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           .maybeSingle(),
         supabase.rpc('get_my_effective_plan')
       ]);
+      if (!isCurrentUser()) return { success: false, reason: 'auth_unavailable' };
 
       const dbProfile = profileRes.data;
       const effectiveData = effectivePlanRes.data;
@@ -330,10 +378,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         };
       }
 
-      setState(prev => ({
-        ...prev,
-        user
-      }));
+      setState(prev => isCurrentUser() && prev.user?.id === sbUser.id ? { ...prev, user } : prev);
       setIsProfileMissing(false);
       return { success: true };
     } catch {
@@ -419,7 +464,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         isProfileMissing,
       }}
     >
-      {children}
+      <Fragment key={clientStateVersion}>{children}</Fragment>
     </AuthContext.Provider>
   );
 }

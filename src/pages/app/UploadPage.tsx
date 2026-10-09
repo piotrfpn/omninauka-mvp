@@ -5,6 +5,7 @@ import Cropper from 'react-easy-crop';
 import imageCompression from 'browser-image-compression';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../lib/auth-context';
+import { captureUserClientState, createUserObjectURL, revokeUserObjectURL } from '../../lib/client-state-cleanup';
 import { useTranslation } from 'react-i18next';
 import {
   X,
@@ -224,6 +225,13 @@ function ThumbnailStrip({
 export default function UploadPage() {
   const navigate = useNavigate();
   const { user, isDemoMode } = useAuth();
+  const clientStateScope = useRef<(() => boolean) | null>(null);
+  if (!clientStateScope.current) {
+    clientStateScope.current = typeof captureUserClientState === 'function'
+      ? captureUserClientState(user?.id)
+      : () => true;
+  }
+  const isCurrentUser = clientStateScope.current ?? (() => true);
   const { t } = useTranslation();
 
   const [images, setImages] = useState<QueuedImage[]>([]);
@@ -265,7 +273,7 @@ export default function UploadPage() {
   };
 
   const uploadDebug = useCallback((message: string, data?: unknown) => {
-    if (!isUploadDebugEnabled) return;
+    if (!isUploadDebugEnabled || !isCurrentUser()) return;
 
     const timestamp = new Date().toLocaleTimeString();
     const dataStr = data ? ' | ' + (typeof data === 'object' ? JSON.stringify(data) : String(data)) : '';
@@ -274,6 +282,7 @@ export default function UploadPage() {
     console.log('[upload-debug]', message, data);
 
     setUploadDebugEvents(prev => {
+      if (!isCurrentUser()) return [];
       const next = [...prev, line].slice(-50);
       try {
         sessionStorage.setItem('omninauka_upload_debug_events', JSON.stringify(next));
@@ -366,7 +375,7 @@ export default function UploadPage() {
 
   // Recovery: save to sessionStorage after restore is complete
   useEffect(() => {
-    if (!hasRestoredUploadRecovery) return;
+    if (!hasRestoredUploadRecovery || !isCurrentUser()) return;
 
     try {
       if (images.length > 0) {
@@ -433,6 +442,7 @@ export default function UploadPage() {
         extractedText = extractedText.substring(0, 25000) + '\n[...tekst obcięty ze względu na limit]';
       }
 
+      if (!isCurrentUser()) return;
       setDocumentFile({ file, text: extractedText });
       const elapsedMs = performance.now() - docStart;
       uploadDebug('Document text extraction completed', { elapsedMs: elapsedMs.toFixed(1), textLen: extractedText.length });
@@ -446,7 +456,7 @@ export default function UploadPage() {
   };
 
   const addFiles = useCallback((rawFiles: File[]) => {
-    if (isProcessing) return;
+    if (isProcessing || !isCurrentUser()) return;
     setError(null);
     const validImageTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
     const validDocTypes = ['application/pdf', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
@@ -525,7 +535,7 @@ export default function UploadPage() {
         toAdd.push({
           id: newId,
           file: f,
-          previewUrl: URL.createObjectURL(f),
+          previewUrl: createUserObjectURL(f),
           compressedBase64: null,
           name: f.name,
           isCropping: !isMobile, // MOBILE NO-CROP: Skip cropper on mobile
@@ -559,6 +569,7 @@ export default function UploadPage() {
             try {
               const dataUrl = await readFileAsDataUrl(img.file);
               uploadDebug('Mobile: direct FileReader success', { id: img.id, len: dataUrl.length });
+              if (!isCurrentUser()) return;
               setImages(prev => prev.map(p => p.id === img.id ? { ...p, compressedBase64: dataUrl } : p));
             } catch (err) {
               uploadDebug('Mobile: direct FileReader failed (non-fatal)', err instanceof Error ? err.message : String(err));
@@ -589,7 +600,7 @@ export default function UploadPage() {
 
   const removeImage = (idx: number) => {
     const img = images[idx];
-    URL.revokeObjectURL(img.previewUrl);
+    revokeUserObjectURL(img.previewUrl);
     const next = images.filter((_, i) => i !== idx);
     setImages(next);
     setActiveIdx(Math.min(activeIdx, Math.max(0, next.length - 1)));
@@ -681,6 +692,7 @@ export default function UploadPage() {
     if (!img) return;
     uploadDebug('handleConfirmCrop clicked', { id: img.id });
     const result = await compressAndStore(img.previewUrl, img.croppedArea, img.file);
+    if (!isCurrentUser()) return;
     if (!result) { setError(t('upload.errors.compressionError')); return; }
     updateImage(activeIdx, { compressedBase64: result, isCropping: false });
     // Auto-advance to next unprocessed image
@@ -693,6 +705,7 @@ export default function UploadPage() {
     if (!img) return;
     uploadDebug('handleSkipCrop clicked', { id: img.id });
     const result = await compressAndStore(img.previewUrl, null, img.file);
+    if (!isCurrentUser()) return;
     if (!result) { setError(t('upload.errors.compressionError')); return; }
     updateImage(activeIdx, { compressedBase64: result, isCropping: false });
     const nextUnprocessed = images.findIndex((im, i) => i > activeIdx && !im.compressedBase64);
@@ -702,7 +715,7 @@ export default function UploadPage() {
   // ── analyze (upload + DB insert) ──────────────────────────────────────────
 
   const handleAnalyze = async () => {
-    if (images.length === 0 && !documentFile) return;
+    if (!isCurrentUser() || (images.length === 0 && !documentFile)) return;
 
     const tStart = performance.now();
     const logTime = (stepName: string, meta?: any) => {
@@ -721,6 +734,7 @@ export default function UploadPage() {
         sessionStorage.setItem('demoImageBase64', 'document_placeholder');
         sessionStorage.setItem('currentSessionId', 'demo-session');
         await new Promise(r => setTimeout(r, 2000));
+        if (!isCurrentUser()) return;
         logTime('navigation_start');
         setAnalysisStep('navigating');
         navigate('/app/analysis');
@@ -739,10 +753,12 @@ export default function UploadPage() {
 
         setAnalysisStep('uploading');
         logTime('storage_upload_start', { kind: 'document' });
+        if (!isCurrentUser()) return;
         const { data: uploadData, error: uploadError } = await supabase.storage
           .from('study-materials')
           .upload(filePath, documentFile.file, { cacheControl: '3600', upsert: false });
 
+        if (!isCurrentUser()) return;
         if (uploadError || !uploadData) throw new Error(`Upload failed: ${uploadError.message}`);
         logTime('storage_upload_done', { kind: 'document' });
 
@@ -759,6 +775,7 @@ export default function UploadPage() {
           .select()
           .single();
 
+        if (!isCurrentUser()) return;
         if (dbError || !sessionData) {
           await supabase.storage.from('study-materials').remove([uploadData.path]);
           throw new Error(`DB Insert failed: ${dbError?.message}`);
@@ -772,6 +789,7 @@ export default function UploadPage() {
         logTime('navigation_start');
         navigate('/app/analysis');
       } catch (err: any) {
+        if (!isCurrentUser()) return;
         logTime('analyze_failed', { error: err?.message });
         console.error('Document upload error:', err);
         setError(t('upload.errors.docSaveError'));
@@ -795,6 +813,7 @@ export default function UploadPage() {
       sessionStorage.setItem('demoImageBase64', demoSource);
       sessionStorage.setItem('currentSessionId', 'demo-session');
       await new Promise(r => setTimeout(r, 2000));
+      if (!isCurrentUser()) return;
       logTime('navigation_start');
       setAnalysisStep('navigating');
       navigate('/app/analysis');
@@ -811,6 +830,7 @@ export default function UploadPage() {
         .insert({ user_id: user.id, image_url: '', folder_id: null })
         .select()
         .single();
+      if (!isCurrentUser()) return;
       if (dbError || !sessionData) throw new Error('Failed to create session');
       const sessionId = sessionData.id;
       logTime('create_session_done', { sessionId: sessionId.substring(0, 8) });
@@ -843,6 +863,7 @@ export default function UploadPage() {
             upsert: false
           });
 
+        if (!isCurrentUser()) return;
         if (uploadError || !uploadData) {
           if (uploadedPaths.length > 0) {
             await supabase.storage.from('study-materials').remove(uploadedPaths);
@@ -861,6 +882,7 @@ export default function UploadPage() {
         .update({ image_url: uploadedPaths[0] })
         .eq('id', sessionId);
 
+      if (!isCurrentUser()) return;
       if (updateError) {
         await supabase.storage.from('study-materials').remove(uploadedPaths);
         throw new Error(`DB update failed: ${updateError.message}`);
@@ -878,6 +900,7 @@ export default function UploadPage() {
           .from('session_images')
           .insert(imageRows);
 
+        if (!isCurrentUser()) return;
         if (imgInsertError) {
           uploadDebug('session_images insert failed', imgInsertError instanceof Error ? imgInsertError.message : String(imgInsertError));
           await supabase.from('study_sessions').delete().eq('id', sessionId);
@@ -887,6 +910,7 @@ export default function UploadPage() {
         logTime('session_images_insert_done');
       }
 
+      if (!isCurrentUser()) return;
       sessionStorage.setItem('currentSessionId', sessionId);
       sessionStorage.removeItem('omninauka_upload_recovery');
 
@@ -895,6 +919,7 @@ export default function UploadPage() {
       navigate('/app/analysis');
 
     } catch (err: any) {
+      if (!isCurrentUser()) return;
       logTime('analyze_failed', { error: err?.message });
       console.error('Upload error:', err);
       setError(t('upload.errors.imageSaveError'));

@@ -1,9 +1,10 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../../lib/auth-context';
 import { useNavigate, Link } from 'react-router-dom';
 import { Bell, Moon, Globe, Shield, Trash2, LogOut, AlertTriangle, Loader2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { supabase } from '../../lib/supabase';
+import { captureUserClientState } from '../../lib/client-state-cleanup';
 import {
   Dialog,
   DialogContent,
@@ -18,6 +19,13 @@ import { toast } from "sonner";
 
 export default function SettingsPage() {
   const { user, logout } = useAuth();
+  const clientStateScope = useRef<(() => boolean) | null>(null);
+  if (!clientStateScope.current) {
+    clientStateScope.current = typeof captureUserClientState === 'function'
+      ? captureUserClientState(user?.id)
+      : () => true;
+  }
+  const isCurrentUser = clientStateScope.current ?? (() => true);
   const navigate = useNavigate();
   const { t, i18n } = useTranslation();
   const [notifications, setNotifications] = useState(true);
@@ -51,8 +59,8 @@ export default function SettingsPage() {
     }
   };
 
-  const handleLogout = () => {
-    logout();
+  const handleLogout = async () => {
+    await logout();
     navigate('/');
   };
 
@@ -61,14 +69,17 @@ export default function SettingsPage() {
     
     setIsDeleting(true);
     try {
-      const { error } = await supabase.functions.invoke('delete-account');
+      const { data, error } = await supabase.functions.invoke('delete-account');
+      if (!isCurrentUser()) return;
       
       if (error) throw error;
+      if (data?.success !== true) throw new Error(t('settings.account.deleteError', "Nie udało się usunąć konta. Spróbuj ponownie później."));
       
       toast.success(t('settings.account.deleted', "Konto zostało usunięte."));
-      logout();
+      await logout('account_delete');
       navigate('/');
     } catch (err: any) {
+      if (!isCurrentUser()) return;
       console.error('Account deletion failed:', err);
       toast.error(err.message || t('settings.account.deleteError', "Nie udało się usunąć konta. Spróbuj ponownie później."));
     } finally {

@@ -5,6 +5,7 @@ import { RotateCw, ChevronLeft, ChevronRight, BookOpen } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../lib/auth-context';
+import { captureUserClientState } from '../../lib/client-state-cleanup';
 import { getEffectivePlan } from '../../lib/plan-utils';
 import { getFeatureAccess } from '../../lib/feature-access';
 
@@ -35,6 +36,13 @@ export default function FlashcardsPage() {
   const regenerationInFlight = useRef(false);
 
   const { user } = useAuth();
+  const clientStateScope = useRef<(() => boolean) | null>(null);
+  if (!clientStateScope.current) {
+    clientStateScope.current = typeof captureUserClientState === 'function'
+      ? captureUserClientState(user?.id)
+      : () => true;
+  }
+  const isCurrentUser = clientStateScope.current ?? (() => true);
   const effectivePlan = getEffectivePlan(user);
   const { maxFlashcardsPerLesson } = getFeatureAccess(effectivePlan);
 
@@ -72,6 +80,7 @@ export default function FlashcardsPage() {
           .eq('id', sessionId)
           .single();
 
+        if (!isCurrentUser()) return;
         if (error) throw error;
         
         // Ensure standard object formatting for React iteration with deterministic IDs
@@ -134,7 +143,7 @@ export default function FlashcardsPage() {
   // Persist progress when it changes
   useEffect(() => {
     const sessionId = routeId || sessionStorage.getItem('currentSessionId');
-    if (!sessionId || flashcards.length === 0) return;
+    if (!isCurrentUser() || !sessionId || flashcards.length === 0) return;
     
     localStorage.setItem(`flashcards-progress-${sessionId}`, JSON.stringify({
       currentIndex,
@@ -143,7 +152,8 @@ export default function FlashcardsPage() {
   }, [currentIndex, knownCards, routeId, flashcards.length]);
 
   const handleRegenerate = async () => {
-    if (regenerationInFlight.current) return;
+    const stateIsCurrent = () => typeof isCurrentUser === 'function' ? isCurrentUser() : true;
+    if (!stateIsCurrent() || regenerationInFlight.current) return;
     const sessionId = routeId || sessionStorage.getItem('currentSessionId');
     if (!sessionId) return;
 
@@ -164,6 +174,7 @@ export default function FlashcardsPage() {
 
     try {
       const { data: { session: authSession } } = await supabase.auth.getSession();
+      if (!stateIsCurrent() || (authSession?.user?.id && authSession.user.id !== user?.id)) return;
       const functionUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/regenerate-module`;
       timeoutId = setTimeout(() => controller.abort(), 90000);
       const response = await fetch(functionUrl, {
@@ -177,6 +188,7 @@ export default function FlashcardsPage() {
         body: JSON.stringify({ sessionId, module: 'flashcards' })
       });
       const responseText = await response.text();
+      if (!stateIsCurrent()) return;
       responseReceived = true;
 
       if (!response.ok) {
@@ -239,6 +251,7 @@ export default function FlashcardsPage() {
       }
 
     } catch {
+      if (!stateIsCurrent()) return;
       alert(controller.signal.aborted
         ? 'Generowanie trwało zbyt długo. Spróbuj ponownie za chwilę.'
         : !responseReceived
@@ -269,6 +282,7 @@ export default function FlashcardsPage() {
   }, [flashcards, flashcardProgress]);
 
   const persistDifficultCards = (cards: FlashcardData[]) => {
+    if (!isCurrentUser()) return;
     const sessionId = routeId || sessionStorage.getItem('currentSessionId');
     const userId = user?.id || 'anonymous';
     if (!sessionId) return;

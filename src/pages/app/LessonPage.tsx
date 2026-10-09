@@ -4,6 +4,7 @@ import { Send, Bot, User, Mic, MicOff, AlertCircle, AlertTriangle, RefreshCw, Me
 import type { LessonMessage } from '../../types';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../lib/auth-context';
+import { captureUserClientState } from '../../lib/client-state-cleanup';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { useTranslation } from 'react-i18next';
@@ -238,6 +239,16 @@ interface ChatMessage {
 }
 
 function RealLessonChat() {
+  const { user } = useAuth();
+  const clientStateScope = useRef<(() => boolean) | null>(null);
+  if (!clientStateScope.current) {
+    clientStateScope.current = typeof captureUserClientState === 'function'
+      ? captureUserClientState(user?.id)
+      : () => true;
+  }
+  const isCurrentUser = clientStateScope.current ?? (() => true);
+  const chatAbortRef = useRef<AbortController | null>(null);
+  useEffect(() => () => chatAbortRef.current?.abort(), []);
   const navigate = useNavigate();
   const { id: routeId } = useParams();
   const location = useLocation();
@@ -297,6 +308,7 @@ function RealLessonChat() {
           .single();
 
         // If loading failed but we are on the base route, fallback to empty state instead of error banner
+        if (!isCurrentUser()) return;
         if (dbError || !dbData) {
           if (!routeId) {
             setIsEmptyState(true);
@@ -309,6 +321,7 @@ function RealLessonChat() {
         setTopic(dbData.topic || 'Sekcji bez tytułu');
         
         const { data: authData } = await supabase.auth.getSession();
+        if (!isCurrentUser() || authData.session?.user.id !== user?.id) return;
         const currentToken = authData.session?.access_token || null;
         setAuthToken(currentToken);
 
@@ -502,7 +515,7 @@ function RealLessonChat() {
           if (isMistakeModeActive && mistakeContextObj && thread) {
             const reviewId = mistakeContextObj.reviewId;
             const doneKey = `omninauka_mistake_review_done_${reviewId}`;
-            if (!sessionStorage.getItem(doneKey)) {
+            if (isCurrentUser() && !sessionStorage.getItem(doneKey)) {
               sessionStorage.setItem(doneKey, 'true');
               const firstMistake = mistakeContextObj.mistakes[0];
               
@@ -702,6 +715,7 @@ function RealLessonChat() {
   };
 
   const handleChatSubmit = async (e: React.FormEvent) => {
+    if (!isCurrentUser()) return;
     e.preventDefault();
     if (!input.trim() || isLoading) return;
 
@@ -733,7 +747,10 @@ function RealLessonChat() {
 
     try {
       const functionUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/chat-tutor`;
+      const controller = new AbortController();
+      chatAbortRef.current = controller;
       const response = await fetch(functionUrl, {
+        signal: controller.signal,
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -786,6 +803,7 @@ function RealLessonChat() {
             let buffer = '';
             while (true) {
               const { done, value } = await reader.read();
+              if (!isCurrentUser()) { await reader.cancel(); return; }
               if (done) break;
               const chunk = decoder.decode(value, { stream: true });
               buffer += chunk;
@@ -838,6 +856,7 @@ function RealLessonChat() {
         }
       }
 
+      if (!isCurrentUser()) return;
       if (!replyText || !replyText.trim()) {
          replyText = 'Przepraszam, otrzymałem pustą odpowiedź.';
       }
@@ -849,7 +868,7 @@ function RealLessonChat() {
       // Save history to DB client-side for Phase II persistence only AFTER stream is fully closed
       if (threadId) {
         const { data: userData } = await supabase.auth.getUser();
-        if (userData.user?.id) {
+        if (isCurrentUser() && userData.user && userData.user.id === user?.id) {
           await supabase.from('tutor_messages').insert([
             { thread_id: threadId, user_id: userData.user.id, role: 'user', content: userMessage.content },
             { thread_id: threadId, user_id: userData.user.id, role: 'assistant', content: replyText }

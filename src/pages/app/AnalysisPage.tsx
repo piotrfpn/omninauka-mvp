@@ -1,9 +1,10 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import type { AnalysisResult, KeyConcept } from '../../types';
 import { getDemoAnalysis } from '../../mock/data';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../lib/auth-context';
+import { captureUserClientState } from '../../lib/client-state-cleanup';
 import { getEffectivePlan } from '../../lib/plan-utils';
 import { getFeatureAccess } from '../../lib/feature-access';
 import { useTranslation } from 'react-i18next';
@@ -27,6 +28,13 @@ export default function AnalysisPage() {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const { isDemoMode, user } = useAuth();
+  const clientStateScope = useRef<(() => boolean) | null>(null);
+  if (!clientStateScope.current) {
+    clientStateScope.current = typeof captureUserClientState === 'function'
+      ? captureUserClientState(user?.id)
+      : () => true;
+  }
+  const isCurrentUser = clientStateScope.current ?? (() => true);
 
   const effectivePlan = getEffectivePlan(user);
   const { maxFlashcardsPerLesson, quizQuestionCount } = getFeatureAccess(effectivePlan);
@@ -68,6 +76,7 @@ export default function AnalysisPage() {
 
   useEffect(() => {
     const sessionId = currentSessionId;
+    const stateIsCurrent = () => typeof isCurrentUser === 'function' ? isCurrentUser() : true;
     if (!sessionId) {
       navigate('/app/upload');
       return;
@@ -87,13 +96,13 @@ export default function AnalysisPage() {
       }
       
       const timer = setTimeout(() => {
-        if (!isMounted) return;
+        if (!isMounted || !stateIsCurrent()) return;
         const result = getDemoAnalysis();
         setAnalysis(result);
         sessionStorage.setItem('currentAnalysis', JSON.stringify(result));
         setProgress(100);
         transitionTimeoutId = setTimeout(() => {
-          if (isMounted) {
+          if (isMounted && stateIsCurrent()) {
             setIsLoading(false);
           }
         }, 300);
@@ -128,7 +137,7 @@ export default function AnalysisPage() {
           correctAnswer: qq.correctIndex
         }))
       };
-      if (isMounted) {
+      if (isMounted && stateIsCurrent()) {
         setAnalysis(result);
         sessionStorage.setItem('currentAnalysis', JSON.stringify(result));
       }
@@ -143,7 +152,7 @@ export default function AnalysisPage() {
           .eq('id', sessionId)
           .single();
 
-        if (!isMounted) return;
+        if (!isMounted || !stateIsCurrent()) return;
 
         // 1. Fetch all associated images from session_images
         const { data: imagesData } = await supabase
@@ -152,7 +161,7 @@ export default function AnalysisPage() {
           .eq('session_id', sessionId)
           .order('position', { ascending: true });
 
-        if (!isMounted) return;
+        if (!isMounted || !stateIsCurrent()) return;
 
         // 2. Logic for paths (including fallback for Sprint 1 sessions)
         let paths: string[] = [];
@@ -169,7 +178,7 @@ export default function AnalysisPage() {
             .from('study-materials')
             .createSignedUrls(paths, 3600);
 
-          if (!isMounted) return;
+          if (!isMounted || !stateIsCurrent()) return;
 
           if (signError) {
             console.error("Failed to sign URLs:", signError);
@@ -183,7 +192,7 @@ export default function AnalysisPage() {
         if (sessionData && !sessionData.subject) {
           // Retrieve session explicitly to ensure token is fresh
           const { data: { session } } = await supabase.auth.getSession();
-          if (!isMounted) return;
+          if (!isMounted || !stateIsCurrent()) return;
           
           const functionUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/analyze-notes`;
           
@@ -206,7 +215,7 @@ export default function AnalysisPage() {
               signal: controller.signal
           });
 
-          if (!isMounted) return;
+          if (!isMounted || !stateIsCurrent()) return;
 
           const aiEnd = performance.now();
           console.log('[analysis-timing] analyze_notes_done', {
@@ -217,7 +226,7 @@ export default function AnalysisPage() {
 
           const backendPayload = await rawResponse.text();
 
-          if (!isMounted) return;
+          if (!isMounted || !stateIsCurrent()) return;
 
           if (!rawResponse.ok || (backendPayload.includes("error") && !rawResponse.ok)) {
             let errorMsg = t('analysis.backendErrors.generic');
@@ -261,7 +270,7 @@ export default function AnalysisPage() {
             });
             
             // Clean UX message mapping returned to the UI instead of raw debug strings
-            if (isMounted) {
+            if (isMounted && stateIsCurrent()) {
               if (isUsageLimit) {
                 setAnalysisError(`usage_limit:${errorMsg}`);
               } else {
@@ -279,11 +288,11 @@ export default function AnalysisPage() {
             .eq('id', sessionId)
             .single();
 
-          if (!isMounted) return;
+          if (!isMounted || !stateIsCurrent()) return;
 
           if (updatedSession && updatedSession.subject) {
             applySessionToState(updatedSession);
-            if (isMounted) {
+            if (isMounted && stateIsCurrent()) {
               setLessonTitle(updatedSession.lesson_title || '');
             }
           }
@@ -291,31 +300,31 @@ export default function AnalysisPage() {
         } else if (sessionData && sessionData.subject) {
           // Session already generated, just read it
           applySessionToState(sessionData);
-          if (isMounted) {
+          if (isMounted && stateIsCurrent()) {
             setLessonTitle(sessionData.lesson_title || '');
           }
         }
 
-        if (isMounted) {
+        if (isMounted && stateIsCurrent()) {
           const wasAlreadyAnalyzed = sessionData && sessionData.subject;
           if (wasAlreadyAnalyzed) {
             setIsLoading(false);
           } else {
             setProgress(100);
             transitionTimeoutId = setTimeout(() => {
-              if (isMounted) {
+              if (isMounted && stateIsCurrent()) {
                 setIsLoading(false);
               }
             }, 300);
           }
         }
       } catch (err: any) {
-        if (!isMounted) return;
+        if (!isMounted || !stateIsCurrent()) return;
         const errorMsg = controller.signal.aborted || err?.name === 'AbortError'
           ? 'Generowanie trwało zbyt długo. Spróbuj ponownie za chwilę.'
           : 'Nie udało się połączyć z usługą. Sprawdź połączenie i spróbuj ponownie.';
 
-        if (isMounted) {
+        if (isMounted && stateIsCurrent()) {
           setAnalysisError(errorMsg);
           setIsLoading(false);
         }

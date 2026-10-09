@@ -5,6 +5,7 @@ import { Check, X, ArrowRight, HelpCircle, Trophy, RotateCw } from 'lucide-react
 import { useTranslation } from 'react-i18next';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../lib/auth-context';
+import { captureUserClientState } from '../../lib/client-state-cleanup';
 import { getEffectivePlan } from '../../lib/plan-utils';
 import { getFeatureAccess } from '../../lib/feature-access';
 
@@ -14,6 +15,13 @@ export default function QuizPage() {
   const navigate = useNavigate();
   const { id: routeId } = useParams();
   const { isDemoMode, user } = useAuth();
+  const clientStateScope = useRef<(() => boolean) | null>(null);
+  if (!clientStateScope.current) {
+    clientStateScope.current = typeof captureUserClientState === 'function'
+      ? captureUserClientState(user?.id)
+      : () => true;
+  }
+  const isCurrentUser = clientStateScope.current ?? (() => true);
   const { t } = useTranslation();
   
   const effectivePlan = getEffectivePlan(user);
@@ -71,6 +79,7 @@ export default function QuizPage() {
           .eq('id', sessionId)
           .single();
 
+        if (!isCurrentUser()) return;
         if (error) throw error;
 
         const mappedQuestions = (data?.quiz_questions || []).map((q: any) => ({
@@ -135,7 +144,7 @@ export default function QuizPage() {
   // Persist progress when it changes
   useEffect(() => {
     const sessionId = routeId || sessionStorage.getItem('currentSessionId');
-    if (!sessionId || questions.length === 0 || !attemptId) return;
+    if (!isCurrentUser() || !sessionId || questions.length === 0 || !attemptId) return;
     
     localStorage.setItem(`quiz-progress-${sessionId}`, JSON.stringify({
       attemptId,
@@ -147,7 +156,8 @@ export default function QuizPage() {
   }, [currentIndex, answers, isFinished, routeId, questions.length, attemptId, orderMaps]);
 
   const handleRegenerate = async () => {
-    if (regenerationInFlight.current) return;
+    const stateIsCurrent = () => typeof isCurrentUser === 'function' ? isCurrentUser() : true;
+    if (!stateIsCurrent() || regenerationInFlight.current) return;
     const sessionId = routeId || sessionStorage.getItem('currentSessionId');
     if (!sessionId) return;
 
@@ -164,6 +174,7 @@ export default function QuizPage() {
 
     try {
       const { data: { session: authSession } } = await supabase.auth.getSession();
+      if (!stateIsCurrent() || (authSession?.user?.id && authSession.user.id !== user?.id)) return;
       const functionUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/regenerate-module`;
       timeoutId = setTimeout(() => controller.abort(), 90000);
       const response = await fetch(functionUrl, {
@@ -177,6 +188,7 @@ export default function QuizPage() {
         body: JSON.stringify({ sessionId, module: 'quiz' })
       });
       const responseText = await response.text();
+      if (!stateIsCurrent()) return;
       responseReceived = true;
 
       if (!response.ok) {
@@ -235,6 +247,7 @@ export default function QuizPage() {
       localStorage.removeItem(`quiz-progress-${sessionId}`);
 
     } catch {
+      if (!stateIsCurrent()) return;
       alert(controller.signal.aborted
         ? 'Generowanie trwało zbyt długo. Spróbuj ponownie za chwilę.'
         : !responseReceived
@@ -298,6 +311,7 @@ export default function QuizPage() {
   };
 
   const handleNext = async () => {
+    if (!isCurrentUser()) return;
     if (currentIndex < questions.length - 1) {
       setCurrentIndex(currentIndex + 1);
       setSelectedAnswer(null);
