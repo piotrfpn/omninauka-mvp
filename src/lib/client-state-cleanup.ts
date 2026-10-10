@@ -60,6 +60,30 @@ export function clearUserClientState(_reason: ClientStateCleanupReason, preserve
   if (failed) throw new Error('Client state cleanup unavailable');
 }
 
+export function clearSessionClientState(userId: string, sessionId: string): void {
+  const sessionSpecificKeys = [
+    `flashcards-progress-${sessionId}`,
+    `quiz-progress-${sessionId}`,
+    `omninauka_flashcards_review_${userId}_${sessionId}`,
+    `omninauka_free_flashcard_regen_used_${sessionId}`,
+  ];
+
+  for (const type of ['localStorage', 'sessionStorage'] as const) {
+    try {
+      const storage = window[type];
+      for (const key of sessionSpecificKeys) {
+        try { storage.removeItem(key); } catch { /* ignore */ }
+      }
+
+      // Also clear current session if it matches
+      if (storage.getItem('currentSessionId') === sessionId) {
+        try { storage.removeItem('currentSessionId'); } catch { /* ignore */ }
+        try { storage.removeItem('currentAnalysis'); } catch { /* ignore */ }
+      }
+    } catch { /* ignore */ }
+  }
+}
+
 export function activateUserClientState(nextUserId: string): number {
   const owner = readOwner();
   // Unknown legacy ownership is cleaned once. A same-user reload/refresh keeps progress.

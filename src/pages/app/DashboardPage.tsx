@@ -164,7 +164,12 @@ export default function DashboardPage() {
         body: JSON.stringify({ sessionId }),
       });
       if (response.ok) {
+        import('../../lib/client-state-cleanup').then(({ clearSessionClientState }) => {
+          if (user) clearSessionClientState(user.id, sessionId);
+        });
         setSessions(prev => prev.filter(s => s.id !== sessionId));
+      } else {
+        alert("Nie udało się dokończyć usuwania. Spróbuj ponownie.");
       }
     } catch (err) {
       console.error('Delete session failed:', err);

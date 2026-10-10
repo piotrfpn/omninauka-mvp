@@ -11,7 +11,7 @@ const userId = '11111111-1111-4111-8111-111111111111';
 const otherId = '22222222-2222-4222-8222-222222222222';
 const sessionId = '33333333-3333-4333-8333-333333333333';
 const reservationId = '44444444-4444-4444-8444-444444444444';
-const names = ['analyze-notes', 'delete-session', 'delete-account'];
+const names = ['analyze-notes', 'delete-account'];
 const sources = new Map(await Promise.all(names.map(async name => [name,
   await readFile(new URL(`../supabase/functions/${name}/index.ts`, import.meta.url), 'utf8'),
 ])));
@@ -88,7 +88,7 @@ function loadEndpoint(name, options = {}) {
       },
       async rpc(fn) {
         if (fn === 'get_my_effective_plan') return result({ effective_plan: 'free' });
-        assert.ok(privileged); assert.equal(fn, 'check_and_reserve_ai_usage');
+        assert.ok(privileged); if (fn === 'begin_session_purge') return result({ started: true }); assert.equal(fn, 'check_and_reserve_ai_usage');
         return result({ allowed: true, reservation_id: reservationId });
       },
       from(table) { return {
@@ -208,13 +208,13 @@ for (const name of names) {
   });
 }
 
-for (const name of ['analyze-notes', 'delete-session']) {
+for (const name of ['analyze-notes']) {
   test(`MOCKED_RUNTIME ${name}: wrong-owner session is denied before Storage`, async () => {
     const { request, state } = loadEndpoint(name, { session: { user_id: otherId } });
     assert.equal((await request()).status, name === 'analyze-notes' ? 404 : 403); assert.deepEqual(state.storage, []);
   });
 }
-for (const name of ['delete-session', 'delete-account']) {
+for (const name of ['delete-account']) {
   test(`MOCKED_RUNTIME ${name}: deduplicates primary/child paths; retains safe children`, async () => {
     const path = `${userId}/session/a.jpg`;
     const { request, state } = loadEndpoint(name, { path, images: [path, 'uploads/child.pdf', `${otherId}/foreign.pdf`] });

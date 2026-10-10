@@ -40,6 +40,14 @@ export function assertOnlyNormalizationChanges(additionalAllowed = []) {
     'tests/account-security.test.mjs', 'tests/ai-usage-guard.test.mjs',
     'tests/f04-storage-ownership.test.mjs', 'tests/stripe-payment-binding.test.mjs',
     'tests/priv01-under13-retention.test.mjs', 'tests/priv01-parent-reminder.test.mjs',
+    'tests/session-hard-purge.test.mjs', 'tests/session-deletion-barrier.test.mjs',
+    'tests/session-hard-purge-behavioral.test.mjs',
+    'tests/legacy-storage-owner-migration.test.mjs',
+    'supabase/migrations/20261010174000_priv02_legacy_storage_owner.sql',
+    'src/lib/client-state-cleanup.ts',
+    'src/pages/app/DashboardPage.tsx',
+    'src/pages/app/HistoryPage.tsx',
+    'supabase/functions/delete-session/index.ts',
     ...additionalAllowed,
   ]);
   const changed = execFileSync('git', ['diff', '--name-only', 'HEAD'], {

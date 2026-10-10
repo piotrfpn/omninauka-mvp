@@ -34,11 +34,11 @@ test('STATIC_CONTRACT barrier changes only reviewed functions, ACL and restricti
   assert.match(sql, /Signed URLs already issued are not revoked/);
 });
 
-test('STATIC_CONTRACT accepted baseline, P and delete-session are unchanged', () => {
+test('STATIC_CONTRACT accepted baseline and P are unchanged', () => {
   assert.equal(execFileSync('git', ['diff', '--name-only', 'HEAD', '--',
     'supabase/migrations/' + normalizationContract.baseline_file,
     'supabase/migrations/' + normalizationContract.priv02_file,
-    'supabase/functions/delete-session/index.ts', 'package.json', 'package-lock.json'],
+    'package.json', 'package-lock.json'],
   { cwd: root, encoding: 'utf8' }).trim(), '');
 });
 

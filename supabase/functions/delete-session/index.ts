@@ -7,7 +7,6 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// Object keys stay opaque: validate the namespace without decoding/rewriting.
 function isValidStudyMaterialPath(path: unknown, userId: string): path is string {
   if (typeof path !== 'string' || path === '' || path !== path.trim() || path.includes('\\')) return false;
   const segments = path.split('/');
@@ -15,18 +14,23 @@ function isValidStudyMaterialPath(path: unknown, userId: string): path is string
     && segments.every(segment => segment !== '' && segment !== '.' && segment !== '..');
 }
 
+const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
   }
 
-  try {
-    console.log("[delete-session] Invocation start");
+  if (req.method !== 'POST') {
+    return new Response(JSON.stringify({ error: 'Method Not Allowed' }), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      status: 405,
+    });
+  }
 
-    // 1. Auth — same jose/JWKS pattern as analyze-notes
+  try {
     const authHeader = req.headers.get('Authorization');
     if (!authHeader) {
-      console.error("[delete-session] 401: Missing Authorization header");
       return new Response(JSON.stringify({ error: 'Unauthorized: missing authorization header' }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 401,
@@ -35,7 +39,6 @@ serve(async (req) => {
 
     const parts = authHeader.trim().split(/\s+/);
     if (parts.length !== 2 || parts[0].toLowerCase() !== 'bearer') {
-      console.error("[delete-session] 401: Invalid bearer format");
       return new Response(JSON.stringify({ error: 'Unauthorized: invalid authorization format' }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 401,
@@ -53,132 +56,263 @@ serve(async (req) => {
       });
       if (!payload.sub) throw new Error("Missing sub claim");
       userId = payload.sub;
-      console.log("[delete-session] Auth OK, userId:", userId);
     } catch (err: any) {
-      console.error("[delete-session] 401: JWT verification failed ->", err?.message);
       return new Response(JSON.stringify({ error: 'Unauthorized: token validation failed' }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 401,
       });
     }
 
-    // 2. Parse request body
-    const body = await req.json();
+    const body = await req.json().catch(() => ({}));
     const sessionId = body.sessionId;
 
-    if (!sessionId) {
-      console.error("[delete-session] 400: Missing sessionId");
-      return new Response(JSON.stringify({ error: 'Missing sessionId' }), {
+    if (!sessionId || typeof sessionId !== 'string' || !uuidRegex.test(sessionId)) {
+      return new Response(JSON.stringify({ error: 'Invalid sessionId' }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 400,
       });
     }
 
-    // 3. Admin client for authorized DB operations only (bypasses DB RLS).
     const adminClient = createClient(
       supabaseUrl,
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
       { auth: { persistSession: false } }
     );
-    const userClient = createClient(supabaseUrl, Deno.env.get('SUPABASE_ANON_KEY') ?? '', {
-      global: { headers: { Authorization: authHeader } },
-      auth: { persistSession: false },
-    });
 
-    // 4. Fetch session and verify ownership
+    // 1. Fetch session and verify ownership (allow soft-deleted for retry)
     const { data: sessionData, error: fetchError } = await adminClient
       .from('study_sessions')
-      .select('id, user_id, image_url, deleted_at')
+      .select('id, user_id, deleted_at')
       .eq('id', sessionId)
-      .single();
+      .maybeSingle();
 
-    if (fetchError || !sessionData) {
-      console.error("[delete-session] 404: Session not found ->", sessionId);
-      return new Response(JSON.stringify({ error: 'Session not found' }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 404,
-      });
-    }
-
-    if (sessionData.user_id !== userId) {
-      console.error("[delete-session] 403: Ownership mismatch");
-      return new Response(JSON.stringify({ error: 'Forbidden: session belongs to another user' }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 403,
-      });
-    }
-
-    // Already soft-deleted — idempotent, return success
-    if (sessionData.deleted_at) {
-      console.log("[delete-session] Session already deleted, idempotent success");
-      return new Response(JSON.stringify({ success: true, alreadyDeleted: true }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 200,
-      });
-    }
-
-    // 5. Delete ALL images from Storage (primary + session_images children)
-    // Collect all paths: primary image_url + any session_images rows
-    const allPaths: string[] = [];
-    const addStoragePath = (path: unknown) => {
-      if (path === null || path === undefined) return;
-      if (!isValidStudyMaterialPath(path, userId)) {
-        console.warn('[delete-session] Unsafe material path skipped');
-        return;
-      }
-      if (!allPaths.includes(path)) allPaths.push(path);
-    };
-
-    addStoragePath(sessionData.image_url);
-
-    // Fetch child images (Sprint 2: session_images table)
-    const { data: imageRows } = await adminClient
-      .from('session_images')
-      .select('image_url')
-      .eq('session_id', sessionId);
-
-    if (imageRows && imageRows.length > 0) {
-      for (const row of imageRows) {
-        // Avoid duplicating the primary image_url if it was also inserted into session_images
-        addStoragePath(row.image_url);
-      }
-    }
-
-    if (allPaths.length > 0) {
-      const { error: storageError } = await userClient.storage
-        .from('study-materials')
-        .remove(allPaths);
-
-      if (storageError) {
-        console.error("[delete-session] Storage delete failed (non-blocking)");
-      } else {
-        console.log("[delete-session] Storage files deleted:", allPaths.length);
-      }
-    }
-
-    // 6. Soft delete: set deleted_at on the DB row
-    const { error: updateError } = await adminClient
-      .from('study_sessions')
-      .update({ deleted_at: new Date().toISOString() })
-      .eq('id', sessionId);
-
-    if (updateError) {
-      console.error("[delete-session] DB update failed ->", updateError.message);
-      return new Response(JSON.stringify({ error: `DB update failed: ${updateError.message}` }), {
+    if (fetchError) {
+      return new Response(JSON.stringify({ error: 'Database lookup error' }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 500,
       });
     }
 
-    console.log("[delete-session] Session soft-deleted:", sessionId);
-    return new Response(JSON.stringify({ success: true }), {
+    if (!sessionData) {
+      // Root already absent
+      return new Response(JSON.stringify({ success: true, deleted: true, alreadyDeleted: true }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 200,
+      });
+    }
+
+    if (sessionData.user_id !== userId) {
+      // Foreign session
+      return new Response(JSON.stringify({ error: 'Session not found or forbidden' }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 403,
+      });
+    }
+
+    // 2. BEGIN PURGE (via RPC)
+    const { error: purgeError } = await adminClient
+      .rpc('begin_session_purge', { p_session_id: sessionId, p_user_id: userId });
+
+    if (purgeError) {
+      return new Response(JSON.stringify({ error: 'Failed to begin purge' }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 500,
+      });
+    }
+
+    // 3. STORAGE INVENTORY
+    const inventory = new Set<string>();
+
+    const { data: rootData, error: rootInventoryError } = await adminClient.from('study_sessions').select('image_url').eq('id', sessionId).single();
+    if (rootInventoryError || !rootData) {
+      return new Response(JSON.stringify({ error: 'Inventory error' }), { headers: corsHeaders, status: 500 });
+    }
+    if (rootData?.image_url) inventory.add(rootData.image_url);
+
+    let hasMoreImages = true;
+    let fromImages = 0;
+    while (hasMoreImages) {
+      const { data: imageRows, error } = await adminClient
+        .from('session_images')
+        .select('image_url')
+        .eq('session_id', sessionId)
+        .range(fromImages, fromImages + 999);
+      if (error) {
+        return new Response(JSON.stringify({ error: 'Inventory error' }), { headers: corsHeaders, status: 500 });
+      }
+      if (imageRows && imageRows.length > 0) {
+        for (const row of imageRows) {
+          if (row.image_url) inventory.add(row.image_url);
+        }
+        fromImages += 1000;
+      } else {
+        hasMoreImages = false;
+      }
+    }
+
+    const prefix = `${userId}/${sessionId}`;
+    let fetchingFolder = true;
+    let offsetFolder = 0;
+    const limitFolder = 100;
+    while (fetchingFolder) {
+      const { data: files, error: listError } = await adminClient.storage
+        .from('study-materials')
+        .list(prefix, { limit: limitFolder, offset: offsetFolder });
+      if (listError) {
+        return new Response(JSON.stringify({ error: 'Storage inventory error' }), { headers: corsHeaders, status: 500 });
+      }
+      if (files && files.length > 0) {
+        for (const f of files) {
+          if (f.name && f.name !== '.emptyFolderPlaceholder') {
+             inventory.add(`${prefix}/${f.name}`);
+          }
+        }
+        offsetFolder += limitFolder;
+      } else {
+        fetchingFolder = false;
+      }
+    }
+
+    const allPaths = Array.from(inventory);
+
+    // 4. FAIL-CLOSED VALIDATION
+    if (allPaths.length > 0) {
+      // Service-role Storage bypasses RLS, so every candidate path must be a safe
+      // path in the caller's own namespace (or legacy uploads/) before anything is removed.
+      if (allPaths.some(p => !isValidStudyMaterialPath(p, userId))) {
+        return new Response(JSON.stringify({ error: 'Unsafe material path' }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 409,
+        });
+      }
+
+      const { data: sharedRoots, error: checkRootsError } = await adminClient
+        .from('study_sessions')
+        .select('id')
+        .in('image_url', allPaths)
+        .neq('id', sessionId)
+        .limit(1);
+
+      if (checkRootsError) {
+        return new Response(JSON.stringify({ error: 'Validation error' }), { headers: corsHeaders, status: 500 });
+      }
+
+      const { data: sharedImages, error: checkImagesError } = await adminClient
+        .from('session_images')
+        .select('session_id')
+        .in('image_url', allPaths)
+        .neq('session_id', sessionId)
+        .limit(1);
+
+      if (checkImagesError) {
+        return new Response(JSON.stringify({ error: 'Validation error' }), { headers: corsHeaders, status: 500 });
+      }
+
+      if ((sharedRoots && sharedRoots.length > 0) || (sharedImages && sharedImages.length > 0)) {
+        return new Response(JSON.stringify({ error: 'Shared object conflict' }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 409, // 409 Conflict => DO NOT DELETE OBJECT, target root remains soft-deleted
+        });
+      }
+
+      // 5. LEGACY OWNERSHIP VERIFICATION
+      for (const p of allPaths) {
+        if (!p.startsWith(`${prefix}/`)) {
+          const { data: ownerData, error: ownerError } = await adminClient.rpc('get_storage_object_owner', {
+            p_bucket_id: 'study-materials',
+            p_name: p
+          });
+          if (ownerError) {
+             return new Response(JSON.stringify({ error: 'Legacy ownership verification error' }), { headers: corsHeaders, status: 500 });
+          }
+          if (ownerData && ownerData.length > 0) {
+            const ownerId = ownerData[0].owner_id;
+            if (!ownerId) {
+              return new Response(JSON.stringify({ error: 'Legacy object owner NULL' }), { headers: corsHeaders, status: 409 });
+            }
+            if (ownerId !== userId) {
+              return new Response(JSON.stringify({ error: 'Legacy object owner mismatch' }), { headers: corsHeaders, status: 409 });
+            }
+          }
+        }
+      }
+    }
+
+    // 6. STORAGE DELETE
+    if (allPaths.length > 0) {
+      const BATCH_SIZE = 100;
+      for (let i = 0; i < allPaths.length; i += BATCH_SIZE) {
+        const batch = allPaths.slice(i, i + BATCH_SIZE);
+        const { error: storageError } = await adminClient.storage
+          .from('study-materials')
+          .remove(batch);
+
+        if (storageError) {
+           return new Response(JSON.stringify({ error: 'Partial storage failure' }), {
+              headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+              status: 500,
+           });
+        }
+      }
+    }
+
+    // 7. STORAGE VERIFICATION
+    const { data: verifyFolder, error: verifyFolderError } = await adminClient.storage
+      .from('study-materials')
+      .list(prefix, { limit: 1 });
+
+    if (verifyFolderError) {
+      return new Response(JSON.stringify({ error: 'Storage verification error' }), { headers: corsHeaders, status: 500 });
+    }
+
+    if (verifyFolder && verifyFolder.length > 0 && verifyFolder[0].name !== '.emptyFolderPlaceholder') {
+       return new Response(JSON.stringify({ error: 'Storage verification failed: prefix not empty' }), {
+         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+         status: 500
+       });
+    }
+
+    for (const p of allPaths) {
+       if (!p.startsWith(`${prefix}/`)) {
+          const pParts = p.split('/');
+          const fileName = pParts.pop() || '';
+          const pFolder = pParts.join('/');
+          const { data: pList, error: legacyVerifyError } = await adminClient.storage.from('study-materials').list(pFolder, { search: fileName });
+          if (legacyVerifyError) {
+            return new Response(JSON.stringify({ error: 'Storage verification error' }), { headers: corsHeaders, status: 500 });
+          }
+          if (pList?.some(f => f.name === fileName)) {
+            return new Response(JSON.stringify({ error: 'Storage verification failed for legacy path' }), {
+              headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+              status: 500
+            });
+          }
+       }
+    }
+
+    // 8. HARD DELETE DATABASE ROOT
+    const { error: hardDeleteError } = await adminClient
+      .from('study_sessions')
+      .delete({ count: 'exact' })
+      .eq('id', sessionId)
+      .eq('user_id', userId)
+      .not('deleted_at', 'is', null);
+
+    if (hardDeleteError) {
+      return new Response(JSON.stringify({ error: 'DB hard delete failure' }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 500,
+      });
+    }
+
+    // 11. RESPONSE CONTRACT
+    return new Response(JSON.stringify({ success: true, deleted: true }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: 200,
     });
 
   } catch (error: any) {
-    console.error('[delete-session] Edge Function Error:', error);
-    return new Response(JSON.stringify({ error: error?.message || "Unknown server error" }), {
+    return new Response(JSON.stringify({ error: 'Internal server error' }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: 500,
     });

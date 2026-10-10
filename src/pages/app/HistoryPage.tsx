@@ -464,10 +464,13 @@ export default function HistoryPage() {
       }
 
       // Optimistic removal from local state
+      import('../../lib/client-state-cleanup').then(({ clearSessionClientState }) => {
+        if (user) clearSessionClientState(user.id, confirmDeleteId);
+      });
       setSessions(prev => prev.filter(s => s.id !== confirmDeleteId));
     } catch (err: any) {
       console.error('Delete session failed:', err);
-      setDeleteError(t('history.toasts.sessionMoved')); // Reuse or add error key? Wait, I'll use a generic error message or add it.
+      setDeleteError("Nie udało się dokończyć usuwania. Spróbuj ponownie.");
     } finally {
       setDeletingId(null);
       setConfirmDeleteId(null);
