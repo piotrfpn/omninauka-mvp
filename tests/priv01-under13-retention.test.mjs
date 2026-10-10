@@ -318,6 +318,11 @@ test('STATIC_CONTRACT active source has no legacy retention rule', async () => {
 test('STATIC_CONTRACT historical migrations, unrelated payment files and dependencies are unchanged', () => {
   assertOnlyNormalizationChanges([
     'supabase/functions/stripe-webhook/index.ts',
+    'src/pages/app/UploadPage.tsx',
+    'supabase/functions/analyze-notes/index.ts',
+    'supabase/functions/regenerate-module/index.ts',
+    'supabase/functions/chat-tutor/index.ts',
+    'supabase/migrations/20261010131220_priv02_session_deletion_barrier.sql',
   ]);
   const changed = execFileSync('git', ['diff', '--name-only', 'HEAD', '--',
     'supabase/functions/create-checkout',

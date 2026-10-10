@@ -40,7 +40,7 @@ async function loadEndpoint(name, options = {}) {
       timer.callback();
     });
   });
-  const session = { user_id: userId, subject: null, raw_ocr_text: 'OCR text', ...options.session };
+  const session = { user_id: userId, deleted_at: null, subject: null, raw_ocr_text: 'OCR text', ...options.session };
   const createClient = (url, key) => ({
     auth: { async getUser() {
       return { data: { user: options.authError ? null : { id: userId } }, error: options.authError ?? null };
@@ -68,17 +68,35 @@ async function loadEndpoint(name, options = {}) {
         } };
       } };
       if (table === 'study_sessions') return {
-        select() { return { eq(column, id) {
-          assert.equal(column, 'id'); assert.equal(id, sessionId);
-          return { async single() { return {
-            data: options.missingSession ? null : session, error: options.selectError ?? null,
-          }; } };
-        } }; },
-        update(payload) { return { async eq(column, id) {
-          assert.equal(column, 'id'); assert.equal(id, sessionId);
-          state.updates.push(payload); state.order.push('update');
-          return { error: options.updateError ?? null };
-        } }; },
+        select() {
+          const filters = [];
+          const query = {
+            eq(column, value) { filters.push(['eq', column, value]); return query; },
+            is(column, value) { filters.push(['is', column, value]); return query; },
+            async single() {
+              assert.deepEqual(filters, [['eq', 'id', sessionId], ['eq', 'user_id', userId], ['is', 'deleted_at', null]]);
+              return { data: options.missingSession || session.user_id !== userId || session.deleted_at !== null ? null : session,
+                error: options.selectError ?? null };
+            },
+          };
+          return query;
+        },
+        update(payload) {
+          const filters = [];
+          const query = {
+            eq(column, value) { filters.push(['eq', column, value]); return query; },
+            is(column, value) { filters.push(['is', column, value]); return query; },
+            select(columns) { assert.equal(columns, 'id'); return query; },
+            async maybeSingle() {
+              assert.deepEqual(filters, [['eq', 'id', sessionId], ['eq', 'user_id', userId], ['is', 'deleted_at', null]]);
+              state.order.push('update');
+              const persists = !options.updateError && !options.deletedDuringGeneration && !options.missingDuringGeneration;
+              if (persists) state.updates.push(payload);
+              return { data: persists ? { id: sessionId } : null, error: options.updateError ?? null };
+            },
+          };
+          return query;
+        },
       };
       if (table === 'usage_events') return {
         select() { assert.fail('Old COUNT-before-provider must not run'); },
@@ -218,6 +236,7 @@ for (const [name, module, event, feature] of [
   for (const [reason, options, authorized] of [
     ['unauthorized', {}, false], ['pending account', { accountStatus: 'pending_parent_consent' }, true],
     ['missing session', { missingSession: true }, true],
+    ['soft-deleted session', { session: { deleted_at: '2026-01-01T00:00:00Z' } }, true],
     ['wrong owner', { session: { user_id: '44444444-4444-4444-8444-444444444444' } }, true],
   ]) test(`${label}: ${reason} does not reserve`, async () => {
     const { state, request } = await loadEndpoint(name, { module, ...options });
@@ -225,6 +244,18 @@ for (const [name, module, event, feature] of [
     assert.deepEqual(state.reservations, []);
     assert.deepEqual(state.providers, []);
   });
+  for (const option of ['deletedDuringGeneration', 'missingDuringGeneration']) {
+    test(`DELETION_BARRIER ${label}: ${option} cancels without persisting or returning generated content`, async () => {
+      const { state, request } = await loadEndpoint(name, { module, [option]: true });
+      const response = await request();
+      assert.equal(response.status, 409);
+      assert.deepEqual(await response.json(), { success: false, canceled: true, error: 'session_unavailable' });
+      assert.equal(state.providers.includes('openai'), true);
+      assert.deepEqual(state.updates, []);
+      assertExactRelease(state);
+      assert.equal(state.timers.size, 0);
+    });
+  }
   for (const [reason, options] of [
     ['provider HTTP error', { providerStatus: 502 }],
     ['provider JSON error', { providerStatus: 502, rawOpenAi: '{"error":{"message":"down"}}' }],

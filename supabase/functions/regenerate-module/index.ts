@@ -116,6 +116,8 @@ serve(async (req) => {
       .from('study_sessions')
       .select('raw_ocr_text, user_id')
       .eq('id', sessionId)
+      .eq('user_id', userId)
+      .is('deleted_at', null)
       .single();
 
     if (dbError || !sessionData) {
@@ -321,12 +323,24 @@ serve(async (req) => {
     // Step 6: Write ONLY the targeted column — no other fields touched
     markTiming('db_save_start');
     const dbSaveStartedAt = performance.now();
-    const { error: updateError } = await adminClient
+    const { data: updatedSession, error: updateError } = await adminClient
       .from('study_sessions')
       .update(finalUpdate)
-      .eq('id', sessionId);
+      .eq('id', sessionId)
+      .eq('user_id', userId)
+      .is('deleted_at', null)
+      .select('id')
+      .maybeSingle();
 
     if (updateError) throw new Error(`DB update failed: ${updateError.message}`);
+    if (!updatedSession || updatedSession.id !== sessionId) {
+      if (cleanupReservation) await cleanupReservation();
+      requestStatus = 'canceled';
+      return new Response(JSON.stringify({ success: false, canceled: true, error: 'session_unavailable' }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 409,
+      });
+    }
     markTiming('db_save_done', { durationMs: Math.round(performance.now() - dbSaveStartedAt) });
 
     // Successful regeneration consumes the reservation created by the RPC.

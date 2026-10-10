@@ -132,6 +132,8 @@ serve(async (req) => {
         .from('study_sessions')
         .select('id, user_id')
         .eq('id', sessionId)
+        .eq('user_id', userId)
+        .is('deleted_at', null)
         .maybeSingle();
 
       if (rawExists) {
@@ -210,6 +212,8 @@ serve(async (req) => {
             .from('study_sessions')
             .select('quiz_result')
             .eq('folder_id', session.folder_id)
+            .eq('user_id', userId)
+            .is('deleted_at', null)
             .neq('id', sessionId)
             .not('quiz_result', 'is', null)
             .order('created_at', { ascending: false })

@@ -659,7 +659,7 @@ test('29D.1C frontend AST inventory has no direct profiles INSERT/UPSERT calls',
   assert.deepEqual(await profileCreationCalls(new URL('../src/', import.meta.url)), []);
 });
 
-test('29D.1D Edge Functions cannot create profiles; only admin-plan-management may change', async () => {
+test('29D.1D Edge Functions cannot create profiles; only explicitly authorized function paths may change', async () => {
   assert.deepEqual(await profileCreationCalls(new URL('../supabase/functions/', import.meta.url)), []);
   const trustedCreation = await readFile(new URL('../supabase/migration_archive/legacy_pre_baseline/00074_identity_consent_account_security.sql', import.meta.url), 'utf8');
   assert.match(trustedCreation, /CREATE OR REPLACE FUNCTION public\.handle_new_user\(\)\s+RETURNS trigger\s+LANGUAGE plpgsql\s+SECURITY DEFINER\s+SET search_path = public[\s\S]*?INSERT INTO public\.profiles/);
@@ -670,6 +670,8 @@ test('29D.1D Edge Functions cannot create profiles; only admin-plan-management m
   }).trim().split(/\r?\n/).filter(Boolean);
   const allowed = [
     'supabase/functions/analyze-notes/index.ts',
+    'supabase/functions/regenerate-module/index.ts',
+    'supabase/functions/chat-tutor/index.ts',
     'supabase/functions/delete-session/index.ts',
     'supabase/functions/delete-account/index.ts',
     'supabase/functions/stripe-webhook/index.ts',

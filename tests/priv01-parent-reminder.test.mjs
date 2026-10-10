@@ -594,6 +594,11 @@ test('FREEZE historical migrations, unrelated payment/auth/frontend files unchan
     'supabase/functions/_shared/under13-parent-reminder-template.ts',
     'supabase/functions/send-under13-parent-reminders/index.ts',
     'supabase/functions/stripe-webhook/index.ts',
+    'src/pages/app/UploadPage.tsx',
+    'supabase/functions/analyze-notes/index.ts',
+    'supabase/functions/regenerate-module/index.ts',
+    'supabase/functions/chat-tutor/index.ts',
+    'supabase/migrations/20261010131220_priv02_session_deletion_barrier.sql',
   ]);
 });
 

@@ -38,8 +38,10 @@ function loadEndpoint(name, options = {}) {
             assert.deepEqual(record.filters, [['eq', 'user_id', userId]]);
             return result(options.sessions ?? [session]);
           }
-          assert.deepEqual(record.filters, [['eq', 'id', sessionId]]);
-          return result(session);
+          assert.deepEqual(record.filters, name === 'analyze-notes'
+            ? [['eq', 'id', sessionId], ['eq', 'user_id', userId], ['is', 'deleted_at', null]]
+            : [['eq', 'id', sessionId]]);
+          return result(name === 'analyze-notes' && (session.user_id !== userId || session.deleted_at !== null) ? null : session);
         }
         if (table === 'session_images') {
           assert.deepEqual(record.filters, name === 'delete-account'
@@ -55,10 +57,16 @@ function loadEndpoint(name, options = {}) {
         state.cleanup.push(record.filters);
       }
       state.order.push(`${operation}:${table}`);
+      if (table === 'study_sessions' && operation === 'update' && name === 'analyze-notes') {
+        assert.deepEqual(record.filters, [['eq', 'id', sessionId], ['eq', 'user_id', userId], ['is', 'deleted_at', null]]);
+        return result({ id: sessionId });
+      }
       return result();
     };
     const builder = {
       eq(column, value) { record.filters.push(['eq', column, value]); return builder; },
+      is(column, value) { record.filters.push(['is', column, value]); return builder; },
+      select(columns) { assert.equal(columns, 'id'); return builder; },
       in(column, value) { record.filters.push(['in', column, value]); return builder; },
       order() { return builder; },
       single: async () => execute(), maybeSingle: async () => execute(),
@@ -201,9 +209,9 @@ for (const name of names) {
 }
 
 for (const name of ['analyze-notes', 'delete-session']) {
-  test(`MOCKED_RUNTIME ${name}: wrong-owner session => 403 before Storage`, async () => {
+  test(`MOCKED_RUNTIME ${name}: wrong-owner session is denied before Storage`, async () => {
     const { request, state } = loadEndpoint(name, { session: { user_id: otherId } });
-    assert.equal((await request()).status, 403); assert.deepEqual(state.storage, []);
+    assert.equal((await request()).status, name === 'analyze-notes' ? 404 : 403); assert.deepEqual(state.storage, []);
   });
 }
 for (const name of ['delete-session', 'delete-account']) {

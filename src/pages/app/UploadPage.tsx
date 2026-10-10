@@ -749,7 +749,24 @@ export default function UploadPage() {
           ? crypto.randomUUID()
           : Math.random().toString(36).substring(2, 15);
         const uniqueFileName = `${Date.now()}_${uniqueId}_${safeName}`;
-        const filePath = `${user.id}/uploads/${uniqueFileName}`;
+        const sessionId = crypto.randomUUID();
+        const filePath = `${user.id}/${sessionId}/${uniqueFileName}`;
+
+        // The root records the actual destination and extracted document text;
+        // no empty image URL or fabricated educational content is required.
+        setAnalysisStep('creating_session');
+        logTime('create_session_start');
+        if (!isCurrentUser()) return;
+        const { error: dbError } = await supabase.from('study_sessions').insert({
+          id: sessionId,
+          user_id: user.id,
+          image_url: filePath,
+          raw_ocr_text: documentFile.text,
+          folder_id: null,
+        });
+        if (!isCurrentUser()) return;
+        if (dbError) throw new Error('Failed to create session');
+        logTime('create_session_done', { sessionId: sessionId.substring(0, 8) });
 
         setAnalysisStep('uploading');
         logTime('storage_upload_start', { kind: 'document' });
@@ -759,30 +776,20 @@ export default function UploadPage() {
           .upload(filePath, documentFile.file, { cacheControl: '3600', upsert: false });
 
         if (!isCurrentUser()) return;
-        if (uploadError || !uploadData) throw new Error(`Upload failed: ${uploadError.message}`);
+        if (uploadError || !uploadData) throw new Error('Document upload failed');
         logTime('storage_upload_done', { kind: 'document' });
 
-        setAnalysisStep('creating_session');
-        logTime('create_session_start');
-        const { data: sessionData, error: dbError } = await supabase
-          .from('study_sessions')
-          .insert({
-            user_id: user.id,
-            image_url: uploadData.path,
-            raw_ocr_text: documentFile.text,
-            folder_id: null,
-          })
-          .select()
-          .single();
-
+        // RLS may have hidden the root while the Storage request was in flight.
+        const { data: activeSession, error: activeError } = await supabase
+          .from('study_sessions').select('id').eq('id', sessionId)
+          .eq('user_id', user.id).is('deleted_at', null).maybeSingle();
         if (!isCurrentUser()) return;
-        if (dbError || !sessionData) {
+        if (activeError || !activeSession) {
           await supabase.storage.from('study-materials').remove([uploadData.path]);
-          throw new Error(`DB Insert failed: ${dbError?.message}`);
+          throw new Error('Session is no longer available');
         }
-        logTime('create_session_done', { sessionId: sessionData.id.substring(0, 8) });
 
-        sessionStorage.setItem('currentSessionId', sessionData.id);
+        sessionStorage.setItem('currentSessionId', sessionId);
         sessionStorage.removeItem('omninauka_upload_recovery');
 
         setAnalysisStep('navigating');
@@ -825,14 +832,16 @@ export default function UploadPage() {
       
       setAnalysisStep('creating_session');
       logTime('create_session_start');
+      const sessionId = crypto.randomUUID();
+      const firstImageExt = readyImages[0].file ? readyImages[0].file.name.split('.').pop() : 'jpg';
+      const primaryPath = `${user.id}/${sessionId}/img_0.${firstImageExt}`;
       const { data: sessionData, error: dbError } = await supabase
         .from('study_sessions')
-        .insert({ user_id: user.id, image_url: '', folder_id: null })
+        .insert({ id: sessionId, user_id: user.id, image_url: primaryPath, folder_id: null })
         .select()
         .single();
       if (!isCurrentUser()) return;
       if (dbError || !sessionData) throw new Error('Failed to create session');
-      const sessionId = sessionData.id;
       logTime('create_session_done', { sessionId: sessionId.substring(0, 8) });
 
       setAnalysisStep('uploading');
@@ -877,15 +886,19 @@ export default function UploadPage() {
 
       setAnalysisStep('creating_session');
       logTime('session_update_start');
-      const { error: updateError } = await supabase
+      const { data: updatedSession, error: updateError } = await supabase
         .from('study_sessions')
         .update({ image_url: uploadedPaths[0] })
-        .eq('id', sessionId);
+        .eq('id', sessionId)
+        .eq('user_id', user.id)
+        .is('deleted_at', null)
+        .select('id')
+        .maybeSingle();
 
       if (!isCurrentUser()) return;
-      if (updateError) {
+      if (updateError || !updatedSession) {
         await supabase.storage.from('study-materials').remove(uploadedPaths);
-        throw new Error(`DB update failed: ${updateError.message}`);
+        throw new Error('Session is no longer available');
       }
       logTime('session_update_done');
 
@@ -903,7 +916,6 @@ export default function UploadPage() {
         if (!isCurrentUser()) return;
         if (imgInsertError) {
           uploadDebug('session_images insert failed', imgInsertError instanceof Error ? imgInsertError.message : String(imgInsertError));
-          await supabase.from('study_sessions').delete().eq('id', sessionId);
           await supabase.storage.from('study-materials').remove(uploadedPaths);
           throw new Error(`session_images insert failed: ${imgInsertError.message}`);
         }

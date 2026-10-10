@@ -135,6 +135,8 @@ serve(async (req) => {
       .from('study_sessions')
       .select('image_url, subject, user_id, raw_ocr_text')
       .eq('id', sessionId)
+      .eq('user_id', userId)
+      .is('deleted_at', null)
       .single();
 
     if (dbError || !sessionData) {
@@ -725,7 +727,7 @@ ZASADY QUIZU — KRYTYCZNE, MUSZĄ BYĆ BEZWZGLĘDNIE PRZESTRZEGANE:
     markTiming('db_update_start');
     const dbUpdateStart = performance.now();
 
-    const { error: updateError } = await adminClient
+    const { data: updatedSession, error: updateError } = await adminClient
       .from('study_sessions')
       .update({
         raw_ocr_text: ocrText,
@@ -737,7 +739,11 @@ ZASADY QUIZU — KRYTYCZNE, MUSZĄ BYĆ BEZWZGLĘDNIE PRZESTRZEGANE:
         quiz_questions,
         confidence: 0.95
       })
-      .eq('id', sessionId);
+      .eq('id', sessionId)
+      .eq('user_id', userId)
+      .is('deleted_at', null)
+      .select('id')
+      .maybeSingle();
 
     const dbUpdateDuration = Math.round(performance.now() - dbUpdateStart);
 
@@ -747,6 +753,15 @@ ZASADY QUIZU — KRYTYCZNE, MUSZĄ BYĆ BEZWZGLĘDNIE PRZESTRZEGANE:
         errorCode: 'db_update_failed'
       });
       throw new Error(`DB Update failed: ${updateError.message}`);
+    }
+
+    if (!updatedSession || updatedSession.id !== sessionId) {
+      if (cleanupReservation) await cleanupReservation();
+      markTiming('request_done', { status: 'canceled', errorCode: 'session_unavailable' });
+      return new Response(JSON.stringify({ success: false, canceled: true, error: 'session_unavailable' }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 409,
+      });
     }
 
     markTiming('db_update_done', {

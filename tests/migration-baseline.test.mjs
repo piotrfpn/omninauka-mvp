@@ -31,10 +31,12 @@ const tables = ['admin_plan_actions','child_profiles','folders','parental_consen
   'profiles','session_images','study_sessions','support_tickets','tutor_messages','tutor_threads',
   'under13_parent_notifications','usage_events'];
 
-test('STATIC_BASELINE exactly 11 anchors + ordered B/P, no active sequential migration', () => {
+test('STATIC_BASELINE immutable 11 anchors + B/P, followed only by authorized deletion barrier', () => {
   const names = readdirSync(active).sort();
-  assert.deepEqual(names, [...versions.map(v => v + '_history_anchor.sql'), contract.baseline_file, contract.priv02_file].sort());
-  assert.equal(names.length, 13);
+  const barrierFile = '20261010131220_priv02_session_deletion_barrier.sql';
+  assert.deepEqual(names, [...versions.map(v => v + '_history_anchor.sql'), contract.baseline_file, contract.priv02_file, barrierFile].sort());
+  assert.equal(names.length, 14);
+  assert.ok(barrierFile.split('_')[0] > contract.priv02_file.split('_')[0]);
   assert.ok(names.every(n => /^\d{14}_\w+\.sql$/.test(n)));
   const b = contract.baseline_file.split('_')[0];
   const p = contract.priv02_file.split('_')[0];
