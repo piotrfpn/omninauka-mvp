@@ -1,0 +1,8 @@
+-- Remote migration version: 20260509100602
+-- Remote migration name: plan_expiration_fields
+-- Mapped legacy migration: 00060_plan_expiration_fields.sql
+-- Legacy archive path: supabase/migration_archive/legacy_pre_baseline/00060_plan_expiration_fields.sql
+-- Historical SQL execution is recorded in the existing remote migration history.
+-- This comments-only anchor does not recreate or claim to execute that SQL.
+-- The canonical baseline supersedes historical schema evolution.
+-- DO NOT REPLAY historical SQL.

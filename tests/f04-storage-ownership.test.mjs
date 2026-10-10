@@ -1,7 +1,7 @@
+import { assertArchivedMigrationsUnchanged } from './helpers/migration-provenance.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
-import { execFileSync } from 'node:child_process';
 import ts from 'typescript';
 import { getAiAccountDenial } from '../supabase/functions/_shared/account-access.ts';
 
@@ -15,8 +15,8 @@ const names = ['analyze-notes', 'delete-session', 'delete-account'];
 const sources = new Map(await Promise.all(names.map(async name => [name,
   await readFile(new URL(`../supabase/functions/${name}/index.ts`, import.meta.url), 'utf8'),
 ])));
-const migration = await readFile(new URL('../supabase/migrations/00078_storage_ownership_hardening.sql', import.meta.url), 'utf8');
-const migration79 = await readFile(new URL('../supabase/migrations/00079_drop_legacy_reference_policy_variants.sql', import.meta.url), 'utf8');
+const migration = await readFile(new URL('../supabase/migration_archive/legacy_pre_baseline/00078_storage_ownership_hardening.sql', import.meta.url), 'utf8');
+const migration79 = await readFile(new URL('../supabase/migration_archive/legacy_pre_baseline/00079_drop_legacy_reference_policy_variants.sql', import.meta.url), 'utf8');
 const compiled = new Map([...sources].map(([name, source]) => [name, ts.transpileModule(
   source.replace(/^import .*;\r?\n/gm, ''),
   { compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.None } },
@@ -258,11 +258,8 @@ test('STATIC_CONTRACT 00078: fail-closed pg_policies checks cover names, roles, 
   assert.match(check, /END;\s*\$policy_check\$;/);
 });
 test('STATIC_CONTRACT: historical migrations 00001–00077 unchanged', () => {
-  const paths = execFileSync('git', ['diff', '--name-only', 'HEAD', '--', 'supabase/migrations'], { encoding: 'utf8' })
-    .trim().split(/\r?\n/).filter(Boolean);
-  assert.ok(paths.every(path => path.endsWith('/00078_storage_ownership_hardening.sql') || path.endsWith('/00079_drop_legacy_reference_policy_variants.sql')));
+  assertArchivedMigrationsUnchanged(77);
 });
-
 test('STATIC_CONTRACT 00079: dynamic drop of legacy policy variants', () => {
   assert.match(migration79, /^BEGIN;/); assert.match(migration79, /COMMIT;\s*$/);
   // Verify 00078 exact-name DROP is not enough.

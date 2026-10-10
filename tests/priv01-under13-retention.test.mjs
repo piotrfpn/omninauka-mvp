@@ -1,3 +1,4 @@
+import { assertOnlyNormalizationChanges } from './helpers/migration-provenance.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile, access, readdir } from 'node:fs/promises';
@@ -13,8 +14,8 @@ import { createClientStateFixture } from './client-state-fixture.mjs';
 const root = new URL('../', import.meta.url);
 const read = path => readFile(new URL(path, root), 'utf8');
 const [sql, historical, config, privacy, terms, plText, enText] = await Promise.all([
-  read('supabase/migrations/00081_under13_pending_retention_cleanup.sql'),
-  read('supabase/migrations/00076_child_profiles_authorization_hardening.sql'),
+  read('supabase/migration_archive/legacy_pre_baseline/00081_under13_pending_retention_cleanup.sql'),
+  read('supabase/migration_archive/legacy_pre_baseline/00076_child_profiles_authorization_hardening.sql'),
   read('supabase/config.toml'), read('src/pages/legal/PrivacyPage.tsx'),
   read('src/pages/legal/TermsPage.tsx'), read('src/i18n/locales/pl/common.json'),
   read('src/i18n/locales/en/common.json'),
@@ -315,11 +316,12 @@ test('STATIC_CONTRACT active source has no legacy retention rule', async () => {
   }
 });
 test('STATIC_CONTRACT historical migrations, Stripe files and dependencies are unchanged', () => {
+  assertOnlyNormalizationChanges();
   const changed = execFileSync('git', ['diff', '--name-only', 'HEAD', '--',
-    'supabase/migrations', 'supabase/functions/stripe-webhook', 'supabase/functions/create-checkout',
-    'tests/stripe-payment-binding.test.mjs', 'package.json', 'package-lock.json'], { encoding: 'utf8' })
+    'supabase/functions/stripe-webhook', 'supabase/functions/create-checkout',
+    'package.json', 'package-lock.json'], { encoding: 'utf8' })
     .trim().split(/\r?\n/).filter(Boolean);
-  assert.ok(changed.every(path => path === 'supabase/migrations/00081_under13_pending_retention_cleanup.sql'), changed.join('\n'));
+  assert.deepEqual(changed, [], 'Stripe production files and dependencies remain frozen');
 });
 
 // MOCKED_BEHAVIOR executes the actual UI linking handler, not a policy model.

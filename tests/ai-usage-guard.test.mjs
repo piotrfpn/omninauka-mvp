@@ -369,7 +369,7 @@ for (const [plan, maxCards] of [['free', 5], ['premium', 20], ['family', 20], ['
   });
 }
 
-const sql = await source('supabase/migrations/00075_atomic_ai_usage_limits.sql');
+const sql = await source('supabase/migration_archive/legacy_pre_baseline/00075_atomic_ai_usage_limits.sql');
 const sqlCode = sql.replace(/--[^\n]*/g, '');
 test('SQL contract: function dollar quotes are exact, paired and reject malformed variants', () => {
   const checkDelimiters = candidate => {

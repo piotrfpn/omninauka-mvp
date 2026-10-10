@@ -1,7 +1,7 @@
+import { assertOnlyNormalizationChanges } from './helpers/migration-provenance.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
-import { execFileSync } from 'node:child_process';
 import { createHash, createHmac } from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 import ts from 'typescript';
@@ -11,7 +11,7 @@ import ts from 'typescript';
 // state contract; neither category is a PostgreSQL/lease/concurrency runtime proof.
 const root = new URL('../', import.meta.url);
 const read = path => readFile(new URL(path, root), 'utf8');
-const migration = 'supabase/migrations/00082_under13_parent_reminders.sql';
+const migration = 'supabase/migration_archive/legacy_pre_baseline/00082_under13_parent_reminders.sql';
 const [sql, coreSource, templateSource, entry, config] = await Promise.all([
   read(migration), read('supabase/functions/_shared/under13-parent-reminder-core.ts'),
   read('supabase/functions/_shared/under13-parent-reminder-template.ts'),
@@ -585,13 +585,17 @@ for (const [name, state, time, expected] of [
 ]) test(`STATE_MODEL ${name}`, () => assert.equal(retryModel(state, time), expected));
 
 test('FREEZE 00081 exact accepted hash retained', async () => {
-  const data = await readFile(new URL('supabase/migrations/00081_under13_pending_retention_cleanup.sql', root));
+  const data = await readFile(new URL('supabase/migration_archive/legacy_pre_baseline/00081_under13_pending_retention_cleanup.sql', root));
   assert.equal(createHash('sha256').update(data).digest('hex').toUpperCase(), 'B64299CC4CED12A0A68525F15B1F50B17C2AEE2E5AB3EAFF526AD34E030BDF14');
 });
 test('FREEZE historical migrations, Stripe, consent, auth and all frontend unchanged', () => {
-  const changed = execFileSync('git', ['diff', '--name-only', 'HEAD'], { cwd: new URL('../', import.meta.url), encoding: 'utf8' }).trim().split(/\r?\n/).filter(Boolean);
-  assert.ok(changed.every(path => ['supabase/config.toml', 'supabase/functions/_shared/under13-parent-reminder-core.ts', 'supabase/functions/_shared/under13-parent-reminder-template.ts', 'supabase/functions/send-under13-parent-reminders/index.ts', 'supabase/migrations/00082_under13_parent_reminders.sql', 'tests/priv01-parent-reminder.test.mjs', 'tests/priv01-under13-retention.test.mjs'].includes(path)), changed.join('\n'));
+  assertOnlyNormalizationChanges([
+    'supabase/config.toml', 'supabase/functions/_shared/under13-parent-reminder-core.ts',
+    'supabase/functions/_shared/under13-parent-reminder-template.ts',
+    'supabase/functions/send-under13-parent-reminders/index.ts',
+  ]);
 });
+
 test('TYPECHECK shared production TS against installed compiler without emitting files', () => {
   const names = ['supabase/functions/_shared/under13-parent-reminder-core.ts', 'supabase/functions/_shared/under13-parent-reminder-template.ts'].map(path => fileURLToPath(new URL(path, root)));
   const program = ts.createProgram(names, { noEmit: true, strict: true, target: ts.ScriptTarget.ES2022,

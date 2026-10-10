@@ -1,3 +1,4 @@
+import { assertArchivedMigrationsUnchanged } from './helpers/migration-provenance.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
@@ -198,7 +199,7 @@ test('Method, JSON and streaming body limits reject before database', async () =
 
 // 29D.1B: static SQL contract checks only. These do NOT execute PostgreSQL,
 // RLS, triggers, FK actions or concurrent transactions. LIVE_DB_TEST_REQUIRED=YES.
-const childMigrationUrl = new URL('../supabase/migrations/00076_child_profiles_authorization_hardening.sql', import.meta.url);
+const childMigrationUrl = new URL('../supabase/migration_archive/legacy_pre_baseline/00076_child_profiles_authorization_hardening.sql', import.meta.url);
 const childMigration = (await readFile(childMigrationUrl, 'utf8')).replace(/\r\n/g, '\n');
 
 function childSqlSection(start, end) {
@@ -368,7 +369,7 @@ test('29D Family inheritance requires a trusted real parent relation and keeps e
 });
 
 test('29D own premium/family behavior and all effective-plan JSON payloads remain unchanged', async () => {
-  const old = await readFile(new URL('../supabase/migrations/00067_family_effective_plan_hotfix.sql', import.meta.url), 'utf8');
+  const old = await readFile(new URL('../supabase/migration_archive/legacy_pre_baseline/00067_family_effective_plan_hotfix.sql', import.meta.url), 'utf8');
   const ownBranch = value => value.slice(value.indexOf("  IF v_own_plan IN ('premium', 'family')"), value.indexOf('  END IF;', value.indexOf("  IF v_own_plan IN ('premium', 'family')")) + 9).replace(/\s+/g, ' ');
   assert.equal(ownBranch(planSql), ownBranch(old));
   const objects = value => [...value.matchAll(/RETURN jsonb_build_object\([\s\S]*?\);/g)].map(match => match[0].replace(/\s+/g, ' '));
@@ -408,7 +409,7 @@ test('29D legacy duplicate live links and over-limit parent groups abort grandfa
 });
 
 test('29D parent dashboard keeps its payload, requires parent role and filters trusted local relations', async () => {
-  const old = (await readFile(new URL('../supabase/migrations/00016_child_profiles_email_preapproval.sql', import.meta.url), 'utf8')).replace(/\r\n/g, '\n');
+  const old = (await readFile(new URL('../supabase/migration_archive/legacy_pre_baseline/00016_child_profiles_email_preapproval.sql', import.meta.url), 'utf8')).replace(/\r\n/g, '\n');
   const payload = value => value.match(/RETURNS TABLE \([\s\S]*?\) AS/)[0];
   assert.equal(payload(parentSql), payload(old));
   assert.match(parentSql, /IF v_parent_id IS NULL OR NOT EXISTS \([\s\S]*caller\.id = v_parent_id AND caller\.user_role = 'parent'[\s\S]*THEN\s+RETURN;/);
@@ -438,17 +439,13 @@ test('29D SECURITY DEFINER RPC ACLs remain explicit and search paths pinned', ()
 });
 
 test('29D historical migrations 00001-00075 remain unchanged relative to HEAD', () => {
-  const changed = execFileSync('git', ['diff', '--name-only', 'HEAD', '--', 'supabase/migrations'], {
-    cwd: new URL('../', import.meta.url), encoding: 'utf8',
-  }).trim().split(/\r?\n/).filter(Boolean);
-  assert.deepEqual(changed.filter(path => Number(path.split('/').at(-1).split('_')[0]) <= 75), []);
+  assertArchivedMigrationsUnchanged(75);
   assert.doesNotMatch(childMigration, /CREATE OR REPLACE FUNCTION public\.check_child_limit/);
 });
-
 // 29D.1C: SQL checks prove source contracts only. Handler tests execute the
 // actual updateProfile arrow with Supabase doubles, not a copied implementation.
 // LIVE_DB_TEST_REQUIRED=YES for ACL, RLS and the Auth SECURITY DEFINER trigger.
-const profileMigration = (await readFile(new URL('../supabase/migrations/00077_profiles_insert_hardening.sql', import.meta.url), 'utf8')).replace(/\r\n/g, '\n');
+const profileMigration = (await readFile(new URL('../supabase/migration_archive/legacy_pre_baseline/00077_profiles_insert_hardening.sql', import.meta.url), 'utf8')).replace(/\r\n/g, '\n');
 const authContextSource = await readFile(new URL('../src/lib/auth-context.tsx', import.meta.url), 'utf8');
 const safeProfileError = 'Nie udało się zaktualizować profilu.';
 
@@ -664,9 +661,9 @@ test('29D.1C frontend AST inventory has no direct profiles INSERT/UPSERT calls',
 
 test('29D.1D Edge Functions cannot create profiles; only admin-plan-management may change', async () => {
   assert.deepEqual(await profileCreationCalls(new URL('../supabase/functions/', import.meta.url)), []);
-  const trustedCreation = await readFile(new URL('../supabase/migrations/00074_identity_consent_account_security.sql', import.meta.url), 'utf8');
+  const trustedCreation = await readFile(new URL('../supabase/migration_archive/legacy_pre_baseline/00074_identity_consent_account_security.sql', import.meta.url), 'utf8');
   assert.match(trustedCreation, /CREATE OR REPLACE FUNCTION public\.handle_new_user\(\)\s+RETURNS trigger\s+LANGUAGE plpgsql\s+SECURITY DEFINER\s+SET search_path = public[\s\S]*?INSERT INTO public\.profiles/);
-  const authTrigger = await readFile(new URL('../supabase/migrations/00001_init.sql', import.meta.url), 'utf8');
+  const authTrigger = await readFile(new URL('../supabase/migration_archive/legacy_pre_baseline/00001_init.sql', import.meta.url), 'utf8');
   assert.match(authTrigger, /CREATE TRIGGER on_auth_user_created\s+AFTER INSERT ON auth\.users\s+FOR EACH ROW EXECUTE PROCEDURE public\.handle_new_user\(\);/);
   const changed = execFileSync('git', ['diff', '--name-only', 'HEAD', '--', 'supabase/functions'], {
     cwd: new URL('../', import.meta.url), encoding: 'utf8',
@@ -682,8 +679,5 @@ test('29D.1D Edge Functions cannot create profiles; only admin-plan-management m
 });
 
 test('29D.1C historical migrations 00001-00076 stay immutable', () => {
-  const changed = execFileSync('git', ['diff', '--name-only', 'HEAD', '--', 'supabase/migrations'], {
-    cwd: new URL('../', import.meta.url), encoding: 'utf8',
-  }).trim().split(/\r?\n/).filter(Boolean);
-  assert.deepEqual(changed.filter(path => Number(path.split('/').at(-1).split('_')[0]) <= 76), []);
+  assertArchivedMigrationsUnchanged(76);
 });

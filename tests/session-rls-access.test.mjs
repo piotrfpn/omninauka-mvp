@@ -1,12 +1,12 @@
+import { normalizationContract, assertArchivedMigrationsUnchanged } from './helpers/migration-provenance.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { readFile, readdir } from 'node:fs/promises';
-import { execFileSync } from 'node:child_process';
+import { readFile } from 'node:fs/promises';
 
 // STATIC_CONTRACT only. The companion pgTAP suite executes actual PostgreSQL RLS
 // in a reviewed disposable local database; these checks do not replace that run.
 const read = path => readFile(new URL(`../${path}`, import.meta.url), 'utf8');
-const migrationPath = 'supabase/migrations/00083_priv02_soft_deleted_session_access.sql';
+const migrationPath = 'supabase/migrations/' + normalizationContract.priv02_file;
 const sql = await read(migrationPath);
 const clean = sql.replace(/--[^\n]*/g, '').trim();
 const policies = [...clean.matchAll(/CREATE POLICY (\w+)\s+ON public\.(\w+) AS (\w+) FOR (\w+) TO (\w+)\s+USING ([\s\S]*?)\s+WITH CHECK ([\s\S]*?);/g)];
@@ -113,16 +113,16 @@ test('STATIC_CONTRACT study-session browser DELETE is neither required nor grant
 });
 
 test('STATIC_CONTRACT no historical migration changed and new names do not collide', async () => {
-  const names = await readdir(new URL('../supabase/migrations/', import.meta.url));
-  for (const name of names.filter(name => name.endsWith('.sql') && !name.startsWith('00083_'))) {
-    const path = `supabase/migrations/${name}`;
+  assertArchivedMigrationsUnchanged();
+  const paths = [
+    ...normalizationContract.archived.map(row => row.archive_path),
+    'supabase/migrations/' + normalizationContract.baseline_file,
+  ];
+  for (const path of paths) {
     const current = await read(path);
-    const original = execFileSync('git', ['show', `534e263ec152bfa790d430a4a2ccccef737c4976:${path}`], { encoding: 'utf8' });
-    assert.equal(current.replace(/\r\n/g, '\n'), original.replace(/\r\n/g, '\n'), path);
-    for (const policy of policies) assert.ok(!current.includes(`CREATE POLICY ${policy[1]}`), policy[1]);
+    for (const policy of policies) assert.doesNotMatch(current, new RegExp('CREATE POLICY ["\\s]*' + policy[1] + '\\b'), path);
   }
 });
-
 test('STATIC_CONTRACT actual DB suite uses role/JWT boundaries, synthetic fixtures, ROLLBACK and no Storage', async () => {
   const runtime = await read('supabase/tests/priv02_soft_deleted_session_access.test.sql');
   assert.match(runtime, /BEGIN;/);

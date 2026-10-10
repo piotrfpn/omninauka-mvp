@@ -1,0 +1,8 @@
+-- Remote migration version: 20260502114959
+-- Remote migration name: 00017_link_child_account_rpc
+-- Mapped legacy migration: 00017_link_child_account_rpc.sql
+-- Legacy archive path: supabase/migration_archive/legacy_pre_baseline/00017_link_child_account_rpc.sql
+-- Historical SQL execution is recorded in the existing remote migration history.
+-- This comments-only anchor does not recreate or claim to execute that SQL.
+-- The canonical baseline supersedes historical schema evolution.
+-- DO NOT REPLAY historical SQL.

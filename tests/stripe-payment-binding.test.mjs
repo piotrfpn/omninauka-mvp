@@ -5,7 +5,7 @@ import ts from 'typescript';
 
 const webhookContent = fs.readFileSync('supabase/functions/stripe-webhook/index.ts', 'utf8').replace(/\r\n/g, '\n');
 const checkoutContent = fs.readFileSync('supabase/functions/create-checkout/index.ts', 'utf8').replace(/\r\n/g, '\n');
-const migrationContent = fs.readFileSync('supabase/migrations/00080_stripe_payment_fulfillment.sql', 'utf8').replace(/\r\n/g, '\n');
+const migrationContent = fs.readFileSync('supabase/migration_archive/legacy_pre_baseline/00080_stripe_payment_fulfillment.sql', 'utf8').replace(/\r\n/g, '\n');
 const frontendContent = fs.readFileSync('src/pages/app/PaymentsPage.tsx', 'utf8').replace(/\r\n/g, '\n');
 
 // 1. SYNTAX/PARSER TESTS (MANDATORY R6)

@@ -1,0 +1,8 @@
+-- Remote migration version: 20260509142243
+-- Remote migration name: usage_events
+-- Mapped legacy migration: 00061_usage_events.sql
+-- Legacy archive path: supabase/migration_archive/legacy_pre_baseline/00061_usage_events.sql
+-- Historical SQL execution is recorded in the existing remote migration history.
+-- This comments-only anchor does not recreate or claim to execute that SQL.
+-- The canonical baseline supersedes historical schema evolution.
+-- DO NOT REPLAY historical SQL.

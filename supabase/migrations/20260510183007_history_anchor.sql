@@ -1,0 +1,8 @@
+-- Remote migration version: 20260510183007
+-- Remote migration name: 00066_family_effective_plan
+-- Mapped legacy migration: 00066_family_effective_plan.sql
+-- Legacy archive path: supabase/migration_archive/legacy_pre_baseline/00066_family_effective_plan.sql
+-- Historical SQL execution is recorded in the existing remote migration history.
+-- This comments-only anchor does not recreate or claim to execute that SQL.
+-- The canonical baseline supersedes historical schema evolution.
+-- DO NOT REPLAY historical SQL.

@@ -1,0 +1,8 @@
+-- Remote migration version: 20260427170359
+-- Remote migration name: 00010_consent_email_delivery
+-- Mapped legacy migration: 00010_consent_email_delivery.sql
+-- Legacy archive path: supabase/migration_archive/legacy_pre_baseline/00010_consent_email_delivery.sql
+-- Historical SQL execution is recorded in the existing remote migration history.
+-- This comments-only anchor does not recreate or claim to execute that SQL.
+-- The canonical baseline supersedes historical schema evolution.
+-- DO NOT REPLAY historical SQL.

@@ -1,0 +1,3 @@
+# Migration checksums cover exact reviewed bytes, including archived CRLF files.
+supabase/migrations/*.sql -text
+supabase/migration_archive/legacy_pre_baseline/*.sql -text

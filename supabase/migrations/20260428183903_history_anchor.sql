@@ -1,0 +1,8 @@
+-- Remote migration version: 20260428183903
+-- Remote migration name: profile_metadata
+-- Mapped legacy migration: 00011_profile_metadata.sql
+-- Legacy archive path: supabase/migration_archive/legacy_pre_baseline/00011_profile_metadata.sql
+-- Historical SQL execution is recorded in the existing remote migration history.
+-- This comments-only anchor does not recreate or claim to execute that SQL.
+-- The canonical baseline supersedes historical schema evolution.
+-- DO NOT REPLAY historical SQL.
