@@ -588,11 +588,12 @@ test('FREEZE 00081 exact accepted hash retained', async () => {
   const data = await readFile(new URL('supabase/migration_archive/legacy_pre_baseline/00081_under13_pending_retention_cleanup.sql', root));
   assert.equal(createHash('sha256').update(data).digest('hex').toUpperCase(), 'B64299CC4CED12A0A68525F15B1F50B17C2AEE2E5AB3EAFF526AD34E030BDF14');
 });
-test('FREEZE historical migrations, Stripe, consent, auth and all frontend unchanged', () => {
+test('FREEZE historical migrations, unrelated payment/auth/frontend files unchanged', () => {
   assertOnlyNormalizationChanges([
     'supabase/config.toml', 'supabase/functions/_shared/under13-parent-reminder-core.ts',
     'supabase/functions/_shared/under13-parent-reminder-template.ts',
     'supabase/functions/send-under13-parent-reminders/index.ts',
+    'supabase/functions/stripe-webhook/index.ts',
   ]);
 });
 

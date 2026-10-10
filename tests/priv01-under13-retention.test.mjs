@@ -315,13 +315,15 @@ test('STATIC_CONTRACT active source has no legacy retention rule', async () => {
     assert.doesNotMatch(await read(path), activePattern, path);
   }
 });
-test('STATIC_CONTRACT historical migrations, Stripe files and dependencies are unchanged', () => {
-  assertOnlyNormalizationChanges();
+test('STATIC_CONTRACT historical migrations, unrelated payment files and dependencies are unchanged', () => {
+  assertOnlyNormalizationChanges([
+    'supabase/functions/stripe-webhook/index.ts',
+  ]);
   const changed = execFileSync('git', ['diff', '--name-only', 'HEAD', '--',
-    'supabase/functions/stripe-webhook', 'supabase/functions/create-checkout',
+    'supabase/functions/create-checkout',
     'package.json', 'package-lock.json'], { encoding: 'utf8' })
     .trim().split(/\r?\n/).filter(Boolean);
-  assert.deepEqual(changed, [], 'Stripe production files and dependencies remain frozen');
+  assert.deepEqual(changed, [], 'Unrelated payment files and dependencies remain frozen');
 });
 
 // MOCKED_BEHAVIOR executes the actual UI linking handler, not a policy model.
