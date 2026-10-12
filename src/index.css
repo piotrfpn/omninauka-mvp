@@ -281,3 +281,14 @@ html {
 .dark .omninauka-dashboard-bg {
   background-image: linear-gradient(rgba(11, 18, 32, 0.62), rgba(11, 18, 32, 0.62)), url('/backgrounds/omninauka-bg-dark.png');
 }
+
+.omninauka-login-bg {
+  background-image: url('./assets/backgrounds/omninauka-login-light.webp');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+
+.dark .omninauka-login-bg {
+  background-image: url('./assets/backgrounds/omninauka-login-dark.webp');
+}
