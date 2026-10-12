@@ -92,7 +92,7 @@ export default function LegalPageLayout({
       <footer className="px-6 py-12 bg-[#0B1220] text-white/50 border-t border-white/5 mt-auto">
         <div className="max-w-3xl mx-auto text-center">
           <div className="flex justify-center mb-8">
-            <OmniNaukaLogo size={32} />
+            <OmniNaukaLogo size={32} variant="dark" />
           </div>
           <div className="flex flex-wrap justify-center gap-x-8 gap-y-4 mb-8 text-xs font-medium uppercase tracking-wider">
             <Link to="/regulamin" className="hover:text-white transition-colors">{t('home.footer.legal.terms', 'Regulamin')}</Link>

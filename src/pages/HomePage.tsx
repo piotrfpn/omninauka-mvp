@@ -431,7 +431,7 @@ export default function HomePage() {
             {/* Brand Column */}
             <div className="flex flex-col gap-4">
               <div className="flex items-center">
-                <OmniNaukaLogo size={32} className="!text-white" />
+                <OmniNaukaLogo size={32} variant="dark" />
               </div>
               <p className="text-[#94A3B8] text-sm leading-relaxed max-w-[200px]">
                 {t('home.footer.brandDesc', 'Personalizowana nauka dla każdego ucznia')}
