@@ -831,6 +831,13 @@
       "delete": "Delete",
       "startLearning": "Start learning"
     },
+    "actions": {
+      "continue": "Continue",
+      "analysis": "Summary",
+      "tutor": "AI Tutor",
+      "flashcards": "Flashcards",
+      "quiz": "Quiz"
+    },
     "stats": {
       "sessionsCount": "{{count}} sessions",
       "sessions": "Sessions",

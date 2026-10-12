@@ -652,6 +652,13 @@
       "delete": "Видалити",
       "startLearning": "Розпочати навчання"
     },
+    "actions": {
+      "continue": "Продовжити",
+      "analysis": "Підсумок",
+      "tutor": "AI Tutor",
+      "flashcards": "Картки",
+      "quiz": "Вікторина"
+    },
     "stats": {
       "sessionsCount": "{{count}} сесій",
       "sessions": "Сесії",

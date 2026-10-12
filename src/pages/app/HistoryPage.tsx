@@ -7,12 +7,18 @@ import {
   Calendar, CheckCircle2, Award, BookOpen, TrendingUp, ArrowRight, Trash2,
   Check, X, Search, Filter, Folder, 
   Home, ChevronRight, FolderPlus, ArrowRightLeft, 
-  ChevronDown
+  ChevronDown, MessageCircle, HelpCircle, FileText
 } from 'lucide-react';
 import { LessonTitleEditor } from '../../components/lessons/lesson-title-editor';
 import { toast } from 'sonner';
 import { HistorySkeleton } from '../../components/ui/page-skeletons';
 import { useTranslation } from 'react-i18next';
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+} from '../../components/ui/dropdown-menu';
 
 // ─── Delete confirmation dialog ────────────────────────────────────────────────
 function ConfirmDialog({
@@ -270,6 +276,31 @@ function CreateFolderModal({
   );
 }
 
+interface SessionItem {
+  id: string;
+  topic?: string;
+  lesson_title?: string;
+  subject?: string;
+  created_at?: string;
+  startedAt?: Date | string;
+  summary?: string;
+  flashcards?: unknown[];
+  quiz_questions?: unknown[];
+  quiz_result?: {
+    percentage: number;
+    score?: number;
+    total?: number;
+    completed_at?: string;
+  } | null;
+  analysis?: {
+    topic?: string;
+    subject?: string;
+    flashcards?: unknown[];
+    quizQuestions?: unknown[];
+  } | null;
+  [key: string]: unknown;
+}
+
 // ─── Main HistoryPage ──────────────────────────────────────────────────────────
 export default function HistoryPage() {
   const { user, isDemoMode } = useAuth();
@@ -436,6 +467,17 @@ export default function HistoryPage() {
   const handleOpenSession = (sessionId: string) => {
     sessionStorage.setItem('currentSessionId', sessionId);
     navigate(`/app/analysis/${sessionId}`);
+  };
+
+  const handleNavigateToModule = (session: SessionItem, route: string) => {
+    sessionStorage.setItem('currentSessionId', session.id);
+    if (session.analysis || session.topic || session.lesson_title) {
+      sessionStorage.setItem(
+        'currentAnalysis',
+        JSON.stringify(session.analysis || { topic: session.topic || session.lesson_title || session.subject || '' })
+      );
+    }
+    navigate(route);
   };
 
   const handleDeleteConfirm = async () => {
@@ -892,16 +934,70 @@ export default function HistoryPage() {
                         </div>
                       </div>
 
-                      <div className="flex items-center gap-2 mt-4 lg:mt-0">
+                      <div className="flex items-center gap-2 mt-4 lg:mt-0 flex-wrap sm:flex-nowrap">
                         <span className="px-3 py-1 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 rounded-full text-xs font-medium uppercase tracking-wider">
                           {t('history.items.completed')}
                         </span>
+
+                        <div onClick={e => e.stopPropagation()}>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger
+                              onClick={e => e.stopPropagation()}
+                              className="inline-flex items-center gap-1.5 min-h-[40px] px-3.5 py-2 rounded-xl text-xs font-semibold bg-indigo-50 dark:bg-indigo-950/50 hover:bg-indigo-100 dark:hover:bg-indigo-900/50 text-indigo-600 dark:text-indigo-400 border border-indigo-100 dark:border-indigo-900/40 transition-colors focus:outline-hidden"
+                            >
+                              <span>{t('history.actions.continue', 'Kontynuuj')}</span>
+                              <ChevronDown className="w-3.5 h-3.5" />
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end" className="w-48 rounded-xl p-1.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xl">
+                              <DropdownMenuItem
+                                onClick={e => {
+                                  e.stopPropagation();
+                                  handleNavigateToModule(session, `/app/analysis/${session.id}`);
+                                }}
+                                className="flex items-center gap-2.5 px-3 py-2 text-sm cursor-pointer rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 focus:bg-slate-100 dark:focus:bg-slate-800 text-slate-700 dark:text-slate-200 min-h-[40px]"
+                              >
+                                <FileText className="w-4 h-4 text-indigo-500" />
+                                <span>{t('history.actions.analysis', 'Podsumowanie')}</span>
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                onClick={e => {
+                                  e.stopPropagation();
+                                  handleNavigateToModule(session, `/app/lesson/${session.id}`);
+                                }}
+                                className="flex items-center gap-2.5 px-3 py-2 text-sm cursor-pointer rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 focus:bg-slate-100 dark:focus:bg-slate-800 text-slate-700 dark:text-slate-200 min-h-[40px]"
+                              >
+                                <MessageCircle className="w-4 h-4 text-emerald-500" />
+                                <span>{t('history.actions.tutor', 'AI Tutor')}</span>
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                onClick={e => {
+                                  e.stopPropagation();
+                                  handleNavigateToModule(session, `/app/flashcards/${session.id}`);
+                                }}
+                                className="flex items-center gap-2.5 px-3 py-2 text-sm cursor-pointer rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 focus:bg-slate-100 dark:focus:bg-slate-800 text-slate-700 dark:text-slate-200 min-h-[40px]"
+                              >
+                                <Award className="w-4 h-4 text-purple-500" />
+                                <span>{t('history.actions.flashcards', 'Fiszki')}</span>
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                onClick={e => {
+                                  e.stopPropagation();
+                                  handleNavigateToModule(session, `/app/quiz/${session.id}`);
+                                }}
+                                className="flex items-center gap-2.5 px-3 py-2 text-sm cursor-pointer rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 focus:bg-slate-100 dark:focus:bg-slate-800 text-slate-700 dark:text-slate-200 min-h-[40px]"
+                              >
+                                <HelpCircle className="w-4 h-4 text-amber-500" />
+                                <span>{t('history.actions.quiz', 'Quiz')}</span>
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </div>
 
                         {!isDemoMode && (
                           <button
                             onClick={e => { e.stopPropagation(); setConfirmDeleteId(session.id); }}
                             disabled={deletingId === session.id}
-                            className="p-2 rounded-lg text-red-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/30 transition-colors disabled:opacity-50"
+                            className="p-2 min-h-[40px] min-w-[40px] flex items-center justify-center rounded-lg text-red-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/30 transition-colors disabled:opacity-50"
                             title={t('history.items.deleteSession')}
                           >
                             <Trash2 className="w-4 h-4" />
@@ -911,14 +1007,14 @@ export default function HistoryPage() {
                         {!isDemoMode && (
                           <button
                             onClick={e => { e.stopPropagation(); setMovingSessionId(session.id); }}
-                            className="p-2 rounded-lg text-indigo-400 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 transition-colors"
+                            className="p-2 min-h-[40px] min-w-[40px] flex items-center justify-center rounded-lg text-indigo-400 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 transition-colors"
                             title={t('history.items.moveLesson')}
                           >
                             <ArrowRightLeft className="w-4 h-4" />
                           </button>
                         )}
 
-                        <div className="p-2 text-[var(--omni-accent)] bg-slate-50 dark:bg-slate-800 group-hover:bg-indigo-100 dark:group-hover:bg-indigo-900 rounded-lg transition-colors">
+                        <div className="p-2 min-h-[40px] min-w-[40px] flex items-center justify-center text-[var(--omni-accent)] bg-slate-50 dark:bg-slate-800 group-hover:bg-indigo-100 dark:group-hover:bg-indigo-900 rounded-lg transition-colors">
                           <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
                         </div>
                       </div>

@@ -652,6 +652,13 @@
       "delete": "Eliminar",
       "startLearning": "Empezar a aprender"
     },
+    "actions": {
+      "continue": "Continuar",
+      "analysis": "Resumen",
+      "tutor": "AI Tutor",
+      "flashcards": "Tarjetas",
+      "quiz": "Cuestionario"
+    },
     "stats": {
       "sessionsCount": "{{count}} sesiones",
       "sessions": "Sesiones",
