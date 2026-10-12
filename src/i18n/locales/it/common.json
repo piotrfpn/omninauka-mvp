@@ -367,6 +367,7 @@
     "stats": {
       "sessions": "Sessioni",
       "hours": "Ore di studio",
+      "completedQuizzes": "Quiz completati",
       "avgScore": "Punteggio medio",
       "streak": "Serie"
     },

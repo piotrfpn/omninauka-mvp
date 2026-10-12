@@ -371,10 +371,10 @@
   "appShell": {
     "nav": {
       "dashboard": "Panel główny",
-      "upload": "Upload",
+      "upload": "Dodaj materiał",
       "flashcards": "Fiszki",
       "quiz": "Quiz",
-      "lesson": "Lekcja AI",
+      "lesson": "AI Tutor",
       "results": "Wyniki",
       "history": "Historia",
       "profile": "Profil",
@@ -395,16 +395,17 @@
   "dashboard": {
     "welcome": "Cześć",
     "subtitle": "Gotowy na kolejną sesję nauki?",
-    "newUpload": "Nowy upload",
+    "newUpload": "Dodaj materiał",
     "stats": {
       "sessions": "Sesje nauki",
       "hours": "Godziny nauki",
+      "completedQuizzes": "Ukończone quizy",
       "avgScore": "Średni wynik quizów",
       "streak": "Streak"
     },
     "quickActions": {
       "title": "Szybkie akcje",
-      "newUpload": "Nowy upload"
+      "newUpload": "Dodaj materiał"
     },
     "recentSessions": "Ostatnie sesje",
     "seeAll": "Zobacz wszystkie",
@@ -587,7 +588,7 @@
     },
     "empty": {
       "title": "Nie znaleziono podsumowania lekcji",
-      "back": "Wróć do uploadu"
+      "back": "Wróć do dodawania materiału"
     },
     "header": {
       "confidence": "Pewność:",
@@ -917,7 +918,7 @@
       "creating_session": "Tworzę sesję lekcji...",
       "navigating": "Wczytuję podsumowanie..."
     },
-    "title": "Upload materiałów",
+    "title": "Dodaj materiał",
     "subtitle": "Dodaj do {{maxImages}} zdjęć notatek lub 1 dokument tekstowy (PDF/DOCX). AI przygotuje lekcję w parę sekund.",
     "demoMode": "Tryb demo — wgrany plik zostanie przetworzony tylko lokalnie.",
     "cameraCta": "Zrób zdjęcie notatek",

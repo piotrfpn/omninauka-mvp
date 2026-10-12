@@ -367,6 +367,7 @@
     "stats": {
       "sessions": "Lernsitzungen",
       "hours": "Lernstunden",
+      "completedQuizzes": "Abgeschlossene Quizze",
       "avgScore": "Durchschnitt",
       "streak": "Streak"
     },

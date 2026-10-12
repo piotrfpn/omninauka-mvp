@@ -9,7 +9,7 @@ import {
   HelpCircle,
   MessageCircle,
   TrendingUp,
-  Clock,
+  CheckCircle2,
   Award,
   Flame,
   ArrowRight,
@@ -40,7 +40,7 @@ export default function DashboardPage() {
   // Stats derived from actual user data
   const [computedStats, setComputedStats] = useState({
     totalSessions: 0,
-    totalTimeMinutes: 0,
+    completedQuizzes: 0,
     averageScore: null as number | null,
     currentStreak: 0,
     subjectProgress: [] as any[]
@@ -52,7 +52,7 @@ export default function DashboardPage() {
       setSessions(mockStudySessions.slice(0, 3));
       setComputedStats({
         totalSessions: mockDashboardSummary.totalStudySessions,
-        totalTimeMinutes: mockDashboardSummary.totalStudyTimeMinutes,
+        completedQuizzes: 18,
         averageScore: mockDashboardSummary.averageScore,
         currentStreak: mockDashboardSummary.currentStreak,
         subjectProgress: mockDashboardSummary.subjectProgress
@@ -117,8 +117,7 @@ export default function DashboardPage() {
           return {
             subject,
             averageScore: quizScores.length > 0 ? Math.round(quizScores.reduce((a, b) => a + b, 0) / quizScores.length) : null,
-            totalSessions: info.count,
-            totalTimeMinutes: info.count * 15
+            totalSessions: info.count
           };
         });
 
@@ -126,9 +125,13 @@ export default function DashboardPage() {
           .filter(s => s.quiz_result?.percentage !== undefined)
           .map(s => s.quiz_result.percentage);
 
+        const completedQuizzesCount = allSessions.filter(
+          s => Boolean(s.quiz_result && (s.quiz_result.completed_at || s.quiz_result.percentage !== undefined))
+        ).length;
+
         setComputedStats({
           totalSessions: allSessions.length,
-          totalTimeMinutes: allSessions.length * 15,
+          completedQuizzes: completedQuizzesCount,
           averageScore: allQuizScores.length > 0 ? Math.round(allQuizScores.reduce((a, b) => a + b, 0) / allQuizScores.length) : null,
           currentStreak: calculateStreak(allSessions),
           subjectProgress: progressMap
@@ -179,15 +182,15 @@ export default function DashboardPage() {
   };
 
   const quickActions = [
-    { label: t('dashboard.quickActions.newUpload', 'Nowy upload'), href: '/app/upload', icon: Upload, color: 'bg-[var(--omni-lavender)]' },
+    { label: t('dashboard.quickActions.newUpload', 'Dodaj materiał'), href: '/app/upload', icon: Upload, color: 'bg-[var(--omni-lavender)]' },
     { label: t('appShell.nav.flashcards', 'Fiszki'), href: '/app/flashcards', icon: BookOpen, color: 'bg-[var(--omni-mint)]' },
     { label: t('appShell.nav.quiz', 'Quiz'), href: '/app/quiz', icon: HelpCircle, color: 'bg-[var(--omni-blush)]' },
-    { label: t('appShell.nav.lesson', 'Lekcja AI'), href: '/app/lesson', icon: MessageCircle, color: 'bg-[var(--omni-sky)]' }
+    { label: t('appShell.nav.lesson', 'AI Tutor'), href: '/app/lesson', icon: MessageCircle, color: 'bg-[var(--omni-sky)]' }
   ];
 
   const statCards = [
     { label: t('dashboard.stats.sessions', 'Sesje nauki'), value: computedStats.totalSessions, icon: Calendar, color: 'text-[var(--omni-accent)]' },
-    { label: t('dashboard.stats.hours', 'Godziny nauki'), value: Math.round(computedStats.totalTimeMinutes / 60), icon: Clock, color: 'text-blue-500' },
+    { label: t('dashboard.stats.completedQuizzes', 'Ukończone quizy'), value: computedStats.completedQuizzes, icon: CheckCircle2, color: 'text-blue-500' },
     { 
       label: t('dashboard.stats.avgScore', 'Średni wynik quizów'), 
       value: computedStats.averageScore !== null ? `${computedStats.averageScore}%` : '—', 
@@ -222,7 +225,7 @@ export default function DashboardPage() {
           </p>
         </div>
         <Link to="/app/upload" className="omni-btn-primary self-start">
-          <Upload className="w-5 h-5" /> {t('dashboard.newUpload', 'Nowy upload')}
+          <Upload className="w-5 h-5" /> {t('dashboard.newUpload', 'Dodaj materiał')}
         </Link>
       </div>
 
@@ -381,7 +384,7 @@ export default function DashboardPage() {
                   />
                 </div>
                 <p className="text-xs text-slate-600 dark:text-slate-300 mt-2">
-                  {subject.totalSessions} {t('dashboard.sessions', 'sesji')} • ok. {Math.round(subject.totalTimeMinutes / 60)}h
+                  {subject.totalSessions} {t('dashboard.sessions', 'sesji')}
                 </p>
               </div>
             ))}

@@ -208,10 +208,11 @@ function ThumbnailStrip({
             <button
               type="button"
               onClick={e => { e.stopPropagation(); onRemove(idx); }}
-              className="absolute top-0.5 right-0.5 opacity-0 group-hover:opacity-100 transition-opacity bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center shadow"
-              title={t('upload.actions.remove')}
+              className="absolute top-1 right-1 opacity-100 md:opacity-0 md:group-hover:opacity-100 [@media(hover:none)]:opacity-100 transition-opacity bg-red-500 hover:bg-red-600 active:scale-95 text-white rounded-full w-7 h-7 md:w-5 md:h-5 md:top-0.5 md:right-0.5 flex items-center justify-center shadow-md touch-manipulation z-10"
+              title={t('upload.actions.remove', 'Usuń')}
+              aria-label={t('upload.actions.remove', 'Usuń')}
             >
-              <X className="w-3 h-3" />
+              <X className="w-4 h-4 md:w-3 md:h-3" />
             </button>
           )}
         </div>

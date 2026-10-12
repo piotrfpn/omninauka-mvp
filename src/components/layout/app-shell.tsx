@@ -75,10 +75,10 @@ export function AppShell({ children }: AppShellProps) {
 
   const navItems = [
     { label: t('appShell.nav.dashboard', 'Dashboard'), href: '/app/dashboard', icon: LayoutDashboard },
-    { label: t('appShell.nav.upload', 'Upload'), href: '/app/upload', icon: Upload },
+    { label: t('appShell.nav.upload', 'Dodaj materiał'), href: '/app/upload', icon: Upload },
     { label: t('appShell.nav.flashcards', 'Fiszki'), href: '/app/flashcards', icon: BookOpen },
     { label: t('appShell.nav.quiz', 'Quiz'), href: '/app/quiz', icon: HelpCircle },
-    { label: t('appShell.nav.lesson', 'Lekcja AI'), href: '/app/lesson', icon: MessageCircle },
+    { label: t('appShell.nav.lesson', 'AI Tutor'), href: '/app/lesson', icon: MessageCircle },
     { label: t('appShell.nav.results', 'Wyniki'), href: '/app/results', icon: BarChart3 },
     { label: t('appShell.nav.history', 'Historia'), href: '/app/history', icon: History },
   ];

@@ -399,6 +399,7 @@
     "stats": {
       "sessions": "Study sessions",
       "hours": "Study hours",
+      "completedQuizzes": "Completed quizzes",
       "avgScore": "Average quiz score",
       "streak": "Streak"
     },
