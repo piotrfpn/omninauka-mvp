@@ -654,10 +654,12 @@
     },
     "stats": {
       "sessionsCount": "{{count}} sessioni",
-      "avgScore": "Media punteggio:",
+      "sessions": "Sessioni",
+      "completedQuizzes": "Quiz completati",
+      "avgScore": "Punteggio medio del quiz",
+      "subjects": "Materie",
       "studyTime": "Tempo di studio",
-      "avgPerSession": "Media/sessione",
-      "subjects": "Materie"
+      "avgPerSession": "Media/sessione"
     },
     "explorer": {
       "allLessons": "Tutte le lezioni",

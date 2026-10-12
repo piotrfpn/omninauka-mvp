@@ -654,10 +654,12 @@
     },
     "stats": {
       "sessionsCount": "{{count}} Sitzungen",
-      "avgScore": "Durchschn. Ergebnis:",
+      "sessions": "Sitzungen",
+      "completedQuizzes": "Abgeschlossene Quizze",
+      "avgScore": "Durchschn. Quiz-Ergebnis",
+      "subjects": "Fächer",
       "studyTime": "Lernzeit",
-      "avgPerSession": "Durchschn/Sitzung",
-      "subjects": "Fächer"
+      "avgPerSession": "Durchschn/Sitzung"
     },
     "explorer": {
       "allLessons": "Alle Lektionen",

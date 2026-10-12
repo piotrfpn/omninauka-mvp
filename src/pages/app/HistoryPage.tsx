@@ -4,7 +4,7 @@ import { mockStudySessions } from '../../mock/data';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../lib/auth-context';
 import { 
-  Calendar, Clock, Award, BookOpen, TrendingUp, ArrowRight, Trash2, 
+  Calendar, CheckCircle2, Award, BookOpen, TrendingUp, ArrowRight, Trash2,
   Check, X, Search, Filter, Folder, 
   Home, ChevronRight, FolderPlus, ArrowRightLeft, 
   ChevronDown
@@ -593,7 +593,10 @@ export default function HistoryPage() {
   }
 
   const uniqueSubjects = new Set(filteredAndSortedSessions.map(s => s.subject || t('history.items.noSubject'))).size;
-  const totalProxyMinutes = sessions.length * 15;
+
+  const completedQuizzes = sessions.filter(
+    s => Boolean(s.quiz_result && (s.quiz_result.completed_at || s.quiz_result.percentage !== undefined))
+  ).length;
 
   const quizScores = sessions
     .filter(s => s.quiz_result?.percentage !== undefined)
@@ -622,11 +625,6 @@ export default function HistoryPage() {
             <span className="text-xs sm:text-sm text-[var(--omni-text-muted)] font-medium bg-slate-100 dark:bg-slate-800 px-3 py-2 rounded-xl whitespace-nowrap">
               {t('history.stats.sessionsCount', { count: sessions.length })}
             </span>
-            {averageQuizScore !== null && (
-              <span className="text-xs sm:text-sm text-green-600 font-bold bg-green-50 dark:bg-green-950/30 px-3 py-2 rounded-xl border border-green-100 dark:border-green-900/30 whitespace-nowrap">
-                {t('history.stats.avgScore')} {averageQuizScore}%
-              </span>
-            )}
           </div>
         </div>
       </div>
@@ -680,22 +678,22 @@ export default function HistoryPage() {
         <div className="omni-card p-4">
           <Calendar className="w-5 h-5 text-[var(--omni-accent)] mb-2" />
           <p className="text-2xl font-bold text-[var(--omni-text)]">{sessions.length}</p>
-          <p className="text-sm text-[var(--omni-text-muted)]">{t('history.items.sessions')}</p>
+          <p className="text-sm text-[var(--omni-text-muted)]">{t('history.stats.sessions', 'Sesje')}</p>
         </div>
         <div className="omni-card p-4">
-          <Clock className="w-5 h-5 text-blue-500 mb-2" />
-          <p className="text-2xl font-bold text-[var(--omni-text)]">{Math.round(totalProxyMinutes / 60)}h</p>
-          <p className="text-sm text-[var(--omni-text-muted)]">{t('history.stats.studyTime')}</p>
+          <CheckCircle2 className="w-5 h-5 text-blue-500 mb-2" />
+          <p className="text-2xl font-bold text-[var(--omni-text)]">{completedQuizzes}</p>
+          <p className="text-sm text-[var(--omni-text-muted)]">{t('history.stats.completedQuizzes', 'Ukończone quizy')}</p>
         </div>
         <div className="omni-card p-4">
-          <Award className="w-5 h-5 text-green-500 mb-2" />
-          <p className="text-2xl font-bold text-[var(--omni-text)]">15m</p>
-          <p className="text-sm text-[var(--omni-text-muted)]">{t('history.stats.avgPerSession')}</p>
+          <TrendingUp className="w-5 h-5 text-green-500 mb-2" />
+          <p className="text-2xl font-bold text-[var(--omni-text)]">{averageQuizScore !== null ? `${averageQuizScore}%` : '—'}</p>
+          <p className="text-sm text-[var(--omni-text-muted)]">{t('history.stats.avgScore', 'Średni wynik quizów')}</p>
         </div>
         <div className="omni-card p-4">
-          <TrendingUp className="w-5 h-5 text-orange-500 mb-2" />
+          <BookOpen className="w-5 h-5 text-orange-500 mb-2" />
           <p className="text-2xl font-bold text-[var(--omni-text)]">{uniqueSubjects}</p>
-          <p className="text-sm text-[var(--omni-text-muted)]">{t('history.stats.subjects')}</p>
+          <p className="text-sm text-[var(--omni-text-muted)]">{t('history.stats.subjects', 'Przedmiotów')}</p>
         </div>
       </div>
 

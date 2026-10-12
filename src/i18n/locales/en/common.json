@@ -833,10 +833,12 @@
     },
     "stats": {
       "sessionsCount": "{{count}} sessions",
-      "avgScore": "Avg. score:",
+      "sessions": "Sessions",
+      "completedQuizzes": "Completed quizzes",
+      "avgScore": "Average quiz score",
+      "subjects": "Subjects",
       "studyTime": "Study time",
-      "avgPerSession": "Avg/session",
-      "subjects": "Subjects"
+      "avgPerSession": "Avg/session"
     },
     "explorer": {
       "allLessons": "All lessons",

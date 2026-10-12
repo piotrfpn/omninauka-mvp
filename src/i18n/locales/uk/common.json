@@ -654,10 +654,12 @@
     },
     "stats": {
       "sessionsCount": "{{count}} сесій",
-      "avgScore": "Сер. результат:",
+      "sessions": "Сесії",
+      "completedQuizzes": "Завершені вікторини",
+      "avgScore": "Середній бал вікторини",
+      "subjects": "Предметів",
       "studyTime": "Час навчання",
-      "avgPerSession": "Сер/сесію",
-      "subjects": "Предметів"
+      "avgPerSession": "Сер/сесію"
     },
     "explorer": {
       "allLessons": "Всі уроки",

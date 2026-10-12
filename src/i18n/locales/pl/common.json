@@ -832,10 +832,12 @@
     },
     "stats": {
       "sessionsCount": "{{count}} sesji",
-      "avgScore": "Śr. wynik:",
+      "sessions": "Sesje",
+      "completedQuizzes": "Ukończone quizy",
+      "avgScore": "Średni wynik quizów",
+      "subjects": "Przedmiotów",
       "studyTime": "Czas nauki",
-      "avgPerSession": "Średnio/sesję",
-      "subjects": "Przedmiotów"
+      "avgPerSession": "Średnio/sesję"
     },
     "explorer": {
       "allLessons": "Wszystkie lekcje",
