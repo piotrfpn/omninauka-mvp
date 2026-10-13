@@ -95,11 +95,11 @@
 **Description:** Validation errors not clearly displayed
 **Fix:** Add error message components
 
-### 14. No Password Visibility Toggle
+### 14. No Password Visibility Toggle [RESOLVED - SPRINT PF-03.1]
 **File:** `LoginPage.tsx`, `RegisterPage.tsx`
 **Impact:** Low
 **Description:** Can't show/hide password
-**Fix:** Add eye icon toggle
+**Fix:** Eye icon toggle implemented with minimum 44x44px touch target area in PF-03.1.
 
 ---
 
@@ -130,10 +130,10 @@
 **Description:** Sidebar takes space on medium screens
 **Fix:** Add collapsible sidebar for tablet
 
-### 19. Touch Targets Too Small
+### 19. Touch Targets Too Small [POLISHED - SPRINT PF-03.1]
 **Impact:** Medium
 **Description:** Some buttons may be hard to tap
-**Fix:** Ensure minimum 44x44px touch targets
+**Fix:** Enforced >= 40-44px touch targets across login password toggle (44x44px), upload thumbnail remove (42x42px), history folder action (40x40px), and history search/sort controls (44px height).
 
 ### 20. Zoom on Input Focus (iOS)
 **Impact:** Low
@@ -209,3 +209,38 @@ These are intentional shortcuts for MVP that need fixing:
 4. Images are reasonable size (<10MB)
 5. Users won't manipulate localStorage
 6. Demo mode is sufficient for testing
+
+---
+
+## PF-03 / PF-03.1 Status & Deferred Issues
+
+### 28. Login Background Transition
+- **Status:** DEFERRED
+- **Impact:** Low (Cosmetic UX)
+- **Observed:** Nowe tło logowania (background image) może być widoczne przez krótką chwilę podczas ładowania strony `/login`, a następnie wizualnie znikać / ulegać zmianie po załadowaniu.
+- **Diagnoza / Hipoteza:** Dokładna przyczyna nie została jeszcze potwierdzona. Możliwa interakcja pomiędzy przekierowaniem sesji, inicjalizacją motywu (theme) a cyklem renderowania formularza logowania pozostaje wyłącznie hipotezą roboczą. Nie wprowadzano zmian w kodzie w sprincie PF-03.1.
+
+### 29. Demo Session State After Hard Refresh
+- **Status:** DEFERRED
+- **Impact:** Low-Medium
+- **Observed:** W trybie demonstracyjnym (`isDemoMode`) sesja demo oraz stan ćwiczeń są tracone po twardym odświeżeniu strony (hard refresh), ponieważ stan demo jest przechowywany w pamięci kontekstu aplikacji (`auth-context`), a nie w trwałym magazynie.
+- **Decyzja:** Zgodnie z założeniami PF-03.1, nie modyfikowano architektury `auth-context`. Utrwalanie sesji demo zostało odłożone na późniejszy etap.
+
+### 30. Favicon SVG Declaration
+- **Status:** REJECTED AS ISSUE
+- **Impact:** N/A (Wymaganie odrzucone)
+- **Kontekst:** W audycie PF-03 rozważano dodanie deklaracji favicon.svg.
+- **Decyzja:** Odrzucono. Obecna konfiguracja favicon w formatach PNG/ICO (`apple-touch-icon.png`, `pwa-*.png`, favicony rastrowe) jest w pełni zamierzona i wynika z wcześniejszych prac nad assetami PWA. Wymóg SVG nie jest reintrodukowany.
+
+### 31. Vercel Automated Deployment Workflow (INFRA-01B)
+- **Status:** INFRA-01B = DEFERRED / MANUAL DEPLOY WORKFLOW ACCEPTED
+- **Impact:** Low (Operational)
+- **Kontekst:** Automatyczny deploy z webhooka GitHub na Vercel został odłożony w ramach INFRA-01B.
+- **Zaakceptowany proces wdrożeniowy:**
+  1. Commit zmian lokalnie
+  2. Push do gałęzi `main` na GitHubie
+  3. Weryfikacja czystego stanu drzewa roboczego (`git status` clean)
+  4. Weryfikacja zgodności `HEAD == origin/main`
+  5. Ręczne wywołanie produkcyjnego wdrożenia: `npx vercel --prod`
+  6. Weryfikacja statusu wdrożenia Vercel: `READY` oraz przypisania aliasu produkcyjnego `omninauka-mvp.vercel.app`
+- **Decyzja:** W sprincie dokumentacyjnym nie podejmowano prób rekonfiguracji połączenia GitHub/Vercel. Workflow manualny pozostaje oficjalnie zaakceptowany.

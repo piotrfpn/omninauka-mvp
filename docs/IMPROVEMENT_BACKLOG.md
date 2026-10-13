@@ -124,6 +124,51 @@ These can be done quickly for immediate improvement:
 
 ---
 
+## Production / Pre-Launch Sprint History & Roadmap
+
+### Sprint PF-03: Final Mobile + Tablet QA Audit [CLOSED / AUDIT PASS]
+- **Status:** CLOSED / AUDIT PASS
+- **Wynik audytu:**
+  - 0 blockerów, 0 problemów o priorytecie HIGH.
+  - Wszystkie kluczowe ścieżki użytkownika (Auth, Dashboard, Upload, AI Tutor, Quiz, Flashcards, History, Parent, Legal, Settings) stabilne na mobile i tabletach.
+  - Zweryfikowane viewporty: `390×844`, `412×915`, `768×1024`, `1024×1366`, `1280×800` (Light i Dark mode).
+  - Bramki techniczne: `npm run build` PASS, `npm run lint` regression gate PASS (179 errors / 16 warnings), working tree clean.
+
+### Sprint PF-03.1: Mobile/Tablet Polish Hotfix [CLOSED / PRODUCTION PASS]
+- **Status:** CLOSED / PRODUCTION PASS
+- **Commit:** `392e026` (`fix: polish mobile and tablet UX`)
+- **Wdrożony zakres:**
+  - History: usunięcie poziomego overflow na 1024px (`scrollWidth <= clientWidth`, 0px overflow).
+  - AppShell: dodanie `min-w-0` do elementu `<main>`.
+  - History: przesunięcie 4 kolumn statystyk z `lg` na `xl` (`grid-cols-2 xl:grid-cols-4`).
+  - History: powiększenie touch targets wyszukiwarki i sortowania (`h-11`, 44px).
+  - History: powiększenie touch target usuwania folderu (40×40px).
+  - Login: powiększenie hit-area przełącznika widoczności hasła do 44×44px (ikona 20×20px zachowana).
+  - Upload: powiększenie hit-area przycisku usuwania miniatury do 40–42px (oryginalny badge i ikona zachowane).
+  - LessonPage: ujednolicenie nazwy modułu z „Lekcja z AI” na „AI Tutor” (zarówno Demo, jak i Live).
+  - Flashcards: usunięcie zahardkodowanego polskiego stringa na rewersie i wdrożenie `t('flashcards.card.clickToFlip')`.
+- **Produkcja:**
+  - Vercel Production deployment: READY.
+  - Production alias: `omninauka-mvp.vercel.app`.
+  - Manual deployment workflow (`npx vercel --prod`) pomyślnie zrealizowany.
+- **Bramki techniczne:**
+  - `npm run build` = PASS
+  - `git diff --check` = PASS
+  - `npm run lint` = 179 errors / 16 warnings (0 regresji, `LINT_REGRESSION_GATE=PASS`)
+
+### Next Sprint: PF-04 — First Real User Testing [PLANNED]
+- **Status:** PLANNED
+- **Rekomendowany cel PF-04:**
+  - Obserwacja realnych uczniów oraz rodziców korzystających z aplikacji OmniNauka na telefonach i tabletach w celu identyfikacji:
+    1. Momentów zawahania (where they hesitate)
+    2. Niezrozumiałych pojęć i mechanizmów (what they do not understand)
+    3. Błędnych lub niespodziewanych wyborów nawigacyjnych (wrong or unexpected navigation choices)
+    4. Niejasnych wezwań do działania (unclear CTA)
+    5. Punktów oporu i tarcia (friction) w pełnym przepływie: Upload $\rightarrow$ Analiza $\rightarrow$ AI Tutor $\rightarrow$ Quiz $\rightarrow$ Historia
+    6. Problemów z użytecznością i ergonomią na mobile/tablet, które nie ujawniają się w testach automatycznych
+
+---
+
 ## Priority Matrix
 
 ```
