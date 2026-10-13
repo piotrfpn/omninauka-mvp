@@ -163,7 +163,7 @@ function MockLessonChat() {
       <div className="px-4 py-3 bg-white border-b border-gray-100 flex items-center justify-between">
         <div className="min-w-0">
           <h1 className="text-base font-bold text-[var(--omni-text)] truncate">
-            Lekcja z AI <span className="text-[10px] font-medium bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full ml-1">Demo</span>
+            AI Tutor <span className="text-[10px] font-medium bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full ml-1">Demo</span>
           </h1>
           <p className="text-xs text-[var(--omni-text-muted)] truncate">
             {topic}
@@ -948,7 +948,7 @@ function RealLessonChat() {
       <div className="px-4 py-3 bg-card border-b border-border flex items-center justify-between">
         <div className="min-w-0">
           <h1 className="text-base font-bold text-foreground truncate">
-            Lekcja z AI <span className="text-[10px] font-medium text-emerald-600 dark:text-emerald-400 bg-emerald-100 dark:bg-emerald-900/40 px-2 py-0.5 rounded-full ml-1 align-middle">Live</span>
+            AI Tutor <span className="text-[10px] font-medium text-emerald-600 dark:text-emerald-400 bg-emerald-100 dark:bg-emerald-900/40 px-2 py-0.5 rounded-full ml-1 align-middle">Live</span>
           </h1>
           <p className="text-xs text-muted-foreground truncate">
             {topic}

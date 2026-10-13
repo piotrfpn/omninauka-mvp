@@ -716,7 +716,7 @@ export default function HistoryPage() {
       )}
 
       {/* Stats Summary Area */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 xl:grid-cols-4 gap-4">
         <div className="omni-card p-4">
           <Calendar className="w-5 h-5 text-[var(--omni-accent)] mb-2" />
           <p className="text-2xl font-bold text-[var(--omni-text)]">{sessions.length}</p>
@@ -795,7 +795,7 @@ export default function HistoryPage() {
               placeholder={currentFolderId ? t('history.search.placeholderFolder') : t('history.search.placeholderAll')}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 bg-gray-50 dark:bg-slate-800 border-none rounded-xl text-sm focus:ring-2 focus:ring-indigo-500/20 outline-none transition-all text-[var(--omni-text)]"
+              className="w-full h-11 pl-10 pr-4 py-2.5 bg-gray-50 dark:bg-slate-800 border-none rounded-xl text-sm focus:ring-2 focus:ring-indigo-500/20 outline-none transition-all text-[var(--omni-text)]"
             />
             {searchQuery && (
                <button 
@@ -815,7 +815,7 @@ export default function HistoryPage() {
             <select
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value)}
-              className="flex-1 md:w-48 bg-gray-50 dark:bg-slate-800 border-none rounded-xl px-4 py-2 text-sm focus:ring-2 focus:ring-indigo-500/20 outline-none cursor-pointer appearance-none text-[var(--omni-text)]"
+              className="flex-1 md:w-48 h-11 bg-gray-50 dark:bg-slate-800 border-none rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-indigo-500/20 outline-none cursor-pointer appearance-none text-[var(--omni-text)]"
             >
               <option value="date_desc">{t('history.search.dateDesc')}</option>
               <option value="date_asc">{t('history.search.dateAsc')}</option>
@@ -835,10 +835,12 @@ export default function HistoryPage() {
               className="omni-card p-4 flex flex-col items-center gap-3 group/folder hover:border-indigo-300 dark:hover:border-indigo-800 transition-all text-center relative"
               onClick={() => setCurrentFolderId(folder.id)}
             >
-              <div className="absolute top-2 right-2 flex items-center gap-1 opacity-100 md:opacity-0 md:group-hover/folder:opacity-100 transition-opacity">
+              <div className="absolute top-1.5 right-1.5 flex items-center gap-1 opacity-100 md:opacity-0 md:group-hover/folder:opacity-100 transition-opacity">
                  <button 
                    onClick={e => { e.stopPropagation(); setConfirmDeleteFolderId(folder.id); }}
-                   className="p-1.5 rounded-lg text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors"
+                   className="p-2.5 min-w-[40px] min-h-[40px] flex items-center justify-center rounded-lg text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors"
+                   title={t('common.delete', 'Usuń')}
+                   aria-label={t('common.delete', 'Usuń')}
                  >
                    <Trash2 className="w-3.5 h-3.5" />
                  </button>

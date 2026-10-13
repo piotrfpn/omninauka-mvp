@@ -686,7 +686,7 @@ export default function FlashcardsPage() {
               <div className="flex-none flex items-center justify-center gap-2 pt-4 border-t border-border mt-auto">
                 <RotateCw className="w-3.5 h-3.5 text-muted-foreground" />
                 <span className="text-[10px] md:text-xs font-medium text-muted-foreground">
-                  Kliknij, by odwrócić
+                  {t('flashcards.card.clickToFlip')}
                 </span>
               </div>
             </div>
