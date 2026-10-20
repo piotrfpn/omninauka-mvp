@@ -4,6 +4,7 @@ import { AuthProvider, useAuth } from './lib/auth-context';
 import { ErrorBoundary } from './components/error-boundary';
 
 import HomePage from './pages/HomePage';
+import HowItWorksPage from './pages/HowItWorksPage';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import InstallPage from './pages/InstallPage';
@@ -103,6 +104,8 @@ function AppRoutes() {
     <Routes>
       {/* Public routes */}
       <Route path="/" element={<HomePage />} />
+      <Route path="/jak-to-dziala" element={<HowItWorksPage />} />
+      <Route path="/jak-dziala" element={<Navigate to="/jak-to-dziala" replace />} />
       <Route path="/kontakt" element={<ContactPage />} />
       <Route path="/regulamin" element={<TermsPage />} />
       <Route path="/polityka-prywatnosci" element={<PrivacyPage />} />

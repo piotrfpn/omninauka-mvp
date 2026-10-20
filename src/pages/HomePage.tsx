@@ -193,7 +193,7 @@ export default function HomePage() {
               <ArrowRight className="w-5 h-5" />
             </Link>
             <Link 
-              to="#jak-to-dziala" 
+              to="/jak-to-dziala"
               className="w-full sm:w-auto inline-flex items-center justify-center px-8 py-4 text-[var(--omni-text-muted)] font-medium hover:text-[var(--omni-text)] transition-colors"
             >
               {t('home.hero.cta.howItWorks')}
