@@ -155,7 +155,7 @@ export default function InstallPage() {
                       </button>
                     ) : (
                       <div className="space-y-2">
-                        <div className="flex items-start gap-2 text-amber-500 text-xs mt-2 bg-amber-500/10 p-2.5 rounded border border-amber-500/20">
+                        <div className="flex items-start gap-2 text-amber-800 dark:text-amber-300 text-xs mt-2 bg-amber-500/10 p-2.5 rounded border border-amber-500/20">
                           <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
                           <span>
                             {t('install.androidFallback', 'Jeśli przycisk nie jest dostępny, użyj menu przeglądarki i wybierz „Dodaj do ekranu głównego”.')}
