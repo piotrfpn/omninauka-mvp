@@ -532,6 +532,20 @@
       "desc": "Edytuj dane profilu i informacje edukacyjne."
     }
   },
+  "parentGuide": {
+    "prompt": "Zakładasz konto dziecku poniżej 13 lat?",
+    "homeLink": "Zakładasz konto dziecku poniżej 13 lat? Zobacz instrukcję",
+    "link": "Zobacz instrukcję →",
+    "languageNote": "Instrukcja jest dostępna w języku polskim.",
+    "navigationLabel": "Nawigacja instrukcji",
+    "eyebrow": "Dla rodzica i dziecka poniżej 13 lat",
+    "intro": "Najpierw rodzic, potem dziecko. Przejdźcie przez pięć etapów. Szczegóły i pomoc znajdziecie w pełnej instrukcji poniżej.",
+    "quickLink": "Zobacz 5 etapów",
+    "fullLink": "Pełna instrukcja",
+    "fullTitle": "Pełna instrukcja i najczęstsze problemy",
+    "tableLabel": "Tabela instrukcji",
+    "tableHint": "Tabele możesz przewijać w bok, aby zobaczyć wszystkie kolumny."
+  },
   "parent": {
     "title": "Dla rodzica / opiekuna",
     "dashboard": "Panel rodzica",
@@ -1058,6 +1072,6 @@
     "postInstall": "Po dodaniu ikony możesz uruchamiać OmniNauka bezpośrednio z ekranu głównego telefonu.",
     "desktopTitle": "Komputer / Desktop",
     "desktopDesc": "Aby w pełni cieszyć się trybem aplikacji mobilnej, zeskanuj kod QR lub otwórz tę stronę na swoim smartfonie.",
-    "homeCta": "Dodaj do telefonu"
+    "homeCta": "Zainstaluj na telefonie"
   }
 }

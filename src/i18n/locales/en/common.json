@@ -538,6 +538,20 @@
       "desc2": "Privacy Policy"
     }
   },
+  "parentGuide": {
+    "prompt": "Creating an account for a child under 13?",
+    "homeLink": "Creating an account for a child under 13? Read the guide",
+    "link": "Read the guide →",
+    "languageNote": "This guide is available in Polish.",
+    "navigationLabel": "Guide navigation",
+    "eyebrow": "For parents and children under 13",
+    "intro": "Parent first, then child. Follow the five steps. Find details and help in the full guide below.",
+    "quickLink": "View the 5 steps",
+    "fullLink": "Full guide",
+    "fullTitle": "Full guide and common problems",
+    "tableLabel": "Guide table",
+    "tableHint": "Scroll tables sideways to see all columns."
+  },
   "parent": {
     "title": "For parent / guardian",
     "dashboard": "Parent Dashboard",
@@ -1059,6 +1073,6 @@
     "postInstall": "After adding the icon, you can launch OmniNauka directly from your phone's home screen.",
     "desktopTitle": "Desktop / PC",
     "desktopDesc": "To fully enjoy the mobile app experience, scan the QR code or open this page on your smartphone.",
-    "homeCta": "Add to phone"
+    "homeCta": "Install on your phone"
   }
 }
