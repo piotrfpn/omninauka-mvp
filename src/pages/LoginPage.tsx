@@ -173,6 +173,12 @@ export default function LoginPage() {
 
           {/* Parent Info Note */}
           <div className="mt-4 text-center border-t border-gray-100/50 pt-4">
+            <Link
+              to="/instrukcja/konto-dziecka"
+              className="inline-flex min-h-11 items-center justify-center rounded-md py-3 text-sm leading-relaxed text-[var(--omni-text)] underline underline-offset-4 hover:decoration-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#4F7CFF] dark:focus-visible:outline-[#8EAAFF]"
+            >
+              <span>{t('parentGuide.prompt')}{' '}<strong>{t('parentGuide.link')}</strong></span>
+            </Link>
             <p className="text-xs text-[var(--omni-text-muted)] leading-relaxed">
               {t('auth.login.parent.desc')}
             </p>

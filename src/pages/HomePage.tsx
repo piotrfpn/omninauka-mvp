@@ -194,7 +194,7 @@ export default function HomePage() {
             </Link>
             <Link 
               to="/jak-to-dziala"
-              className="w-full sm:w-auto inline-flex items-center justify-center px-8 py-4 text-[var(--omni-text-muted)] font-medium hover:text-[var(--omni-text)] transition-colors"
+              className="w-full sm:w-auto inline-flex min-h-12 items-center justify-center rounded-xl bg-[#142955] px-8 py-4 text-white font-medium hover:bg-[#1C396F] transition-colors"
             >
               {t('home.hero.cta.howItWorks')}
             </Link>
@@ -202,12 +202,20 @@ export default function HomePage() {
           <div className="mt-6">
             <Link
               to="/install"
-              className="text-xs text-[var(--omni-text-muted)] hover:text-[#2EE6A6] transition-colors underline decoration-dotted underline-offset-4 inline-flex items-center gap-1.5"
+              className="w-full sm:w-auto inline-flex min-h-12 items-center justify-center gap-2 rounded-xl border border-[#4F7CFF] bg-white px-6 py-3 text-sm font-medium text-[#142955] hover:bg-[#F0F4FF] dark:bg-[#0B1220] dark:text-white dark:hover:bg-[#142955] transition-colors"
             >
-              <Smartphone className="w-3.5 h-3.5" />
-              {t('install.homeCta', 'Dodaj OmniNauka do telefonu')}
+              <Smartphone className="w-5 h-5 shrink-0 text-[#4F7CFF] dark:text-[#8EAAFF]" aria-hidden="true" />
+              {t('install.homeCta', 'Zainstaluj na telefonie')}
             </Link>
           </div>
+          <p className="mt-4 text-sm">
+            <Link
+              to="/instrukcja/konto-dziecka"
+              className="inline-flex min-h-11 items-center justify-center rounded-md text-[var(--omni-text)] underline underline-offset-4 hover:decoration-2"
+            >
+              {t('parentGuide.homeLink')}
+            </Link>
+          </p>
         </div>
       </section>
 

@@ -22,6 +22,8 @@ import { ConsentGuard } from './components/auth/ConsentGuard';
 import { AppShell } from './components/layout/app-shell';
 import './App.css';
 
+const ParentGuidePage = lazy(() => import('./pages/ParentGuidePage'));
+
 // Lazy load protected app pages
 const DashboardPage = lazy(() => import('./pages/app/DashboardPage'));
 const UploadPage = lazy(() => import('./pages/app/UploadPage'));
@@ -115,6 +117,10 @@ function AppRoutes() {
       <Route path="/consent/:token" element={<ParentConsentPage />} />
       <Route path="/login" element={<LoginPage />} />
       <Route path="/register" element={<RegisterPage />} />
+      <Route
+        path="/instrukcja/konto-dziecka"
+        element={<Suspense fallback={<SuspenseFallback />}><ParentGuidePage /></Suspense>}
+      />
       <Route path="/install" element={<InstallPage />} />
       <Route path="/forgot-password" element={<ForgotPasswordPage />} />
       <Route path="/reset-password" element={<ResetPasswordPage />} />
