@@ -461,7 +461,6 @@ export default function HomePage() {
               <h4 className="font-bold text-white mb-6 uppercase tracking-wider text-sm">{t('home.footer.company.title', 'Firma')}</h4>
               <ul className="space-y-4">
                 <li><a href="#o-nas" className="text-[#94A3B8] hover:text-[#2EE6A6] transition-colors text-sm">{t('home.footer.company.about', 'O nas')}</a></li>
-                <li><a href="#" className="text-[#94A3B8] hover:text-[#2EE6A6] transition-colors text-sm">Blog</a></li>
                 <li><Link to="/kontakt" className="text-[#94A3B8] hover:text-[#2EE6A6] transition-colors text-sm">{t('home.footer.company.contact', 'Kontakt')}</Link></li>
               </ul>
             </div>
