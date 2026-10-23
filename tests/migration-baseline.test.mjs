@@ -31,12 +31,14 @@ const tables = ['admin_plan_actions','child_profiles','folders','parental_consen
   'profiles','session_images','study_sessions','support_tickets','tutor_messages','tutor_threads',
   'under13_parent_notifications','usage_events'];
 
-test('STATIC_BASELINE immutable 11 anchors + B/P, followed only by authorized deletion barrier', () => {
+test('STATIC_BASELINE immutable anchors + B/P and explicitly authorized additive migrations only', () => {
   const names = readdirSync(active).sort();
   const barrierFile = '20261010131220_priv02_session_deletion_barrier.sql';
   const legacyOwnerFile = '20261010174000_priv02_legacy_storage_owner.sql';
-  assert.deepEqual(names, [...versions.map(v => v + '_history_anchor.sql'), contract.baseline_file, contract.priv02_file, barrierFile, legacyOwnerFile].sort());
-  assert.equal(names.length, 15);
+  const managedIdentityFile = '20261020204341_auth_u13_managed_identity_foundation.sql';
+  assert.deepEqual(names, [...versions.map(v => v + '_history_anchor.sql'), contract.baseline_file, contract.priv02_file, barrierFile, legacyOwnerFile, managedIdentityFile].sort());
+  assert.equal(names.length, 16);
+  assert.ok(managedIdentityFile.split('_')[0] > legacyOwnerFile.split('_')[0]);
   assert.ok(barrierFile.split('_')[0] > contract.priv02_file.split('_')[0]);
   assert.ok(names.every(n => /^\d{14}_\w+\.sql$/.test(n)));
   const b = contract.baseline_file.split('_')[0];

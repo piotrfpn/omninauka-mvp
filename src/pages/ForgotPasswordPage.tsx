@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
+import { recoveryErrorKey } from '../lib/auth-errors';
 import { Mail, ArrowLeft, Loader2, CheckCircle2 } from 'lucide-react';
 import OmniNaukaLogo from '../components/brand/OmniNaukaLogo';
 import { toast } from 'sonner';
@@ -11,11 +12,16 @@ export default function ForgotPasswordPage() {
   const { t } = useTranslation();
   const [email, setEmail] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const submitting = useRef(false);
+  const [errorMessage, setErrorMessage] = useState('');
   const [isSubmitted, setIsSubmitted] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (submitting.current) return;
+    submitting.current = true;
     setIsLoading(true);
+    setErrorMessage('');
 
     try {
       // Dynamic redirectTo for local/vercel/prod
@@ -29,12 +35,10 @@ export default function ForgotPasswordPage() {
 
       setIsSubmitted(true);
       toast.success(t('auth.forgot.toastSuccess'));
-    } catch (error: any) {
-      console.error('Forgot Password Error:', error);
-      // We still show a generic message to prevent email enumeration
-      // but log the error for debugging
-      setIsSubmitted(true);
+    } catch (error: unknown) {
+      setErrorMessage(t(recoveryErrorKey(error)));
     } finally {
+      submitting.current = false;
       setIsLoading(false);
     }
   };
@@ -57,7 +61,7 @@ export default function ForgotPasswordPage() {
             <h1 className="omni-heading-3">{t('auth.forgot.successTitle', 'Sprawdź swoją pocztę')}</h1>
             <div className="space-y-4 text-[var(--omni-text-muted)] text-base">
               <p>
-                {t('auth.forgot.successDesc1', 'Jeżeli konto z tym adresem istnieje, wysłaliśmy na nie link do resetowania hasła.')}
+                {t('auth.forgot.successDesc1', 'Jeśli konto z podanym adresem istnieje, otrzymasz wiadomość z instrukcją zmiany hasła.')}
               </p>
               <p className="text-sm">
                 {t('auth.forgot.successDesc2', 'Sprawdź też folder spam lub oferty. Jeżeli nie masz jeszcze konta w OmniNauce, możesz je utworzyć.')}
@@ -121,6 +125,10 @@ export default function ForgotPasswordPage() {
                 />
               </div>
             </div>
+
+            {errorMessage && (
+              <div role="alert" className="p-3 bg-red-50 text-red-600 rounded-lg text-sm">{errorMessage}</div>
+            )}
 
             <button
               type="submit"
