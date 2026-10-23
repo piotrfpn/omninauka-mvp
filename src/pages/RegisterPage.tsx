@@ -1,7 +1,8 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../lib/auth-context';
 import { supabase } from '../lib/supabase';
+import { authErrorKey } from '../lib/auth-errors';
 import { Eye, EyeOff, Mail, Lock, User, ArrowRight, ShieldCheck, AlertTriangle } from 'lucide-react';
 import OmniNaukaLogo from '../components/brand/OmniNaukaLogo';
 import { useTranslation } from 'react-i18next';
@@ -18,6 +19,7 @@ export default function RegisterPage() {
   const [error, setError] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const submitting = useRef(false);
   const [ageBand, setAgeBand] = useState('');
   const [userRole, setUserRole] = useState<'student' | 'parent' | ''>('');
   // Sprint 17B: under_13 link result
@@ -46,37 +48,36 @@ export default function RegisterPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (submitting.current) return;
+    submitting.current = true;
     setError('');
     setIsLoading(true);
 
-    // Stabilizacja Chrome Password Manager przed rejestracją
-    if (document.activeElement instanceof HTMLElement) {
-      document.activeElement.blur();
-    }
-
-    if (!userRole) {
-      setError(t('auth.register.error.noRole'));
-      setIsLoading(false);
-      return;
-    }
-
-    if (userRole === 'student' && !ageBand) {
-      setError(t('auth.register.error.noAge'));
-      setIsLoading(false);
-      return;
-    }
-
-    if (password.length < 6) {
-      setError(t('auth.register.error.passLength'));
-      setIsLoading(false);
-      return;
-    }
-
     try {
+      // Stabilizacja Chrome Password Manager przed rejestracją
+      if (document.activeElement instanceof HTMLElement) {
+        document.activeElement.blur();
+      }
+
+      if (!userRole) {
+        setError(t('auth.register.error.noRole'));
+        return;
+      }
+
+      if (userRole === 'student' && !ageBand) {
+        setError(t('auth.register.error.noAge'));
+        return;
+      }
+
+      if (password.length < 6) {
+        setError(t('auth.register.error.passLength'));
+        return;
+      }
+
       const result = await register(email, password, name, userRole === 'parent' ? 'parent' : ageBand, userRole);
 
       if (!result.success) {
-        setError(result.message || t('auth.register.error.failed'));
+        setError(result.errorKey ? t(result.errorKey) : result.message || t('auth.register.error.failed'));
       } else if (result.requireEmailVerification) {
         setSuccessMessage(t('auth.register.success.verify'));
         setPassword('');
@@ -93,9 +94,10 @@ export default function RegisterPage() {
         }
       }
       // 16+ / parent: redirected automatically via isAuthenticated useEffect
-    } catch (err: any) {
-      setError(err?.message || t('auth.register.error.generic'));
+    } catch (error: unknown) {
+      setError(t(authErrorKey(error)));
     } finally {
+      submitting.current = false;
       setIsLoading(false);
     }
   };

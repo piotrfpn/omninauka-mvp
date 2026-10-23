@@ -1,5 +1,12 @@
 {
   "auth": {
+    "errors": {
+      "unconfirmed": "Adres e-mail nie został jeszcze potwierdzony. Sprawdź swoją skrzynkę pocztową, również folder Spam.",
+      "emailLimit": "Zbyt wiele prób wysłania wiadomości. Odczekaj chwilę przed ponowieniem.",
+      "requestLimit": "Zbyt wiele prób. Odczekaj chwilę przed ponowieniem.",
+      "network": "Wystąpił tymczasowy problem połączenia. Spróbuj ponownie później.",
+      "generic": "Nie udało się teraz wykonać tej operacji. Spróbuj ponownie później."
+    },
     "email": "Email",
     "password": "Hasło",
     "backToHome": "← Wróć na stronę główną",
@@ -78,9 +85,10 @@
       "submit": "Wyślij link do resetu",
       "backToLogin": "Wróć do logowania",
       "successTitle": "Sprawdź swoją pocztę",
-      "successDesc1": "Jeżeli konto z tym adresem istnieje, wysłaliśmy na nie link do resetowania hasła.",
+      "successDesc1": "Jeśli konto z podanym adresem istnieje, otrzymasz wiadomość z instrukcją zmiany hasła.",
       "successDesc2": "Sprawdź też folder spam lub oferty. Jeżeli nie masz jeszcze konta w OmniNauce, możesz je utworzyć.",
-      "toastSuccess": "Wysłano link do resetu hasła"
+      "sendFailed": "Nie udało się teraz wysłać wiadomości. Spróbuj ponownie później.",
+      "toastSuccess": "Prośba została przyjęta."
     },
     "reset": {
       "title": "Ustaw nowe hasło",

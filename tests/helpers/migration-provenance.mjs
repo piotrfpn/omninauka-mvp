@@ -1,7 +1,7 @@
+import { assertReviewedCandidate } from './p03b-contract.mjs';
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import { readFileSync, readdirSync } from 'node:fs';
-import { execFileSync } from 'node:child_process';
 
 const root = new URL('../../', import.meta.url);
 const manifest = readFileSync(new URL('docs/database/MIGRATION_BASELINE_2026.md', root), 'utf8');
@@ -28,30 +28,8 @@ export function assertArchivedMigrationsUnchanged(maxVersion = 82) {
 }
 
 export function assertOnlyNormalizationChanges(additionalAllowed = []) {
+  // Historical callers retain their arguments; no path-only exception is accepted.
+  void additionalAllowed;
   assertArchivedMigrationsUnchanged();
-  const allowed = new Set([
-    '.gitattributes',
-    ...normalizationContract.archived.map(r => 'supabase/migrations/' + r.filename),
-    'supabase/migrations/00083_priv02_soft_deleted_session_access.sql',
-    'docs/database/MIGRATION_BASELINE_2026.md',
-    'supabase/tests/priv02_soft_deleted_session_access.test.sql',
-    'tests/session-rls-access.test.mjs', 'tests/migration-baseline.test.mjs',
-    'tests/helpers/migration-provenance.mjs',
-    'tests/account-security.test.mjs', 'tests/ai-usage-guard.test.mjs',
-    'tests/f04-storage-ownership.test.mjs', 'tests/stripe-payment-binding.test.mjs',
-    'tests/priv01-under13-retention.test.mjs', 'tests/priv01-parent-reminder.test.mjs',
-    'tests/session-hard-purge.test.mjs', 'tests/session-deletion-barrier.test.mjs',
-    'tests/session-hard-purge-behavioral.test.mjs',
-    'tests/legacy-storage-owner-migration.test.mjs',
-    'supabase/migrations/20261010174000_priv02_legacy_storage_owner.sql',
-    'src/lib/client-state-cleanup.ts',
-    'src/pages/app/DashboardPage.tsx',
-    'src/pages/app/HistoryPage.tsx',
-    'supabase/functions/delete-session/index.ts',
-    ...additionalAllowed,
-  ]);
-  const changed = execFileSync('git', ['diff', '--name-only', 'HEAD'], {
-    cwd: root, encoding: 'utf8',
-  }).trim().split(/\r?\n/).filter(Boolean);
-  assert.deepEqual(changed.filter(p => !allowed.has(p)), [], 'unrelated production changes are prohibited');
+  assertReviewedCandidate();
 }

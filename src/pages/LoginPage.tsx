@@ -1,6 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../lib/auth-context';
+import { authErrorKey } from '../lib/auth-errors';
 import { Eye, EyeOff, Mail, Lock, ArrowRight, Sparkles } from 'lucide-react';
 import OmniNaukaLogo from '../components/brand/OmniNaukaLogo';
 import { useTranslation } from 'react-i18next';
@@ -15,6 +16,7 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const submitting = useRef(false);
 
   // Redirect if already logged in
   useEffect(() => {
@@ -29,17 +31,20 @@ export default function LoginPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (submitting.current) return;
+    submitting.current = true;
     setError('');
     setIsLoading(true);
 
     try {
-      const success = await login(email, password);
-      if (!success) {
-        setError(t('auth.login.error.invalid'));
+      const result = await login(email, password);
+      if (!result.success) {
+        setError(t(result.errorKey));
       }
-    } catch {
-      setError(t('auth.login.error.generic'));
+    } catch (error: unknown) {
+      setError(t(authErrorKey(error)));
     } finally {
+      submitting.current = false;
       setIsLoading(false);
     }
   };

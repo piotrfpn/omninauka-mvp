@@ -2,6 +2,7 @@ import { createContext, useContext, useState, useEffect, useRef, Fragment, type 
 import type { AuthState, User } from '../types';
 import { mockUser } from '../mock/data';
 import { supabase } from './supabase';
+import { authErrorKey, type AuthErrorKey, type LoginResult } from './auth-errors';
 import { activateUserClientState, captureUserClientState, clearUserClientState, clientStateOwnerKey,
   getClientStateVersion, type ClientStateCleanupReason } from './client-state-cleanup';
 
@@ -10,8 +11,8 @@ type RefreshUserResult =
   | { success: false; reason: 'profile_refresh_failed' | 'profile_missing' | 'auth_unavailable' };
 
 interface AuthContextType extends AuthState {
-  login: (email: string, password: string) => Promise<boolean>;
-  register: (email: string, password: string, name: string, ageBand: string, userRole?: string) => Promise<{ success: boolean; message?: string; requireEmailVerification?: boolean }>;
+  login: (email: string, password: string) => Promise<LoginResult>;
+  register: (email: string, password: string, name: string, ageBand: string, userRole?: string) => Promise<{ success: boolean; message?: string; errorKey?: AuthErrorKey; requireEmailVerification?: boolean }>;
   logout: (reason?: 'logout' | 'account_delete') => Promise<void>;
   loginAsDemo: () => void;
   updateProfile: (updates: any) => Promise<{ success: boolean; error?: string }>;
@@ -244,20 +245,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const login = async (email: string, password: string): Promise<boolean> => {
+  const login = async (email: string, password: string): Promise<LoginResult> => {
     logoutRequested.current = false;
     setIsDemoMode(false);
-    const { error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
-    
-    if (error) {
-      console.error(error);
-      return false;
+    try {
+      const { error } = await supabase.auth.signInWithPassword({ email, password });
+      return error ? { success: false, errorKey: authErrorKey(error) } : { success: true };
+    } catch (error: unknown) {
+      return { success: false, errorKey: authErrorKey(error) };
     }
-    
-    return true;
   };
 
   const register = async (email: string, password: string, name: string, ageBand: string, userRole: string = 'student') => {
@@ -276,14 +272,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     });
 
     if (error) {
-      console.error("SignUp Error:", error);
-      let errorMessage = error.message;
-      if (errorMessage.toLowerCase().includes('rate limit')) {
-        errorMessage = 'Przekroczono chwilowy limit prób mailowych. Odczekaj chwilę i spróbuj ponownie.';
-      } else if (errorMessage.toLowerCase().includes('password')) {
-        errorMessage = 'Hasło jest zbyt proste lub brakuje mu znaków (minimum 6).';
-      }
-      return { success: false, message: errorMessage };
+      return { success: false, errorKey: authErrorKey(error) };
     }
 
     // Supabase obfuscates "User Already Exists" by returning a fake success with an empty identities array
