@@ -5,6 +5,7 @@ import type { LessonMessage } from '../../types';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../lib/auth-context';
 import { captureUserClientState } from '../../lib/client-state-cleanup';
+import { decodeTutorEntities } from '../../lib/tutor-text';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { useTranslation } from 'react-i18next';
@@ -318,7 +319,7 @@ function RealLessonChat() {
           throw dbError || new Error("Sesja nie została znaleziona.");
         }
 
-        setTopic(dbData.topic || 'Sekcji bez tytułu');
+        setTopic(decodeTutorEntities(dbData.topic || 'Sekcji bez tytułu'));
         
         const { data: authData } = await supabase.auth.getSession();
         if (!isCurrentUser() || authData.session?.user.id !== user?.id) return;
@@ -474,7 +475,7 @@ function RealLessonChat() {
             currentMessages.push(...existingMessages.map(m => ({
               id: m.id,
               role: m.role as 'user' | 'assistant',
-              content: m.content
+              content: m.role === 'assistant' ? decodeTutorEntities(m.content) : m.content
             })));
           } else {
             // Phase 10B: Proactive Coaching Welcome
@@ -541,7 +542,7 @@ function RealLessonChat() {
                 } else {
                   parts.push(`To był jedyny błąd w tym quizie. Jeśli chcesz, możemy porozmawiać o tym zagadnieniu szerzej.`);
                 }
-                mistakeStartMsg = parts.join('\n\n');
+                mistakeStartMsg = decodeTutorEntities(parts.join('\n\n'));
               }
               currentMessages.push({
                 id: `msg-mistake-${Date.now()}`,
@@ -829,7 +830,7 @@ function RealLessonChat() {
               }
               
               // Update UI incrementally without '...' jumps
-              const currentReplyText = replyText;
+              const currentReplyText = decodeTutorEntities(replyText);
               setMessages(prev =>
                 prev.map(m => m.id === assistantId ? { ...m, content: currentReplyText } : m)
               );
@@ -857,6 +858,7 @@ function RealLessonChat() {
       }
 
       if (!isCurrentUser()) return;
+      replyText = decodeTutorEntities(replyText);
       if (!replyText || !replyText.trim()) {
          replyText = 'Przepraszam, otrzymałem pustą odpowiedź.';
       }
