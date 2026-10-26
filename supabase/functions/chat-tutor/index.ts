@@ -9,15 +9,140 @@ const corsHeaders = {
 
 // === Sanitization helpers =====================================================
 
-/** Escape XML special characters to sandbox prompt inputs. */
+const MAX_ENTITY_DECODE_PASSES = 2;
+
+const NAMED_ENTITIES: Record<string, string> = {
+  quot: '"',
+  apos: "'",
+  amp: '&',
+  lt: '<',
+  gt: '>',
+  nbsp: '\u00A0',
+  ndash: '\u2013',
+  mdash: '\u2014',
+  hellip: '\u2026',
+  lsquo: '\u2018',
+  rsquo: '\u2019',
+  sbquo: '\u201A',
+  ldquo: '\u201C',
+  rdquo: '\u201D',
+  bdquo: '\u201E',
+  laquo: '\u00AB',
+  raquo: '\u00BB',
+  bull: '\u2022',
+  middot: '\u00B7',
+  times: '\u00D7',
+  divide: '\u00F7',
+  minus: '\u2212',
+  plusmn: '\u00B1',
+  le: '\u2264',
+  ge: '\u2265',
+  ne: '\u2260',
+  equiv: '\u2261',
+  approx: '\u2248',
+  asymp: '\u2248',
+  infin: '\u221E',
+  radic: '\u221A',
+  deg: '\u00B0',
+  permil: '\u2030',
+  sup2: '\u00B2',
+  sup3: '\u00B3',
+  frac12: '\u00BD',
+  frac14: '\u00BC',
+  frac34: '\u00BE',
+  rarr: '\u2192',
+  larr: '\u2190',
+  harr: '\u2194',
+  rArr: '\u21D2',
+  lArr: '\u21D0',
+  hArr: '\u21D4',
+  alpha: '\u03B1',
+  beta: '\u03B2',
+  gamma: '\u03B3',
+  delta: '\u03B4',
+  Delta: '\u0394',
+  pi: '\u03C0',
+  Pi: '\u03A0',
+  sigma: '\u03C3',
+  Sigma: '\u03A3',
+  omega: '\u03C9',
+  Omega: '\u03A9',
+  micro: '\u00B5',
+  copy: '\u00A9',
+  reg: '\u00AE',
+  trade: '\u2122',
+  euro: '\u20AC',
+  pound: '\u00A3',
+  sect: '\u00A7',
+};
+
+const ENTITY_PATTERN =
+  /&((?:amp;|#0*38;|#[xX]0*26;)*)(?:#(\d{1,7})|#[xX]([0-9a-fA-F]{1,6})|([a-zA-Z][a-zA-Z0-9]{1,15}));/gi;
+
+const isSafeDecodedCodePoint = (cp: number): boolean => {
+  if (!Number.isInteger(cp) || cp < 0 || cp > 0x10ffff) return false;
+  if (cp === 0x09 || cp === 0x0a || cp === 0x0d) return true;
+  if (cp < 0x20 || (cp >= 0x7f && cp <= 0x9f)) return false;
+  if (cp >= 0xd800 && cp <= 0xdfff) return false;
+  return true;
+};
+
+const decodeEntitiesSinglePass = (input: string): string =>
+  input.replace(
+    ENTITY_PATTERN,
+    (match, ampChain: string, dec?: string, hex?: string, named?: string) => {
+      if (dec !== undefined) {
+        const cp = Number.parseInt(dec, 10);
+        if (isSafeDecodedCodePoint(cp)) {
+          return String.fromCodePoint(cp);
+        }
+        return ampChain ? `&${match.slice(1 + ampChain.length)}` : match;
+      }
+      if (hex !== undefined) {
+        const cp = Number.parseInt(hex, 16);
+        if (isSafeDecodedCodePoint(cp)) {
+          return String.fromCodePoint(cp);
+        }
+        return ampChain ? `&${match.slice(1 + ampChain.length)}` : match;
+      }
+      if (named !== undefined) {
+        if (Object.prototype.hasOwnProperty.call(NAMED_ENTITIES, named)) {
+          return NAMED_ENTITIES[named];
+        }
+        const lower = named.toLowerCase();
+        if (Object.prototype.hasOwnProperty.call(NAMED_ENTITIES, lower)) {
+          return NAMED_ENTITIES[lower];
+        }
+        return ampChain ? `&${named};` : match;
+      }
+      return match;
+    },
+  );
+
+const decodeTutorEntities = (
+  input: string,
+  maxPasses: number = MAX_ENTITY_DECODE_PASSES,
+): string => {
+  if (typeof input !== 'string' || input.length === 0 || !input.includes('&')) {
+    return typeof input === 'string' ? input : '';
+  }
+  const passes = Math.max(1, Math.min(maxPasses, MAX_ENTITY_DECODE_PASSES));
+  let current = input;
+  for (let pass = 0; pass < passes; pass++) {
+    if (!current.includes('&')) break;
+    const next = decodeEntitiesSinglePass(current);
+    if (next === current) break;
+    current = next;
+  }
+  return current;
+};
+
+/** Escape XML tag delimiters (`<` and `>`) to sandbox prompt inputs without encoding quotes or apostrophes. */
 const escapeForPromptTag = (s: string): string => {
   if (typeof s !== 'string') return '';
   return s
-    .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#x27;");
+    .replace(/>/g, "&gt;");
 };
 
 /** Remove control characters (U+0000-U+001F except tab/newline) and trim whitespace. */
@@ -441,8 +566,8 @@ ${escapeForPromptTag(mistakePayload)}
         } else {
           // A. Trim raw content first to max 1200 chars
           const rawTrimmed = typeof m.content === 'string' ? m.content.substring(0, LIMITS_ASST_MSG_RAW) : '';
-          // B. HTML-escape
-          let escaped = escapeForPromptTag(rawTrimmed);
+          // B. Normalize any historical entities and escape XML tag delimiters
+          let escaped = escapeForPromptTag(decodeTutorEntities(rawTrimmed));
           // C. Verify final escaped string length is capped at 1500 chars
           if (escaped.length > LIMITS_ASST_MSG_ESC) {
             escaped = escaped.substring(0, LIMITS_ASST_MSG_ESC);
@@ -485,7 +610,7 @@ ${escapeForPromptTag(mistakePayload)}
       const data = await response.json();
       return new Response(JSON.stringify({
         success: true,
-        reply: data.choices?.[0]?.message?.content || ''
+        reply: decodeTutorEntities(data.choices?.[0]?.message?.content || '')
       }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
