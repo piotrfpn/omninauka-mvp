@@ -1,5 +1,12 @@
 {
   "auth": {
+    "errors": {
+      "unconfirmed": "Your email address has not been confirmed yet. Check your inbox, including the Spam folder.",
+      "emailLimit": "Too many attempts to send an email. Please wait before trying again.",
+      "requestLimit": "Too many attempts. Please wait before trying again.",
+      "network": "There is a temporary connection problem. Please try again later.",
+      "generic": "We could not complete this action right now. Please try again later."
+    },
     "email": "Email",
     "password": "Password",
     "backToHome": "← Back to home",
@@ -78,9 +85,10 @@
       "submit": "Send reset link",
       "backToLogin": "Back to login",
       "successTitle": "Check your email",
-      "successDesc1": "If an account with this address exists, we have sent a password reset link to it.",
+      "successDesc1": "If an account with this email exists, you will receive password reset instructions.",
       "successDesc2": "Also check your spam or offers folder. If you don't have an OmniNauka account yet, you can create one.",
-      "toastSuccess": "Password reset link sent"
+      "sendFailed": "We could not send the email right now. Please try again later.",
+      "toastSuccess": "Request received."
     },
     "reset": {
       "title": "Set new password",

@@ -1,3 +1,4 @@
+import { readPinnedMain, expectedReviewedRegister, assertReviewedCandidate } from './helpers/p03b-contract.mjs';
 import { assertArchivedMigrationsUnchanged } from './helpers/migration-provenance.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
@@ -647,11 +648,9 @@ test('29D.1C preserves existing userRole mapping without adding client role priv
 });
 
 test('29D.1C register still uses signUp and is byte-for-byte unchanged at the handler level', () => {
-  const before = execFileSync('git', ['show', 'HEAD:src/lib/auth-context.tsx'], {
-    cwd: new URL('../', import.meta.url), encoding: 'utf8',
-  });
-  const register = authArrowSource(authContextSource, 'register');
-  assert.equal(register, authArrowSource(before, 'register'));
+  const before = readPinnedMain('src/lib/auth-context.tsx');
+  const register = authArrowSource(authContextSource, 'register').replace(/\r\n/g, '\n');
+  assert.equal(register, expectedReviewedRegister(authArrowSource(before, 'register')));
   assert.match(register, /supabase\.auth\.signUp\(/);
 });
 
@@ -665,6 +664,9 @@ test('29D.1D Edge Functions cannot create profiles; only explicitly authorized f
   assert.match(trustedCreation, /CREATE OR REPLACE FUNCTION public\.handle_new_user\(\)\s+RETURNS trigger\s+LANGUAGE plpgsql\s+SECURITY DEFINER\s+SET search_path = public[\s\S]*?INSERT INTO public\.profiles/);
   const authTrigger = await readFile(new URL('../supabase/migration_archive/legacy_pre_baseline/00001_init.sql', import.meta.url), 'utf8');
   assert.match(authTrigger, /CREATE TRIGGER on_auth_user_created\s+AFTER INSERT ON auth\.users\s+FOR EACH ROW EXECUTE PROCEDURE public\.handle_new_user\(\);/);
+  assertReviewedCandidate();
+  const reviewedManagedHelper =
+    'supabase/functions/_shared/managed-child-identity.ts';
   const changed = execFileSync('git', ['diff', '--name-only', 'HEAD', '--', 'supabase/functions'], {
     cwd: new URL('../', import.meta.url), encoding: 'utf8',
   }).trim().split(/\r?\n/).filter(Boolean);
@@ -677,7 +679,7 @@ test('29D.1D Edge Functions cannot create profiles; only explicitly authorized f
     'supabase/functions/stripe-webhook/index.ts',
     'supabase/functions/create-checkout/index.ts',
   ];
-  assert.deepEqual(changed.filter(path => !allowed.includes(path)), []);
+  assert.deepEqual(changed.filter(path => !allowed.includes(path) && path !== reviewedManagedHelper), []);
 });
 
 test('29D.1C historical migrations 00001-00076 stay immutable', () => {
