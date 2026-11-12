@@ -676,10 +676,328 @@ test('29D.1D Edge Functions cannot create profiles; only explicitly authorized f
     'supabase/functions/delete-account/index.ts',
     'supabase/functions/stripe-webhook/index.ts',
     'supabase/functions/create-checkout/index.ts',
+    'supabase/functions/send-consent-email/index.ts',
   ];
   assert.deepEqual(changed.filter(path => !allowed.includes(path)), []);
 });
 
 test('29D.1C historical migrations 00001-00076 stay immutable', () => {
   assertArchivedMigrationsUnchanged(76);
+});
+
+// PF-03.3A: Parental consent self-email prevention (frontend + send-consent-email Edge Function)
+async function loadPendingConsentHelpers() {
+  const source = await readFile(new URL('../src/pages/app/PendingConsentPage.tsx', import.meta.url), 'utf8');
+  const file = ts.createSourceFile('PendingConsentPage.tsx', source, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
+  const snippets = [];
+  file.forEachChild(node => {
+    if (ts.isFunctionDeclaration(node) && node.name && ['normalizeConsentEmail', 'isParentEmailSameAsStudent'].includes(node.name.text)) {
+      snippets.push(node.getText(file).replace(/^export\s+/, ''));
+    }
+  });
+  assert.equal(snippets.length, 2, 'Expected normalizeConsentEmail and isParentEmailSameAsStudent exports');
+  const js = ts.transpileModule(snippets.join('\n'), {
+    compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.None },
+  }).outputText;
+  return new Function(`${js}\nreturn { normalizeConsentEmail, isParentEmailSameAsStudent };`)();
+}
+
+async function loadSendConsentEmailEndpoint(options = {}) {
+  const source = await readFile(new URL('../supabase/functions/send-consent-email/index.ts', import.meta.url), 'utf8');
+  const body = source.replace(/^import .*;\r?\n/gm, '');
+  const js = ts.transpileModule(body, {
+    compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.None },
+  }).outputText;
+
+  const state = {
+    jwtVerifyCalls: 0,
+    authGetUserCalls: 0,
+    profileSelectCalls: 0,
+    consentSelectCalls: 0,
+    consentUpserts: [],
+    consentUpdates: [],
+    resendRequests: [],
+    tokenRandomCalls: 0,
+  };
+
+  const studentAuthEmail = Object.hasOwn(options, 'studentAuthEmail')
+    ? options.studentAuthEmail
+    : 'uczen14@szkola.pl';
+  const jwtPayload = Object.hasOwn(options, 'jwtPayload')
+    ? options.jwtPayload
+    : { sub: userId, email: studentAuthEmail };
+  const profileRow = Object.hasOwn(options, 'profile')
+    ? options.profile
+    : { account_status: 'pending_parent_consent', age_band: '13_15', name: 'Jan' };
+  const existingConsent = Object.hasOwn(options, 'existingConsent')
+    ? options.existingConsent
+    : null;
+
+  const createRemoteJWKSet = () => 'mock-jwks';
+  const jwtVerify = async (token) => {
+    state.jwtVerifyCalls++;
+    if (options.rejectJwt || token === 'invalid-jwt') {
+      throw new Error('Invalid JWT');
+    }
+    return { payload: jwtPayload };
+  };
+  const generateConsentEmailHtml = (name, link, baseUrl) => `<a href="${link}">${name}@${baseUrl}</a>`;
+
+  const createClient = () => ({
+    auth: {
+      admin: {
+        async getUserById(id) {
+          state.authGetUserCalls++;
+          assert.equal(id, userId);
+          if (options.authError) return { data: { user: null }, error: options.authError };
+          return { data: { user: studentAuthEmail ? { id: userId, email: studentAuthEmail } : null }, error: null };
+        },
+      },
+    },
+    from(table) {
+      if (table === 'profiles') {
+        return {
+          select(cols) {
+            state.profileSelectCalls++;
+            assert.equal(cols, 'account_status, age_band, name');
+            return {
+              eq(col, val) {
+                assert.equal(col, 'id');
+                assert.equal(val, userId);
+                return {
+                  async single() {
+                    if (!profileRow || options.profileError) {
+                      return { data: null, error: options.profileError ?? { message: 'Not found' } };
+                    }
+                    return { data: profileRow, error: null };
+                  },
+                };
+              },
+            };
+          },
+        };
+      }
+      if (table === 'parental_consents') {
+        return {
+          select() {
+            state.consentSelectCalls++;
+            return {
+              eq(col, val) {
+                assert.equal(col, 'child_user_id');
+                assert.equal(val, userId);
+                return {
+                  async maybeSingle() {
+                    return { data: existingConsent, error: null };
+                  },
+                };
+              },
+            };
+          },
+          async upsert(payload, upsertOpts) {
+            state.consentUpserts.push({ payload, upsertOpts });
+            return { error: null };
+          },
+          update(payload) {
+            return {
+              async eq(col, val) {
+                state.consentUpdates.push({ payload, col, val });
+                return { error: null };
+              },
+            };
+          },
+        };
+      }
+      throw new Error(`Unexpected table ${table}`);
+    },
+  });
+
+  const customCrypto = {
+    subtle: crypto.subtle,
+    getRandomValues(arr) {
+      state.tokenRandomCalls++;
+      return crypto.getRandomValues(arr);
+    },
+  };
+
+  const fetchMock = async (url, init) => {
+    state.resendRequests.push({ url, init, body: JSON.parse(init.body) });
+    return new Response(JSON.stringify({ id: 'resend-msg-1' }), { status: 200 });
+  };
+
+  let handler;
+  const boot = new Function(
+    'serve', 'createClient', 'createRemoteJWKSet', 'jwtVerify', 'generateConsentEmailHtml',
+    'Deno', 'fetch', 'crypto', 'console',
+    js,
+  );
+  boot(
+    fn => { handler = fn; },
+    createClient,
+    createRemoteJWKSet,
+    jwtVerify,
+    generateConsentEmailHtml,
+    {
+      env: {
+        get(key) {
+          const map = {
+            SUPABASE_URL: 'https://example.supabase.co',
+            SUPABASE_SERVICE_ROLE_KEY: 'service-role-key',
+            RESEND_API_KEY: 're_test_key',
+            RESEND_FROM_EMAIL: 'noreply@omninauka.pl',
+            APP_BASE_URL: 'https://omninauka-mvp.vercel.app',
+          };
+          return map[key];
+        },
+      },
+    },
+    fetchMock,
+    customCrypto,
+    { log() {}, warn() {}, error() {}, info() {} },
+  );
+  assert.equal(typeof handler, 'function');
+  return { handler, state };
+}
+
+function sendConsentReq(body, authHeader = 'Bearer valid-student-jwt') {
+  const headers = { 'Content-Type': 'application/json' };
+  if (authHeader !== null) headers.Authorization = authHeader;
+  return new Request('https://example.supabase.co/functions/v1/send-consent-email', {
+    method: 'POST',
+    headers,
+    body: JSON.stringify(body),
+  });
+}
+
+test('PF-03.3A (1) Student provides exact own email -> rejected in frontend and backend', async () => {
+  const { isParentEmailSameAsStudent } = await loadPendingConsentHelpers();
+  assert.equal(isParentEmailSameAsStudent('uczen14@szkola.pl', 'uczen14@szkola.pl'), true);
+
+  const { handler, state } = await loadSendConsentEmailEndpoint();
+  const res = await handler(sendConsentReq({ parent_email: 'uczen14@szkola.pl' }));
+  assert.equal(res.status, 400);
+  const payload = await res.json();
+  assert.equal(payload.code, 'parent_email_same_as_student');
+  assert.match(payload.error, /nie możesz użyć własnego adresu e-mail/i);
+  assert.equal(state.tokenRandomCalls, 0);
+  assert.equal(state.consentUpserts.length, 0);
+  assert.equal(state.resendRequests.length, 0);
+});
+
+test('PF-03.3A (2) Student provides own email with different case -> rejected in frontend and backend', async () => {
+  const { isParentEmailSameAsStudent } = await loadPendingConsentHelpers();
+  assert.equal(isParentEmailSameAsStudent('UcZeN14@Szkola.PL', 'uczen14@szkola.pl'), true);
+
+  const { handler, state } = await loadSendConsentEmailEndpoint();
+  const res = await handler(sendConsentReq({ parent_email: 'UCZEN14@SZKOLA.PL' }));
+  assert.equal(res.status, 400);
+  const payload = await res.json();
+  assert.equal(payload.code, 'parent_email_same_as_student');
+  assert.equal(state.tokenRandomCalls, 0);
+  assert.equal(state.consentUpserts.length, 0);
+  assert.equal(state.resendRequests.length, 0);
+});
+
+test('PF-03.3A (3) Student provides own email with leading/trailing spaces -> rejected in frontend and backend', async () => {
+  const { isParentEmailSameAsStudent } = await loadPendingConsentHelpers();
+  assert.equal(isParentEmailSameAsStudent('   uczen14@szkola.pl  ', 'uczen14@szkola.pl'), true);
+
+  const { handler, state } = await loadSendConsentEmailEndpoint();
+  const res = await handler(sendConsentReq({ parent_email: '  Uczen14@Szkola.pl \n ' }));
+  assert.equal(res.status, 400);
+  const payload = await res.json();
+  assert.equal(payload.code, 'parent_email_same_as_student');
+  assert.equal(state.tokenRandomCalls, 0);
+  assert.equal(state.consentUpserts.length, 0);
+  assert.equal(state.resendRequests.length, 0);
+});
+
+test('PF-03.3A (4 & 8) Valid different parent email succeeds and produces token compatible with approval handler', async () => {
+  const { isParentEmailSameAsStudent } = await loadPendingConsentHelpers();
+  assert.equal(isParentEmailSameAsStudent('rodzic@dom.pl', 'uczen14@szkola.pl'), false);
+
+  const { handler, state } = await loadSendConsentEmailEndpoint();
+  const res = await handler(sendConsentReq({ parent_email: '  rodzic@dom.pl  ' }));
+  assert.equal(res.status, 200);
+  assert.deepEqual(await res.json(), { success: true });
+  assert.equal(state.tokenRandomCalls, 1);
+  assert.equal(state.consentUpserts.length, 1);
+  assert.equal(state.consentUpserts[0].payload.parent_email, 'rodzic@dom.pl');
+  assert.equal(state.consentUpserts[0].payload.consent_status, 'pending');
+  assert.equal(state.resendRequests.length, 1);
+  assert.equal(state.resendRequests[0].body.to, 'rodzic@dom.pl');
+
+  // Verify no regression in parent approval flow with the generated link token
+  const linkMatch = state.resendRequests[0].body.html.match(/\/consent\/([0-9a-f]{72})/);
+  assert.ok(linkMatch, 'Expected 72-hex-char consent token in email link');
+  const sentRawToken = linkMatch[1];
+  const storedTokenHash = state.consentUpserts[0].payload.token_hash;
+  const approvalHandler = createConsentApprovalHandler(async params => params.p_token_hash === storedTokenHash);
+  const approvalRes = await approvalHandler(consentRequest({ token: sentRawToken }));
+  assert.equal(approvalRes.status, 200);
+  assert.deepEqual(await approvalRes.json(), { status: 'approved' });
+});
+
+test('PF-03.3A (5) Direct Edge Function call with own email (even with spoofed body student_email) is rejected before token/DB/email', async () => {
+  const { handler, state } = await loadSendConsentEmailEndpoint({
+    studentAuthEmail: 'prawdziwy.uczen@szkola.pl',
+  });
+  const res = await handler(sendConsentReq({
+    parent_email: 'prawdziwy.uczen@szkola.pl',
+    student_email: 'inny.uczen@szkola.pl',
+    email: 'inny.uczen@szkola.pl',
+    user_email: 'inny.uczen@szkola.pl',
+  }));
+  assert.equal(res.status, 400);
+  const payload = await res.json();
+  assert.equal(payload.code, 'parent_email_same_as_student');
+  assert.equal(state.authGetUserCalls, 1);
+  assert.equal(state.consentSelectCalls, 0);
+  assert.equal(state.tokenRandomCalls, 0);
+  assert.equal(state.consentUpserts.length, 0);
+  assert.equal(state.resendRequests.length, 0);
+});
+
+test('PF-03.3A (6) Missing or invalid JWT is rejected with 401 before DB or email', async () => {
+  const { handler: missingHandler, state: missingState } = await loadSendConsentEmailEndpoint();
+  const missingRes = await missingHandler(sendConsentReq({ parent_email: 'rodzic@dom.pl' }, null));
+  assert.equal(missingRes.status, 401);
+  assert.equal((await missingRes.json()).code, 'unauthorized');
+  assert.equal(missingState.authGetUserCalls, 0);
+  assert.equal(missingState.tokenRandomCalls, 0);
+  assert.equal(missingState.consentUpserts.length, 0);
+  assert.equal(missingState.resendRequests.length, 0);
+
+  const { handler: invalidHandler, state: invalidState } = await loadSendConsentEmailEndpoint({ rejectJwt: true });
+  const invalidRes = await invalidHandler(sendConsentReq({ parent_email: 'rodzic@dom.pl' }, 'Bearer invalid-jwt'));
+  assert.equal(invalidRes.status, 401);
+  assert.equal((await invalidRes.json()).code, 'unauthorized');
+  assert.equal(invalidState.authGetUserCalls, 0);
+  assert.equal(invalidState.tokenRandomCalls, 0);
+  assert.equal(invalidState.consentUpserts.length, 0);
+  assert.equal(invalidState.resendRequests.length, 0);
+});
+
+for (const badStatus of ['active', 'parent_approved', 'suspended', 'parent_withdrawn', 'under_13', 'pending_parent_preapproval']) {
+  test(`PF-03.3A (7) Account with status "${badStatus}" is rejected before token, DB write or email`, async () => {
+    const { handler, state } = await loadSendConsentEmailEndpoint({
+      profile: { account_status: badStatus, age_band: '13_15', name: 'Jan' },
+    });
+    const res = await handler(sendConsentReq({ parent_email: 'rodzic@dom.pl' }));
+    assert.equal(res.status, 400);
+    const payload = await res.json();
+    assert.equal(payload.code, 'account_not_pending_consent');
+    assert.equal(state.tokenRandomCalls, 0);
+    assert.equal(state.consentUpserts.length, 0);
+    assert.equal(state.resendRequests.length, 0);
+  });
+}
+
+test('PF-03.3A (7b) Missing profile is rejected with 403 before token, DB write or email', async () => {
+  const { handler, state } = await loadSendConsentEmailEndpoint({ profile: null });
+  const res = await handler(sendConsentReq({ parent_email: 'rodzic@dom.pl' }));
+  assert.equal(res.status, 403);
+  assert.equal((await res.json()).code, 'profile_not_found');
+  assert.equal(state.tokenRandomCalls, 0);
+  assert.equal(state.consentUpserts.length, 0);
+  assert.equal(state.resendRequests.length, 0);
 });

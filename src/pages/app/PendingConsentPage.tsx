@@ -6,6 +6,19 @@ import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { LanguageSwitcher } from '../../components/LanguageSwitcher';
 
+function normalizeConsentEmail(value?: string | null): string {
+  return (value ?? '').trim().toLowerCase();
+}
+
+function isParentEmailSameAsStudent(
+  parentEmail?: string | null,
+  studentEmail?: string | null,
+): boolean {
+  const normalizedParent = normalizeConsentEmail(parentEmail);
+  const normalizedStudent = normalizeConsentEmail(studentEmail);
+  return normalizedParent.length > 0 && normalizedStudent.length > 0 && normalizedParent === normalizedStudent;
+}
+
 export default function PendingConsentPage() {
   const { t } = useTranslation();
   const { user, logout } = useAuth();
@@ -14,6 +27,12 @@ export default function PendingConsentPage() {
   const [isSent, setIsSent] = useState(false);
   const [error, setError] = useState('');
   const [cooldown, setCooldown] = useState(0);
+
+  const sameAsStudentErrorText = t(
+    'auth.pending.error.sameAsStudent',
+    'Podaj adres e-mail rodzica lub opiekuna — nie możesz użyć własnego adresu e-mail.',
+  );
+  const isSameEmail = isParentEmailSameAsStudent(parentEmail, user?.email);
 
   useEffect(() => {
     if (cooldown > 0) {
@@ -25,6 +44,11 @@ export default function PendingConsentPage() {
   const handleSendConsent = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     if (!user || cooldown > 0) return;
+
+    if (isParentEmailSameAsStudent(parentEmail, user.email)) {
+      setError(sameAsStudentErrorText);
+      return;
+    }
     
     setError('');
     setIsLoading(true);
@@ -32,19 +56,30 @@ export default function PendingConsentPage() {
     try {
       // Call Edge Function
       const { data, error: fnError } = await supabase.functions.invoke('send-consent-email', {
-        body: { parent_email: parentEmail }
+        body: { parent_email: parentEmail.trim() }
       });
 
       if (fnError) {
         console.error('send-consent-email error details:', fnError);
 
         let userFriendlyMsg = 'Wystąpił błąd podczas wysyłania prośby.';
-        const status = (fnError as any).status || (fnError as any).context?.status;
+        const fnErrorDetails = fnError as {
+          status?: number;
+          context?: { status?: number };
+          message?: string;
+          name?: string;
+        };
+        const status = fnErrorDetails.status || fnErrorDetails.context?.status;
         
         // Try to get specific error from message or context
-        const errorMsg = fnError.message || '';
+        const errorMsg = fnErrorDetails.message || '';
 
-        if (errorMsg.includes('Poczekaj') || status === 429) {
+        if (
+          errorMsg.includes('parent_email_same_as_student') ||
+          errorMsg.includes('własnego adresu e-mail')
+        ) {
+          userFriendlyMsg = sameAsStudentErrorText;
+        } else if (errorMsg.includes('Poczekaj') || status === 429) {
           userFriendlyMsg = t('auth.pending.error.wait');
           setCooldown(60);
         } else if (errorMsg.includes('RESEND_API_KEY') || errorMsg.includes('RESEND_FROM_EMAIL')) {
@@ -56,16 +91,21 @@ export default function PendingConsentPage() {
           } else {
             userFriendlyMsg = t('auth.pending.error.invalidData');
           }
-        } else if (errorMsg.includes('Failed to send a request') || fnError.name === 'FunctionsFetchError') {
+        } else if (errorMsg.includes('Failed to send a request') || fnErrorDetails.name === 'FunctionsFetchError') {
           userFriendlyMsg = t('auth.pending.error.network');
         } else if (status === 401 || status === 403) {
           userFriendlyMsg = t('auth.pending.error.auth');
         } else {
           userFriendlyMsg = t('auth.pending.error.generic');
-          userFriendlyMsg += ` (Kod: ${status || fnError.name || 'unknown'})`;
+          userFriendlyMsg += ` (Kod: ${status || fnErrorDetails.name || 'unknown'})`;
         }
 
         setError(userFriendlyMsg);
+        return;
+      }
+
+      if (data?.code === 'parent_email_same_as_student') {
+        setError(sameAsStudentErrorText);
         return;
       }
 
@@ -77,7 +117,7 @@ export default function PendingConsentPage() {
       setIsSent(true);
       setError('');
       setCooldown(60); // 60s cooldown after successful send
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Consent error:', err);
       setError(t('auth.pending.error.technical'));
     } finally {
@@ -129,15 +169,15 @@ export default function PendingConsentPage() {
                   </p>
                 </div>
 
-                {error && (
+                {(isSameEmail || error) && (
                   <div className="p-3 bg-red-50 text-red-600 rounded-lg text-sm border border-red-200">
-                    {error}
+                    {isSameEmail ? sameAsStudentErrorText : error}
                   </div>
                 )}
 
                 <button
                   type="submit"
-                  disabled={isLoading || cooldown > 0}
+                  disabled={isLoading || cooldown > 0 || isSameEmail}
                   className="w-full omni-btn-primary disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {isLoading ? (
