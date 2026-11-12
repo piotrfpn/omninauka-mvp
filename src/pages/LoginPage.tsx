@@ -8,7 +8,7 @@ import { LanguageSwitcher } from '../components/LanguageSwitcher';
 
 export default function LoginPage() {
   const { t } = useTranslation();
-  const { login, loginAsDemo, isAuthenticated, user } = useAuth();
+  const { login, loginAsDemo, isAuthenticated, isDemoMode, user } = useAuth();
   const navigate = useNavigate();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -45,6 +45,10 @@ export default function LoginPage() {
   };
 
   const handleDemoLogin = () => {
+    if (isAuthenticated && !isDemoMode && user) {
+      navigate(user.userRole === 'parent' || user.userRole === 'guardian' ? '/app/parent' : '/app/dashboard', { replace: true });
+      return;
+    }
     loginAsDemo();
     navigate('/app/dashboard');
   };

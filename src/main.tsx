@@ -6,12 +6,22 @@ import App from './App';
 import './i18n';
 
 // Theme initialization - prevent white flash
-const savedTheme = localStorage.getItem('omninauka-theme');
-if (savedTheme === 'dark' || (!savedTheme && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
-  document.documentElement.classList.add('dark');
-} else {
-  document.documentElement.classList.remove('dark');
+export function initializeThemeClass(
+  doc: Pick<Document, 'documentElement'> = document,
+  storage: Pick<Storage, 'getItem'> = localStorage,
+  matchMediaFn: ((query: string) => { matches: boolean }) | undefined = typeof window !== 'undefined' ? window.matchMedia?.bind(window) : undefined,
+): 'dark' | 'light' {
+  const savedTheme = storage.getItem('omninauka-theme');
+  const isDark = savedTheme === 'dark' || (!savedTheme && Boolean(matchMediaFn?.('(prefers-color-scheme: dark)').matches));
+  if (isDark) {
+    doc.documentElement.classList.add('dark');
+  } else {
+    doc.documentElement.classList.remove('dark');
+  }
+  return isDark ? 'dark' : 'light';
 }
+
+initializeThemeClass();
 
 // Vite Dynamic Import Reload Recovery (Hotfix 23B.2)
 window.addEventListener("vite:preloadError", (event) => {

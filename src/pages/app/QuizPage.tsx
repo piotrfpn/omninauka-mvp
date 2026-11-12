@@ -340,7 +340,7 @@ export default function QuizPage() {
 
       // Phase 8A: Persist to DB (Isolated update)
       const sessionId = routeId || sessionStorage.getItem('currentSessionId');
-      if (sessionId) {
+      if (sessionId && user && !isDemoMode && sessionId !== 'demo-session') {
         try {
           await supabase
             .from('study_sessions')
