@@ -145,6 +145,7 @@
       "logout": "Log out and return later",
       "terms": "Read the terms",
       "error": {
+        "sameAsStudent": "Please enter a parent's or guardian's email address — you cannot use your own email address.",
         "wait": "Please wait a moment before sending again.",
         "config": "Email sending configuration is not ready yet.",
         "notPending": "Your account is no longer pending parent's consent.",

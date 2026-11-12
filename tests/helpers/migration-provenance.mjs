@@ -47,7 +47,11 @@ export function assertOnlyNormalizationChanges(additionalAllowed = []) {
     'src/lib/client-state-cleanup.ts',
     'src/pages/app/DashboardPage.tsx',
     'src/pages/app/HistoryPage.tsx',
+    'src/pages/app/PendingConsentPage.tsx',
+    'src/i18n/locales/pl/common.json',
+    'src/i18n/locales/en/common.json',
     'supabase/functions/delete-session/index.ts',
+    'supabase/functions/send-consent-email/index.ts',
     ...additionalAllowed,
   ]);
   const changed = execFileSync('git', ['diff', '--name-only', 'HEAD'], {

@@ -145,6 +145,7 @@
       "logout": "Wyloguj się i wróć później",
       "terms": "Przeczytaj regulamin",
       "error": {
+        "sameAsStudent": "Podaj adres e-mail rodzica lub opiekuna — nie możesz użyć własnego adresu e-mail.",
         "wait": "Odczekaj chwilę przed ponowną wysyłką.",
         "config": "Konfiguracja wysyłki e-mail nie jest jeszcze gotowa.",
         "notPending": "Twoje konto nie oczekuje już na zgodę rodzica.",
