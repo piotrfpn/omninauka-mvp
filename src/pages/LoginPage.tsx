@@ -44,13 +44,49 @@ export default function LoginPage() {
     }
   };
 
-  const handleDemoLogin = () => {
+  const handleDemoLogin = async () => {
     if (isAuthenticated && !isDemoMode && user) {
       navigate(user.userRole === 'parent' || user.userRole === 'guardian' ? '/app/parent' : '/app/dashboard', { replace: true });
       return;
     }
-    loginAsDemo();
-    navigate('/app/dashboard');
+    setError('');
+    setIsLoading(true);
+    try {
+      const result = await loginAsDemo();
+      if (result.success) {
+        navigate('/app/dashboard');
+      } else if (result.reason === 'real_session_active') {
+        setError(
+          t(
+            'auth.login.error.demoBlockedRealSession',
+            'W tej przeglądarce aktywna jest sesja prawdziwego konta. Wyloguj się z aktywnej karty lub użyj okna prywatnego, aby uruchomić tryb Demo.'
+          )
+        );
+      } else if (result.reason === 'shared_owner_conflict') {
+        setError(
+          t(
+            'auth.login.error.demoBlockedSharedOwner',
+            'Wykryto aktywną lub niezakończoną sesję innego konta w tej przeglądarce. Zaloguj się i użyj przycisku „Wyloguj” w aktywnej karcie lub otwórz okno prywatne, aby bezpiecznie uruchomić tryb Demo.'
+          )
+        );
+      } else {
+        setError(
+          t(
+            'auth.login.error.demoUnavailable',
+            'Nie udało się bezpiecznie zweryfikować stanu sesji przed uruchomieniem trybu Demo. Odśwież stronę i spróbuj ponownie.'
+          )
+        );
+      }
+    } catch {
+      setError(
+        t(
+          'auth.login.error.demoUnavailable',
+          'Nie udało się bezpiecznie zweryfikować stanu sesji przed uruchomieniem trybu Demo. Odśwież stronę i spróbuj ponownie.'
+        )
+      );
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -154,9 +190,10 @@ export default function LoginPage() {
           <div className="mt-6 pt-6 border-t border-gray-100">
             <button
               onClick={handleDemoLogin}
+              disabled={isLoading}
               className="w-full flex items-center justify-center gap-2 px-6 py-3 
                        bg-[var(--omni-lavender)] text-[var(--omni-text)] font-semibold rounded-full
-                       transition-all duration-200 hover:shadow-lg"
+                       transition-all duration-200 hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <Sparkles className="w-5 h-5" />
               {t('auth.login.demo')}

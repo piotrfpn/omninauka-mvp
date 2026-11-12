@@ -189,6 +189,7 @@ function createAuthProviderRuntime({
   fixture = tab(),
   initialSession = null,
   deferGetSession = false,
+  rejectGetSession = null,
   autoFireInitialSession = true,
   initialSessionFirst = false,
   debugLogs = null,
@@ -196,6 +197,7 @@ function createAuthProviderRuntime({
   const cleanSource = authContextSource
     .replace(/^import [\s\S]*?from ['"][^'"]+['"];\r?\n/gm, '')
     .replace(/import\.meta\.env\.DEV/g, 'false')
+    .replace(/^export type\b/gm, 'type')
     .replace('export function AuthProvider', 'function AuthProvider')
     .replace('export function useAuth', 'function useAuth');
   const compiled = ts.transpileModule(cleanSource, {
@@ -254,6 +256,9 @@ function createAuthProviderRuntime({
   const supabaseStub = {
     auth: {
       async getSession() {
+        if (rejectGetSession) {
+          throw rejectGetSession instanceof Error ? rejectGetSession : new Error(String(rejectGetSession));
+        }
         if (deferGetSession) {
           return new Promise(resolve => {
             resolveGetSession = s => resolve({ data: { session: s } });
@@ -347,7 +352,7 @@ function createAuthProviderRuntime({
     'mockUser', 'supabase',
     'activateDemoClientState', 'activateUserClientState', 'captureUserClientState',
     'clearDemoClientState', 'clearUserClientState', 'clientStateOwnerKey',
-    'getClientStateVersion', 'getPersistedDemoTabToken', 'hasPersistedDemoClientState',
+    'getClientStateVersion', 'getPersistedDemoTabToken', 'getSharedClientStateOwnerId', 'hasPersistedDemoClientState',
     'window', 'URLSearchParams', 'console',
     `${compiled}\nreturn { AuthProvider };`,
   );
@@ -370,6 +375,7 @@ function createAuthProviderRuntime({
     wrappedHelper.clientStateOwnerKey,
     wrappedHelper.getClientStateVersion,
     wrappedHelper.getPersistedDemoTabToken,
+    wrappedHelper.getSharedClientStateOwnerId,
     wrappedHelper.hasPersistedDemoClientState,
     fixture.window,
     URLSearchParams,
@@ -463,7 +469,8 @@ test('PF-03.3B (1) Demo -> F5 -> Demo persists in same tab, while new independen
   assert.equal(runtime1.ctx.isDemoMode, false);
 
   // Start Demo session
-  runtime1.ctx.loginAsDemo();
+  const demoRes = await runtime1.ctx.loginAsDemo();
+  assert.deepEqual(demoRes, { success: true });
   assert.equal(runtime1.ctx.isDemoMode, true);
   assert.equal(runtime1.ctx.isAuthenticated, true);
   assert.equal(runtime1.ctx.user.id, 'user-001');
@@ -511,7 +518,7 @@ test('PF-03.3B (2) Demo -> logout -> Login clears Demo flag and all educational 
   runtime.render();
   await runtime.flushEffects();
 
-  runtime.ctx.loginAsDemo();
+  await runtime.ctx.loginAsDemo();
   t.sessionStorage.setItem('currentSessionId', 'demo-session');
   t.sessionStorage.setItem('currentAnalysis', 'DEMO_ANALYSIS');
   t.localStorage.setItem('quiz-progress-demo-session', 'DEMO_PROGRESS');
@@ -541,7 +548,7 @@ test('PF-03.3B (3) Demo -> real account isolates state, clears Demo flag, and re
   runtime.render();
   await runtime.flushEffects();
 
-  runtime.ctx.loginAsDemo();
+  await runtime.ctx.loginAsDemo();
   t.sessionStorage.setItem('currentAnalysis', 'DEMO_ONLY_DATA');
   const demoScope = t.helper.captureUserClientState('user-001');
   assert.equal(demoScope(), true);
@@ -599,7 +606,8 @@ test('PF-03.3B (4) Real account -> attempt to start Demo never replaces or logs 
   assert.equal(runtime.ctx.user.id, 'real-student-id');
 
   // Attempt to activate Demo while real session is active
-  runtime.ctx.loginAsDemo();
+  const blockedResult = await runtime.ctx.loginAsDemo();
+  assert.deepEqual(blockedResult, { success: false, reason: 'real_session_active' });
   assert.equal(runtime.ctx.isDemoMode, false, 'Demo must not activate over an active real Supabase session');
   assert.equal(runtime.ctx.isAuthenticated, true);
   assert.equal(runtime.ctx.user.id, 'real-student-id');
@@ -608,20 +616,31 @@ test('PF-03.3B (4) Real account -> attempt to start Demo never replaces or logs 
   assert.equal(realScope(), true);
 
   // Verify LoginPage handleDemoLogin redirects to the real user's dashboard without calling loginAsDemo
-  const handleDemoMatch = loginPageSource.match(/const handleDemoLogin = \(\) => \{[\s\S]*?\n  \};/);
+  const handleDemoMatch = loginPageSource.match(/const handleDemoLogin = (?:async )?\(\) => \{[\s\S]*?\n  \};/);
   assert.ok(handleDemoMatch, 'Expected handleDemoLogin in LoginPage.tsx');
   const handleDemoJs = ts.transpileModule(handleDemoMatch[0], {
     compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.None },
   }).outputText;
   let demoCalls = 0;
   const navigations = [];
+  const errors = [];
   const runHandleDemo = new Function(
-    'isAuthenticated', 'isDemoMode', 'user', 'loginAsDemo', 'navigate',
+    'isAuthenticated', 'isDemoMode', 'user', 'loginAsDemo', 'navigate', 'setError', 'setIsLoading', 't',
     `${handleDemoJs}\nreturn handleDemoLogin;`,
-  )(true, false, { id: 'real-student-id', userRole: 'student' }, () => { demoCalls++; }, (to, opts) => navigations.push({ to, opts }));
-  runHandleDemo();
+  )(
+    true,
+    false,
+    { id: 'real-student-id', userRole: 'student' },
+    async () => { demoCalls++; return { success: true }; },
+    (to, opts) => navigations.push({ to, opts }),
+    msg => errors.push(msg),
+    () => {},
+    (_k, fallback) => fallback,
+  );
+  await runHandleDemo();
   assert.equal(demoCalls, 0);
   assert.deepEqual(navigations, [{ to: '/app/dashboard', opts: { replace: true } }]);
+  assert.deepEqual(errors, []);
 });
 
 test('PF-03.3B (5) Switching real account A -> B clears all account A state and isolates account B', async () => {
@@ -943,7 +962,7 @@ test('PF-03.3B (11) Tab duplication does not inherit Demo from an active Demo ta
   runtime1.render();
   await runtime1.flushEffects();
 
-  runtime1.ctx.loginAsDemo();
+  await runtime1.ctx.loginAsDemo();
   assert.equal(runtime1.ctx.isDemoMode, true);
   tab1.localStorage.setItem('quiz-progress-demo-session', 'DEMO_QUIZ_PROGRESS');
   const originalSessionRaw = tab1.sessionStorage.getItem('omninauka_demo_session');
@@ -1020,4 +1039,330 @@ test('PF-03.3B (12) authDebug tracks current user email inside [] effect and log
   const initialFetchesAfterSecondLogin = debugLogs.filter(args => args[1] === 'Starting INITIAL profile fetch');
   assert.equal(initialFetchesAfterSecondLogin.length, 2, 'Logout followed by login without remount must reset profileInitialized');
   runtime.unmount();
+});
+
+function createCrossTabLocalStorage() {
+  const storage = new MemoryStorage();
+  const subscribers = new Set();
+  const baseSetItem = storage.setItem.bind(storage);
+  const baseRemoveItem = storage.removeItem.bind(storage);
+
+  storage.subscribe = (sourceWindow, fn) => {
+    const entry = { sourceWindow, fn };
+    subscribers.add(entry);
+    return () => subscribers.delete(entry);
+  };
+  storage.setItemWithActor = (actorWindow, key, value) => {
+    baseSetItem(key, value);
+    for (const sub of subscribers) {
+      if (sub.sourceWindow !== actorWindow) {
+        sub.fn({ storageArea: storage, key });
+      }
+    }
+  };
+  storage.removeItemWithActor = (actorWindow, key) => {
+    baseRemoveItem(key);
+    for (const sub of subscribers) {
+      if (sub.sourceWindow !== actorWindow) {
+        sub.fn({ storageArea: storage, key });
+      }
+    }
+  };
+  return storage;
+}
+
+function attachSharedStorage(t, sharedStorage) {
+  const proxyStorage = {
+    get length() { return sharedStorage.length; },
+    key: index => sharedStorage.key(index),
+    getItem: key => sharedStorage.getItem(key),
+    setItem: (key, value) => sharedStorage.setItemWithActor(t.window, key, value),
+    removeItem: key => sharedStorage.removeItemWithActor(t.window, key),
+  };
+  const origAdd = t.window.addEventListener;
+  const origRemove = t.window.removeEventListener;
+  let unsubscribeStorage = null;
+  t.window.localStorage = proxyStorage;
+  t.localStorage = proxyStorage;
+  t.window.addEventListener = (name, handler) => {
+    origAdd(name, handler);
+    if (name === 'storage') {
+      unsubscribeStorage?.();
+      unsubscribeStorage = sharedStorage.subscribe(t.window, event => {
+        handler({ ...event, storageArea: proxyStorage });
+      });
+    }
+  };
+  t.window.removeEventListener = name => {
+    origRemove(name);
+    if (name === 'storage') {
+      unsubscribeStorage?.();
+      unsubscribeStorage = null;
+    }
+  };
+  return t;
+}
+
+test('PF-03.3B (13) Active real Supabase account in Tab A survives unauthenticated Tab B startup_without_valid_session', async () => {
+  const sharedStorage = createCrossTabLocalStorage();
+  const tabA = attachSharedStorage(tab(sharedStorage), sharedStorage);
+  const userA = {
+    id: 'real-student-a',
+    email: 'a@szkola.pl',
+    created_at: '2026-01-01T00:00:00Z',
+    user_metadata: { name: 'Ala', ageBand: '16_17', accountStatus: 'active' },
+  };
+
+  const runtimeA = createAuthProviderRuntime({
+    fixture: tabA,
+    initialSession: { user: userA, access_token: 'jwt-a' },
+  });
+  runtimeA.render();
+  await runtimeA.flushEffects();
+  assert.equal(runtimeA.ctx.isAuthenticated, true);
+  assert.equal(runtimeA.ctx.user.id, 'real-student-a');
+
+  // Seed Tab A's real educational state in both shared localStorage and Tab A's private sessionStorage
+  tabA.localStorage.setItem('quiz-progress-session-a', 'USER_A_QUIZ_PROGRESS');
+  tabA.localStorage.setItem('flashcards-progress-session-a', 'USER_A_FLASHCARDS_PROGRESS');
+  tabA.localStorage.setItem('omninauka_flashcards_review_real-student-a_session-a', 'USER_A_REVIEW');
+  tabA.sessionStorage.setItem('currentSessionId', 'session-a');
+  tabA.sessionStorage.setItem('currentAnalysis', 'USER_A_ANALYSIS');
+  const ownerBefore = sharedStorage.getItem('omninauka_client_state_owner');
+  assert.ok(ownerBefore);
+  assert.equal(JSON.parse(ownerBefore).userId, 'real-student-a');
+  const scopeA = tabA.helper.captureUserClientState('real-student-a');
+  assert.equal(scopeA(), true);
+
+  // Tab B opens in the same browser context without a valid Supabase session (with stale local sessionStorage)
+  const tabB = attachSharedStorage(tab(sharedStorage), sharedStorage);
+  tabB.sessionStorage.setItem('currentAnalysis', 'STALE_TAB_B_ANALYSIS');
+  tabB.sessionStorage.setItem('omninauka_upload_recovery', 'STALE_TAB_B_RECOVERY');
+  const runtimeB = createAuthProviderRuntime({
+    fixture: tabB,
+    initialSession: null,
+  });
+  runtimeB.render();
+  await runtimeB.flushEffects();
+
+  // Tab B must fail closed: signed out, private sessionStorage cleared, no access to Tab A's session
+  assert.deepEqual(runtimeB.cleanupReasons, ['startup_without_valid_session']);
+  assert.equal(runtimeB.ctx.isAuthenticated, false);
+  assert.equal(runtimeB.ctx.user, null);
+  assert.equal(runtimeB.ctx.isDemoMode, false);
+  assert.equal(tabB.sessionStorage.getItem('currentAnalysis'), null);
+  assert.equal(tabB.sessionStorage.getItem('omninauka_upload_recovery'), null);
+
+  // Shared localStorage and Tab A's active session must remain completely intact
+  assert.equal(sharedStorage.getItem('omninauka_client_state_owner'), ownerBefore);
+  assert.equal(sharedStorage.getItem('quiz-progress-session-a'), 'USER_A_QUIZ_PROGRESS');
+  assert.equal(sharedStorage.getItem('flashcards-progress-session-a'), 'USER_A_FLASHCARDS_PROGRESS');
+  assert.equal(sharedStorage.getItem('omninauka_flashcards_review_real-student-a_session-a'), 'USER_A_REVIEW');
+
+  assert.equal(runtimeA.ctx.isAuthenticated, true);
+  assert.equal(runtimeA.ctx.user.id, 'real-student-a');
+  assert.equal(tabA.sessionStorage.getItem('currentSessionId'), 'session-a');
+  assert.equal(tabA.sessionStorage.getItem('currentAnalysis'), 'USER_A_ANALYSIS');
+  assert.equal(scopeA(), true);
+
+  runtimeB.unmount();
+  runtimeA.unmount();
+});
+
+test('PF-03.3B (14) Transient getSession error in Tab B fails closed without disrupting Tab A, while explicit logout in Tab A still clears shared state', async () => {
+  const sharedStorage = createCrossTabLocalStorage();
+  const tabA = attachSharedStorage(tab(sharedStorage), sharedStorage);
+  const userA = {
+    id: 'real-student-a',
+    email: 'a@szkola.pl',
+    created_at: '2026-01-01T00:00:00Z',
+    user_metadata: { name: 'Ala', ageBand: '16_17', accountStatus: 'active' },
+  };
+
+  const runtimeA = createAuthProviderRuntime({
+    fixture: tabA,
+    initialSession: { user: userA, access_token: 'jwt-a' },
+  });
+  runtimeA.render();
+  await runtimeA.flushEffects();
+
+  tabA.localStorage.setItem('quiz-progress-session-a', 'USER_A_QUIZ_PROGRESS');
+  tabA.localStorage.setItem('flashcards-progress-session-a', 'USER_A_FLASHCARDS_PROGRESS');
+  tabA.sessionStorage.setItem('currentAnalysis', 'USER_A_ANALYSIS');
+  const ownerBefore = sharedStorage.getItem('omninauka_client_state_owner');
+  const scopeA = tabA.helper.captureUserClientState('real-student-a');
+
+  // Tab B encounters a transient getSession() failure
+  const tabB = attachSharedStorage(tab(sharedStorage), sharedStorage);
+  tabB.sessionStorage.setItem('currentAnalysis', 'STALE_TAB_B_DATA');
+  const runtimeB = createAuthProviderRuntime({
+    fixture: tabB,
+    initialSession: null,
+    rejectGetSession: new Error('Temporary network error'),
+    autoFireInitialSession: false,
+  });
+  runtimeB.render();
+  await runtimeB.flushEffects();
+
+  assert.deepEqual(runtimeB.cleanupReasons, ['auth_invalidated']);
+  assert.equal(runtimeB.ctx.isAuthenticated, false);
+  assert.equal(runtimeB.ctx.user, null);
+  assert.equal(tabB.sessionStorage.getItem('currentAnalysis'), null);
+
+  // Tab A and shared localStorage must remain unaffected
+  assert.equal(sharedStorage.getItem('omninauka_client_state_owner'), ownerBefore);
+  assert.equal(sharedStorage.getItem('quiz-progress-session-a'), 'USER_A_QUIZ_PROGRESS');
+  assert.equal(sharedStorage.getItem('flashcards-progress-session-a'), 'USER_A_FLASHCARDS_PROGRESS');
+  assert.equal(runtimeA.ctx.isAuthenticated, true);
+  assert.equal(runtimeA.ctx.user.id, 'real-student-a');
+  assert.equal(scopeA(), true);
+
+  // Explicit logout in Tab A MUST clear both localStorage and sessionStorage and call Supabase signOut
+  await runtimeA.ctx.logout();
+  assert.equal(runtimeA.signOutCalls, 1);
+  assert.equal(runtimeA.ctx.isAuthenticated, false);
+  assert.equal(runtimeA.ctx.user, null);
+  assert.equal(sharedStorage.getItem('omninauka_client_state_owner'), null);
+  assert.equal(sharedStorage.getItem('quiz-progress-session-a'), null);
+  assert.equal(sharedStorage.getItem('flashcards-progress-session-a'), null);
+  assert.equal(tabA.sessionStorage.getItem('currentAnalysis'), null);
+  assert.equal(scopeA(), false);
+
+  runtimeB.unmount();
+  runtimeA.unmount();
+});
+
+test('PF-03.3B (15) Demo activation in Tab B is blocked fail-closed while real account in Tab A is active, and allowed after explicit logout', async () => {
+  const sharedStorage = createCrossTabLocalStorage();
+  const tabA = attachSharedStorage(tab(sharedStorage), sharedStorage);
+  const userA = {
+    id: 'real-student-a',
+    email: 'a@szkola.pl',
+    created_at: '2026-01-01T00:00:00Z',
+    user_metadata: { name: 'Ala', ageBand: '16_17', accountStatus: 'active' },
+  };
+
+  const runtimeA = createAuthProviderRuntime({
+    fixture: tabA,
+    initialSession: { user: userA, access_token: 'jwt-a' },
+  });
+  runtimeA.render();
+  await runtimeA.flushEffects();
+  assert.equal(runtimeA.ctx.isAuthenticated, true);
+  assert.equal(runtimeA.ctx.user.id, 'real-student-a');
+
+  tabA.localStorage.setItem('quiz-progress-session-a', 'USER_A_QUIZ_PROGRESS');
+  tabA.localStorage.setItem('flashcards-progress-session-a', 'USER_A_FLASHCARDS_PROGRESS');
+  tabA.sessionStorage.setItem('currentAnalysis', 'USER_A_ANALYSIS');
+  const ownerBefore = sharedStorage.getItem('omninauka_client_state_owner');
+  const scopeA = tabA.helper.captureUserClientState('real-student-a');
+  assert.ok(ownerBefore);
+  assert.equal(scopeA(), true);
+
+  // Case 1: Tab B has no Supabase session (null) and sees only shared localStorage owner -> blocked fail-closed
+  const tabB = attachSharedStorage(tab(sharedStorage), sharedStorage);
+  const runtimeB = createAuthProviderRuntime({
+    fixture: tabB,
+    initialSession: null,
+  });
+  runtimeB.render();
+  await runtimeB.flushEffects();
+
+  const conflictRes = await runtimeB.ctx.loginAsDemo();
+  assert.deepEqual(conflictRes, { success: false, reason: 'shared_owner_conflict' });
+  assert.equal(runtimeB.ctx.isDemoMode, false);
+  assert.equal(runtimeB.ctx.isAuthenticated, false);
+  assert.equal(runtimeB.ctx.user, null);
+  assert.equal(tabB.sessionStorage.getItem('omninauka_demo_session'), null);
+  assert.equal(runtimeB.signOutCalls, 0, 'Blocking Demo must never call Supabase signOut');
+
+  // Direct helper bypass must also throw fail-closed without touching Tab A's owner or data
+  assert.throws(() => tabB.helper.activateDemoClientState('user-001'), /Cannot activate Demo/);
+
+  // Tab A and all its educational data remain completely untouched
+  assert.equal(sharedStorage.getItem('omninauka_client_state_owner'), ownerBefore);
+  assert.equal(sharedStorage.getItem('quiz-progress-session-a'), 'USER_A_QUIZ_PROGRESS');
+  assert.equal(sharedStorage.getItem('flashcards-progress-session-a'), 'USER_A_FLASHCARDS_PROGRESS');
+  assert.equal(tabA.sessionStorage.getItem('currentAnalysis'), 'USER_A_ANALYSIS');
+  assert.equal(runtimeA.ctx.isAuthenticated, true);
+  assert.equal(runtimeA.ctx.user.id, 'real-student-a');
+  assert.equal(scopeA(), true);
+
+  // Case 2: Tab B sees a verified Supabase session in getSession() -> blocked with real_session_active, no signOut
+  const tabC = attachSharedStorage(tab(sharedStorage), sharedStorage);
+  const runtimeC = createAuthProviderRuntime({
+    fixture: tabC,
+    initialSession: { user: userA, access_token: 'jwt-a' },
+  });
+  runtimeC.render();
+  await runtimeC.flushEffects();
+  const realSessionRes = await runtimeC.ctx.loginAsDemo();
+  assert.deepEqual(realSessionRes, { success: false, reason: 'real_session_active' });
+  assert.equal(runtimeC.ctx.isDemoMode, false);
+  assert.equal(runtimeC.signOutCalls, 0);
+  assert.equal(sharedStorage.getItem('omninauka_client_state_owner'), ownerBefore);
+  assert.equal(sharedStorage.getItem('quiz-progress-session-a'), 'USER_A_QUIZ_PROGRESS');
+
+  // Case 3: Tab B encounters getSession() error -> blocked fail-closed without clearing shared owner
+  const tabD = attachSharedStorage(tab(sharedStorage), sharedStorage);
+  const runtimeD = createAuthProviderRuntime({
+    fixture: tabD,
+    initialSession: null,
+    rejectGetSession: new Error('Network error'),
+    autoFireInitialSession: false,
+  });
+  runtimeD.render();
+  await runtimeD.flushEffects();
+  const errRes = await runtimeD.ctx.loginAsDemo();
+  assert.deepEqual(errRes, { success: false, reason: 'auth_unavailable' });
+  assert.equal(runtimeD.ctx.isDemoMode, false);
+  assert.equal(sharedStorage.getItem('omninauka_client_state_owner'), ownerBefore);
+  assert.equal(sharedStorage.getItem('quiz-progress-session-a'), 'USER_A_QUIZ_PROGRESS');
+
+  // Case 4: After explicit safe logout in Tab A, Demo can be started safely
+  await runtimeA.ctx.logout();
+  assert.equal(sharedStorage.getItem('omninauka_client_state_owner'), null);
+  assert.equal(sharedStorage.getItem('quiz-progress-session-a'), null);
+  const okAfterLogout = await runtimeB.ctx.loginAsDemo();
+  assert.deepEqual(okAfterLogout, { success: true });
+  assert.equal(runtimeB.ctx.isDemoMode, true);
+  assert.equal(runtimeB.ctx.isAuthenticated, true);
+  assert.equal(runtimeB.ctx.user.id, 'user-001');
+
+  runtimeD.unmount();
+  runtimeC.unmount();
+  runtimeB.unmount();
+  runtimeA.unmount();
+});
+
+test('PF-03.3B (16) LoginPage handleDemoLogin blocks navigation and renders a clear user message when loginAsDemo denies activation', async () => {
+  const handleDemoMatch = loginPageSource.match(/const handleDemoLogin = (?:async )?\(\) => \{[\s\S]*?\n  \};/);
+  assert.ok(handleDemoMatch, 'Expected handleDemoLogin in LoginPage.tsx');
+  const handleDemoJs = ts.transpileModule(handleDemoMatch[0], {
+    compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.None },
+  }).outputText;
+
+  for (const reason of ['real_session_active', 'shared_owner_conflict', 'auth_unavailable']) {
+    const navigations = [];
+    const errors = [];
+    const loadingStates = [];
+    const runHandleDemo = new Function(
+      'isAuthenticated', 'isDemoMode', 'user', 'loginAsDemo', 'navigate', 'setError', 'setIsLoading', 't',
+      `${handleDemoJs}\nreturn handleDemoLogin;`,
+    )(
+      false,
+      false,
+      null,
+      async () => ({ success: false, reason }),
+      (to, opts) => navigations.push({ to, opts }),
+      msg => errors.push(msg),
+      val => loadingStates.push(val),
+      (_key, fallback) => fallback,
+    );
+
+    await runHandleDemo();
+    assert.deepEqual(navigations, [], `Must never navigate to /app/dashboard when reason=${reason}`);
+    assert.equal(errors.length >= 2 && errors[0] === '' && errors[1].length > 20, true, `Expected clear error message for ${reason}`);
+    assert.deepEqual(loadingStates, [true, false]);
+  }
 });

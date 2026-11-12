@@ -4,7 +4,11 @@ import { mockUser } from '../mock/data';
 import { supabase } from './supabase';
 import { activateDemoClientState, activateUserClientState, captureUserClientState, clearDemoClientState,
   clearUserClientState, clientStateOwnerKey, getClientStateVersion, getPersistedDemoTabToken,
-  hasPersistedDemoClientState, type ClientStateCleanupReason } from './client-state-cleanup';
+  getSharedClientStateOwnerId, hasPersistedDemoClientState, type ClientStateCleanupReason } from './client-state-cleanup';
+
+export type DemoLoginResult =
+  | { success: true }
+  | { success: false; reason: 'real_session_active' | 'shared_owner_conflict' | 'auth_unavailable' };
 
 type RefreshUserResult =
   | { success: true }
@@ -14,7 +18,7 @@ interface AuthContextType extends AuthState {
   login: (email: string, password: string) => Promise<boolean>;
   register: (email: string, password: string, name: string, ageBand: string, userRole?: string) => Promise<{ success: boolean; message?: string; requireEmailVerification?: boolean }>;
   logout: (reason?: 'logout' | 'account_delete') => Promise<void>;
-  loginAsDemo: () => void;
+  loginAsDemo: () => Promise<DemoLoginResult>;
   updateProfile: (updates: any) => Promise<{ success: boolean; error?: string }>;
   refreshUser: () => Promise<RefreshUserResult>;
   isDemoMode: boolean;
@@ -103,7 +107,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setIsProfileLoading(false);
       return true;
     } catch {
-      resetClientState('auth_invalidated');
+      resetClientState('auth_invalidated', true);
       return false;
     }
   };
@@ -240,8 +244,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
       startupHandledRef.current = true;
       authDebug('No session detected');
-      const hasSharedOwner = Boolean(window.localStorage.getItem(clientStateOwnerKey));
-      resetClientState('startup_without_valid_session', !hasSharedOwner);
+      resetClientState('startup_without_valid_session', true);
     };
 
     // AUTH FIRST, DATA SECOND pattern:
@@ -265,7 +268,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       } catch {
         if (alive && eventVersion === 0 && !isDemoModeRef.current) {
           startupHandledRef.current = true;
-          resetClientState('auth_invalidated');
+          resetClientState('auth_invalidated', true);
         }
       } finally {
         initSessionPromiseRef.current = null;
@@ -473,14 +476,53 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const loginAsDemo = () => {
+  const loginAsDemo = async (): Promise<DemoLoginResult> => {
     if (!isDemoModeRef.current && !logoutRequested.current && state.isAuthenticated && state.user && state.user.id !== mockUser.id) {
       authDebug('Ignoring loginAsDemo because a real authenticated session is active');
-      return;
+      return { success: false, reason: 'real_session_active' };
     }
+
+    if (initSessionPromiseRef.current) {
+      try {
+        await initSessionPromiseRef.current;
+      } catch {
+        // Explicit verification below handles errors fail-closed
+      }
+    }
+
+    try {
+      const { data, error } = await supabase.auth.getSession();
+      if (error) {
+        authDebug('Blocking loginAsDemo because Supabase session verification failed');
+        return { success: false, reason: 'auth_unavailable' };
+      }
+      if (data?.session?.user && data.session.user.id !== mockUser.id) {
+        authDebug('Blocking loginAsDemo because a verified real Supabase session exists');
+        return { success: false, reason: 'real_session_active' };
+      }
+    } catch {
+      authDebug('Blocking loginAsDemo because Supabase getSession threw');
+      return { success: false, reason: 'auth_unavailable' };
+    }
+
+    if (!isDemoModeRef.current && !logoutRequested.current && lastAcceptedUserId.current && lastAcceptedUserId.current !== mockUser.id) {
+      authDebug('Blocking loginAsDemo because a real user session was accepted');
+      return { success: false, reason: 'real_session_active' };
+    }
+
+    const sharedOwnerId = getSharedClientStateOwnerId();
+    if (sharedOwnerId !== null && sharedOwnerId !== mockUser.id) {
+      authDebug('Blocking loginAsDemo because shared client state belongs to a real account');
+      return { success: false, reason: 'shared_owner_conflict' };
+    }
+
     logoutRequested.current = false;
     startupHandledRef.current = true;
-    applyDemoSession();
+    const activated = applyDemoSession();
+    if (!activated) {
+      return { success: false, reason: 'shared_owner_conflict' };
+    }
+    return { success: true };
   };
 
   const refreshUser = async (): Promise<RefreshUserResult> => {

@@ -131,15 +131,22 @@ export function clearDemoClientState(): void {
   } catch { /* ignore */ }
 }
 
+export function getSharedClientStateOwnerId(): string | null {
+  return readOwner()?.userId ?? null;
+}
+
 export function activateDemoClientState(demoUserId: string): number {
   // Demo sessions are strictly tab-local (sessionStorage + window.name) and do not
-  // claim localStorage[clientStateOwnerKey]. If a previous real account owned
-  // localStorage, or this tab is starting a fresh Demo session, clear prior state first.
+  // claim localStorage[clientStateOwnerKey]. Never erase or overwrite shared
+  // localStorage owned by a real account.
+  const owner = readOwner();
+  if (owner !== null && owner.userId !== demoUserId) {
+    throw new Error('Cannot activate Demo while a real account owns client state');
+  }
   const existing = readDemoSession();
   const existingTabToken = existing?.userId === demoUserId ? existing.tabToken : null;
-  const owner = readOwner();
-  if (owner !== null || !existingTabToken) {
-    clearUserClientState('account_switch');
+  if (!existingTabToken) {
+    clearUserClientState('account_switch', true);
   }
 
   const tabToken = existingTabToken ?? crypto.randomUUID();
