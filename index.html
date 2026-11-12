@@ -8,6 +8,19 @@
     <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
     <link rel="icon" href="/favicon.ico" sizes="48x48" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <style>
+      html { background-color: #f8f7fa; color-scheme: light; }
+      html.dark { background-color: #0B1220; color-scheme: dark; }
+    </style>
+    <script>
+      (function () {
+        try {
+          var savedTheme = localStorage.getItem('omninauka-theme');
+          var isDark = savedTheme === 'dark' || (!savedTheme && window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches);
+          document.documentElement.classList.toggle('dark', isDark);
+        } catch (e) {}
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>

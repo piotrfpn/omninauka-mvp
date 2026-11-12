@@ -2,8 +2,13 @@ import { createContext, useContext, useState, useEffect, useRef, Fragment, type 
 import type { AuthState, User } from '../types';
 import { mockUser } from '../mock/data';
 import { supabase } from './supabase';
-import { activateUserClientState, captureUserClientState, clearUserClientState, clientStateOwnerKey,
-  getClientStateVersion, type ClientStateCleanupReason } from './client-state-cleanup';
+import { activateDemoClientState, activateUserClientState, captureUserClientState, clearDemoClientState,
+  clearUserClientState, clientStateOwnerKey, getClientStateVersion, getPersistedDemoTabToken,
+  getSharedClientStateOwnerId, hasPersistedDemoClientState, type ClientStateCleanupReason } from './client-state-cleanup';
+
+export type DemoLoginResult =
+  | { success: true }
+  | { success: false; reason: 'real_session_active' | 'shared_owner_conflict' | 'auth_unavailable' };
 
 type RefreshUserResult =
   | { success: true }
@@ -13,7 +18,7 @@ interface AuthContextType extends AuthState {
   login: (email: string, password: string) => Promise<boolean>;
   register: (email: string, password: string, name: string, ageBand: string, userRole?: string) => Promise<{ success: boolean; message?: string; requireEmailVerification?: boolean }>;
   logout: (reason?: 'logout' | 'account_delete') => Promise<void>;
-  loginAsDemo: () => void;
+  loginAsDemo: () => Promise<DemoLoginResult>;
   updateProfile: (updates: any) => Promise<{ success: boolean; error?: string }>;
   refreshUser: () => Promise<RefreshUserResult>;
   isDemoMode: boolean;
@@ -54,29 +59,65 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [isProfileMissing, setIsProfileMissing] = useState(false);
   const [isDemoMode, setIsDemoMode] = useState(false);
   const [clientStateVersion, setClientStateVersion] = useState(0);
+  const isDemoModeRef = useRef(false);
+  const demoInstanceIdRef = useRef<string>(crypto.randomUUID());
+  const initSessionPromiseRef = useRef<Promise<unknown> | null>(null);
+  const startupHandledRef = useRef(false);
   const logoutRequested = useRef(false);
   const lastAcceptedUserId = useRef<string | null>(null);
+  const lastAcceptedEmailRef = useRef<string | null>(null);
   const currentClientScope = useRef<() => boolean>(() => true);
   const profileInitialized = useRef(false);
 
   const resetClientState = (reason: ClientStateCleanupReason, preserveSharedState = false) => {
+    const hadActiveUser = lastAcceptedUserId.current !== null || isDemoModeRef.current;
+    isDemoModeRef.current = false;
+    lastAcceptedEmailRef.current = null;
+    profileInitialized.current = false;
+    setIsDemoMode(false);
     try {
       clearUserClientState(reason, preserveSharedState);
     } catch {
       // Fail closed: no account workspace is rendered if storage cannot be cleared.
       console.warn('Client state cleanup unavailable');
     }
-    setClientStateVersion(getClientStateVersion());
+    if (reason !== 'startup_without_valid_session' || hadActiveUser) {
+      setClientStateVersion(getClientStateVersion());
+    }
     setIsProfileMissing(false);
     setIsProfileLoading(false);
     setState({ user: null, isAuthenticated: false, isLoading: false });
+  };
+
+  const applyDemoSession = (): boolean => {
+    try {
+      const nextVersion = activateDemoClientState(mockUser.id);
+      lastAcceptedUserId.current = mockUser.id;
+      lastAcceptedEmailRef.current = mockUser.email;
+      currentClientScope.current = captureUserClientState(mockUser.id);
+      isDemoModeRef.current = true;
+      setClientStateVersion(nextVersion);
+      setIsProfileMissing(false);
+      setIsDemoMode(true);
+      setState({
+        user: mockUser,
+        isAuthenticated: true,
+        isLoading: false,
+      });
+      setIsProfileLoading(false);
+      return true;
+    } catch {
+      resetClientState('auth_invalidated', true);
+      return false;
+    }
   };
 
   // Debug helper
   const authDebug = (msg: string, data?: any) => {
     const DEBUG_ALLOWED_EMAILS = ['bojki@tlen.pl'];
     const hasParam = new URLSearchParams(window.location.search).get('uploadDebug') === '1';
-    const isAllowed = !!state.user?.email && DEBUG_ALLOWED_EMAILS.includes(state.user.email.toLowerCase());
+    const activeEmail = lastAcceptedEmailRef.current ?? state.user?.email;
+    const isAllowed = !!activeEmail && DEBUG_ALLOWED_EMAILS.includes(activeEmail.toLowerCase());
     
     if (import.meta.env.DEV || (hasParam && isAllowed)) {
       console.log('[auth-debug]', msg, data);
@@ -86,16 +127,95 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     let alive = true;
     let eventVersion = 0;
+    let realSessionReceived = false;
+    let demoProbePromise: Promise<boolean> | null = null;
+    let cancelPendingProbe: (() => void) | null = null;
+    let notifyDuplicateFound: (() => void) | null = null;
     const initialVersion = getClientStateVersion();
+    const instanceId = demoInstanceIdRef.current;
 
-    const acceptSession = (session: { user: any }) => {
+    const BroadcastChannelCtor = typeof window !== 'undefined' ? window.BroadcastChannel : undefined;
+    let demoChannel: BroadcastChannel | null = null;
+    if (typeof BroadcastChannelCtor === 'function') {
       try {
-        const nextVersion = activateUserClientState(session.user.id);
-        lastAcceptedUserId.current = session.user.id;
-        currentClientScope.current = captureUserClientState(session.user.id);
+        demoChannel = new BroadcastChannelCtor('omninauka_demo_tab');
+        demoChannel.onmessage = (event: MessageEvent) => {
+          if (!alive) return;
+          const msg = event?.data;
+          if (!msg || typeof msg.tabToken !== 'string') return;
+          const currentToken = getPersistedDemoTabToken(mockUser.id);
+          if (!currentToken || msg.tabToken !== currentToken) return;
+
+          if (msg.type === 'demo_tab_probe' && msg.instanceId !== instanceId && isDemoModeRef.current) {
+            demoChannel?.postMessage({
+              type: 'demo_tab_active',
+              tabToken: currentToken,
+              ownerInstanceId: instanceId,
+            });
+          } else if (msg.type === 'demo_tab_active' && msg.ownerInstanceId !== instanceId) {
+            notifyDuplicateFound?.();
+            if (!realSessionReceived && isDemoModeRef.current) {
+              clearDemoClientState();
+              resetClientState('auth_invalidated', true);
+            }
+          }
+        };
+      } catch {
+        demoChannel = null;
+      }
+    }
+
+    const checkDemoNotDuplicated = (tabToken: string): Promise<boolean> => {
+      if (demoProbePromise) return demoProbePromise;
+      if (!demoChannel) {
+        demoProbePromise = Promise.resolve(true);
+        return demoProbePromise;
+      }
+      demoProbePromise = new Promise<boolean>(resolve => {
+        let settled = false;
+        let timer: ReturnType<typeof setTimeout> | null = null;
+        const finish = (allowed: boolean) => {
+          if (settled) return;
+          settled = true;
+          if (timer !== null) clearTimeout(timer);
+          notifyDuplicateFound = null;
+          cancelPendingProbe = null;
+          resolve(allowed);
+        };
+        notifyDuplicateFound = () => finish(false);
+        cancelPendingProbe = () => finish(false);
+        try {
+          demoChannel!.postMessage({
+            type: 'demo_tab_probe',
+            tabToken,
+            instanceId,
+          });
+        } catch {
+          finish(true);
+          return;
+        }
+        timer = setTimeout(() => finish(true), 50);
+      });
+      return demoProbePromise;
+    };
+
+    const acceptSession = (session: { user: unknown }) => {
+      try {
+        const sessionUser = session.user as { id: string };
+        realSessionReceived = true;
+        cancelPendingProbe?.();
+        clearDemoClientState();
+        isDemoModeRef.current = false;
+        setIsDemoMode(false);
+        startupHandledRef.current = true;
+        const mappedUser = mapSupabaseUser(session.user);
+        const nextVersion = activateUserClientState(sessionUser.id);
+        lastAcceptedUserId.current = sessionUser.id;
+        lastAcceptedEmailRef.current = mappedUser.email || null;
+        currentClientScope.current = captureUserClientState(sessionUser.id);
         setClientStateVersion(nextVersion);
         setIsProfileMissing(false);
-        setState({ user: mapSupabaseUser(session.user), isAuthenticated: true, isLoading: false });
+        setState({ user: mappedUser, isAuthenticated: true, isLoading: false });
         const initialProfileLoad = !profileInitialized.current;
         profileInitialized.current = true;
         void fetchAndMergeProfile(session.user, initialProfileLoad);
@@ -103,6 +223,30 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         resetClientState('auth_invalidated');
       }
     };
+
+    const handleStartupWithoutSession = async () => {
+      if (!alive || realSessionReceived || isDemoModeRef.current || logoutRequested.current || startupHandledRef.current) return;
+      const persistedTabToken = getPersistedDemoTabToken(mockUser.id);
+      if (persistedTabToken) {
+        const allowed = await checkDemoNotDuplicated(persistedTabToken);
+        if (!alive || realSessionReceived || isDemoModeRef.current || logoutRequested.current || startupHandledRef.current) return;
+        if (allowed) {
+          authDebug('Restoring persisted Demo session');
+          startupHandledRef.current = true;
+          applyDemoSession();
+          return;
+        }
+        clearDemoClientState();
+        startupHandledRef.current = true;
+        authDebug('Duplicate Demo tab detected; starting signed out');
+        resetClientState('startup_without_valid_session', true);
+        return;
+      }
+      startupHandledRef.current = true;
+      authDebug('No session detected');
+      resetClientState('startup_without_valid_session', true);
+    };
+
     // AUTH FIRST, DATA SECOND pattern:
     // 1. Set auth state immediately from Supabase session.
     // 2. Fetch profile metadata non-blocking in background.
@@ -110,22 +254,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const initializeAuth = async () => {
       try {
-        const { data: { session } } = await supabase.auth.getSession();
+        const sessionPromise = supabase.auth.getSession();
+        initSessionPromiseRef.current = sessionPromise;
+        const { data: { session } } = await sessionPromise;
         if (!alive || eventVersion !== 0 || initialVersion !== getClientStateVersion() || logoutRequested.current) return;
 
-        if (session && session.user && !isDemoMode) {
+        if (session && session.user) {
           authDebug('Session detected, initializing state');
           acceptSession(session);
-        } else if (!isDemoMode) {
-          authDebug('No session detected');
-          resetClientState('startup_without_valid_session');
-          profileInitialized.current = false;
+        } else {
+          await handleStartupWithoutSession();
         }
-      } catch (error) {
-        if (alive && eventVersion === 0 && !isDemoMode) {
-          resetClientState('auth_invalidated');
-          profileInitialized.current = false;
+      } catch {
+        if (alive && eventVersion === 0 && !isDemoModeRef.current) {
+          startupHandledRef.current = true;
+          resetClientState('auth_invalidated', true);
         }
+      } finally {
+        initSessionPromiseRef.current = null;
       }
     };
 
@@ -146,27 +292,30 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
         eventVersion++;
-        if (!alive || isDemoMode) return;
+        if (!alive) return;
 
         if (session && session.user) {
           if (logoutRequested.current && session.user.id === lastAcceptedUserId.current) return;
           logoutRequested.current = false;
           authDebug('Auth state changed: SIGNED_IN');
           acceptSession(session);
-        } else {
+        } else if (event === 'INITIAL_SESSION') {
+          void handleStartupWithoutSession();
+        } else if (!isDemoModeRef.current && !hasPersistedDemoClientState(mockUser.id)) {
           authDebug('Auth state changed: SIGNED_OUT');
-          resetClientState(event === 'INITIAL_SESSION' ? 'startup_without_valid_session' : 'auth_invalidated', logoutRequested.current);
-          profileInitialized.current = false;
+          resetClientState('auth_invalidated', logoutRequested.current);
         }
       }
     );
 
     return () => {
       alive = false;
+      cancelPendingProbe?.();
       window.removeEventListener('storage', handleStorageChange);
+      try { demoChannel?.close(); } catch { /* ignore */ }
       subscription.unsubscribe();
     };
-  }, [isDemoMode]);
+  }, []);
 
   // Best-effort: fetch profile and effective plan from DB and merge into state.
   // If this fails for any reason, the user remains logged in from Auth data.
@@ -246,7 +395,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const login = async (email: string, password: string): Promise<boolean> => {
     logoutRequested.current = false;
+    clearDemoClientState();
+    isDemoModeRef.current = false;
     setIsDemoMode(false);
+    if (initSessionPromiseRef.current) {
+      try {
+        await initSessionPromiseRef.current;
+      } catch {
+        // Ignore initial session lookup errors before explicit login
+      }
+    }
     const { error } = await supabase.auth.signInWithPassword({
       email,
       password,
@@ -301,10 +459,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const logout = async (reason: 'logout' | 'account_delete' = 'logout') => {
+    const wasDemo = isDemoModeRef.current || isDemoMode || hasPersistedDemoClientState(mockUser.id);
     logoutRequested.current = true;
+    clearDemoClientState();
     resetClientState(reason);
-    if (isDemoMode) {
-      setIsDemoMode(false);
+    if (wasDemo) {
+      lastAcceptedUserId.current = null;
     } else {
       // Preserve the existing SDK default scope (global). Do not edit SDK keys.
       try {
@@ -316,24 +476,53 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const loginAsDemo = () => {
-    logoutRequested.current = false;
-    try {
-      setClientStateVersion(activateUserClientState(mockUser.id));
-      lastAcceptedUserId.current = mockUser.id;
-      currentClientScope.current = captureUserClientState(mockUser.id);
-    } catch {
-      resetClientState('auth_invalidated');
-      return;
+  const loginAsDemo = async (): Promise<DemoLoginResult> => {
+    if (!isDemoModeRef.current && !logoutRequested.current && state.isAuthenticated && state.user && state.user.id !== mockUser.id) {
+      authDebug('Ignoring loginAsDemo because a real authenticated session is active');
+      return { success: false, reason: 'real_session_active' };
     }
-    setIsProfileMissing(false);
-    setIsDemoMode(true);
-    setState({
-      user: mockUser,
-      isAuthenticated: true,
-      isLoading: false,
-    });
-    setIsProfileLoading(false);
+
+    if (initSessionPromiseRef.current) {
+      try {
+        await initSessionPromiseRef.current;
+      } catch {
+        // Explicit verification below handles errors fail-closed
+      }
+    }
+
+    try {
+      const { data, error } = await supabase.auth.getSession();
+      if (error) {
+        authDebug('Blocking loginAsDemo because Supabase session verification failed');
+        return { success: false, reason: 'auth_unavailable' };
+      }
+      if (data?.session?.user && data.session.user.id !== mockUser.id) {
+        authDebug('Blocking loginAsDemo because a verified real Supabase session exists');
+        return { success: false, reason: 'real_session_active' };
+      }
+    } catch {
+      authDebug('Blocking loginAsDemo because Supabase getSession threw');
+      return { success: false, reason: 'auth_unavailable' };
+    }
+
+    if (!isDemoModeRef.current && !logoutRequested.current && lastAcceptedUserId.current && lastAcceptedUserId.current !== mockUser.id) {
+      authDebug('Blocking loginAsDemo because a real user session was accepted');
+      return { success: false, reason: 'real_session_active' };
+    }
+
+    const sharedOwnerId = getSharedClientStateOwnerId();
+    if (sharedOwnerId !== null && sharedOwnerId !== mockUser.id) {
+      authDebug('Blocking loginAsDemo because shared client state belongs to a real account');
+      return { success: false, reason: 'shared_owner_conflict' };
+    }
+
+    logoutRequested.current = false;
+    startupHandledRef.current = true;
+    const activated = applyDemoSession();
+    if (!activated) {
+      return { success: false, reason: 'shared_owner_conflict' };
+    }
+    return { success: true };
   };
 
   const refreshUser = async (): Promise<RefreshUserResult> => {
