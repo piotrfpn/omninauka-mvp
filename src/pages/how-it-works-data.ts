@@ -89,13 +89,23 @@ export type Locale = 'pl' | 'en';
 export const landingPl = {
   cta: {
     primary: 'Zobacz, jak działa',
+    demo: 'Wypróbuj tryb demo',
+    demoLoading: 'Uruchamianie demo…',
     secondary: 'Zapytaj o udział w pilotażu',
+  },
+  demoErrors: {
+    real_session_active:
+      'W tej przeglądarce aktywna jest sesja prawdziwego konta. Wyloguj się z aktywnej karty lub użyj okna prywatnego, aby uruchomić tryb Demo.',
+    shared_owner_conflict:
+      'Wykryto aktywną lub niezakończoną sesję innego konta w tej przeglądarce. Zaloguj się i użyj przycisku „Wyloguj” w aktywnej karcie lub otwórz okno prywatne, aby bezpiecznie uruchomić tryb Demo.',
+    auth_unavailable:
+      'Nie udało się bezpiecznie zweryfikować stanu sesji przed uruchomieniem trybu Demo. Odśwież stronę i spróbuj ponownie.',
   },
   hero: {
     label: 'Nauka na Twoich materiałach',
     headline: ['Zrozum temat.', 'Sprawdź, co już umiesz.'],
     description: 'Dodaj notatki lub materiał z lekcji. OmniNauka pomoże Ci go przeanalizować, porozmawiać z AI Tutorem i sprawdzić wiedzę w quizie.',
-    note: 'Poznaj produkt bez zakładania konta. Dostęp do pilotażu jest kontrolowany.',
+    note: 'Poznaj produkt bez zakładania konta.',
   },
   principles: ['Twoje materiały', 'Wyjaśnienia AI', 'Quiz z informacją zwrotną', 'Powrót do trudności'],
   steps: [
@@ -183,13 +193,23 @@ export const landingPl = {
 export const landingEn = {
   cta: {
     primary: 'See how it works',
+    demo: 'Try Demo',
+    demoLoading: 'Starting Demo…',
     secondary: 'Ask about the pilot',
+  },
+  demoErrors: {
+    real_session_active:
+      'An active account session was detected in this browser. Log out in the active tab or use a private window to start Demo mode.',
+    shared_owner_conflict:
+      'Another account session is active or unfinished in this browser. Log out in the active tab or open a private window to safely start Demo mode.',
+    auth_unavailable:
+      'Could not safely verify session state before starting Demo mode. Refresh the page and try again.',
   },
   hero: {
     label: 'Learn from your own materials',
     headline: ['Understand the topic.', 'Find out what you already know.'],
     description: 'Upload your notes or learning materials. OmniNauka helps you explore the content, ask questions with an AI Tutor, and check your understanding through quizzes.',
-    note: 'Explore the product without creating an account. Pilot access is controlled.',
+    note: 'Explore the product without creating an account.',
   },
   principles: ['Your materials', 'AI explanations', 'Quiz with feedback', 'Review problem areas'],
   steps: [

@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import type { AnalysisResult, KeyConcept } from '../../types';
-import { getDemoAnalysis } from '../../mock/data';
+import { getDemoLessonBySessionId } from '../../mock/data';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../lib/auth-context';
 import { captureUserClientState } from '../../lib/client-state-cleanup';
@@ -44,6 +44,7 @@ export default function AnalysisPage() {
   const [activeImageIdx, setActiveImageIdx] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
   const [analysisError, setAnalysisError] = useState<string | null>(null);
+  const [isUnknownDemoSession, setIsUnknownDemoSession] = useState(false);
   const [progress, setProgress] = useState(0);
   const [selectedConcept, setSelectedConcept] = useState<KeyConcept | null>(null);
   const [isConceptModalOpen, setIsConceptModalOpen] = useState(false);
@@ -75,8 +76,60 @@ export default function AnalysisPage() {
   }, [isLoading, analysisError]);
 
   useEffect(() => {
+    if (!isDemoMode) {
+      setIsUnknownDemoSession(false);
+      return;
+    }
+    const stateIsCurrent = () => typeof clientStateScope.current === 'function' ? clientStateScope.current() : true;
+    if (!stateIsCurrent()) return;
+    const sessionId = currentSessionId;
+    if (!sessionId || sessionId === 'demo-session') {
+      if (sessionStorage.getItem('currentSessionId') === 'demo-session') {
+        sessionStorage.removeItem('currentSessionId');
+      }
+      navigate('/app/upload', { replace: true });
+      return;
+    }
+
+    const demoLesson = getDemoLessonBySessionId(sessionId);
+    if (!demoLesson) {
+      setAnalysis(null);
+      setUploadedImage(null);
+      setSessionImages([]);
+      setAnalysisError(null);
+      setIsUnknownDemoSession(true);
+      setIsLoading(false);
+      return;
+    }
+
+    sessionStorage.setItem('currentSessionId', sessionId);
+    sessionStorage.setItem('currentAnalysis', JSON.stringify(demoLesson));
+    const rawQuizResults = sessionStorage.getItem('quizResults');
+    if (rawQuizResults) {
+      try {
+        const parsed = JSON.parse(rawQuizResults) as { sessionId?: string };
+        if (parsed.sessionId !== sessionId) {
+          sessionStorage.removeItem('quizResults');
+        }
+      } catch {
+        sessionStorage.removeItem('quizResults');
+      }
+    }
+    setIsUnknownDemoSession(false);
+    setAnalysisError(null);
+    setUploadedImage(null);
+    setSessionImages([]);
+    setLessonTitle('');
+    setAnalysis(demoLesson);
+    setIsLoading(false);
+  }, [currentSessionId, isDemoMode, navigate]);
+
+  useEffect(() => {
     const sessionId = currentSessionId;
     const stateIsCurrent = () => typeof isCurrentUser === 'function' ? isCurrentUser() : true;
+    if (typeof isDemoMode !== 'undefined' && isDemoMode) {
+      return;
+    }
     if (!sessionId) {
       navigate('/app/upload');
       return;
@@ -86,36 +139,6 @@ export default function AnalysisPage() {
     let timeoutId: any;
     let transitionTimeoutId: any;
     const controller = new AbortController();
-
-    // DEMO BYPASS: We retrieve the explicitly mocked base64
-    if (sessionId === 'demo-session') {
-      const demoImg = sessionStorage.getItem('demoImageBase64');
-      if (demoImg) {
-        setUploadedImage(demoImg);
-        setSessionImages([demoImg]);
-      }
-      
-      const timer = setTimeout(() => {
-        if (!isMounted || !stateIsCurrent()) return;
-        const result = getDemoAnalysis();
-        setAnalysis(result);
-        sessionStorage.setItem('currentAnalysis', JSON.stringify(result));
-        setProgress(100);
-        transitionTimeoutId = setTimeout(() => {
-          if (isMounted && stateIsCurrent()) {
-            setIsLoading(false);
-          }
-        }, 300);
-      }, 1500);
-      
-      return () => {
-        isMounted = false;
-        clearTimeout(timer);
-        if (transitionTimeoutId) {
-          clearTimeout(transitionTimeoutId);
-        }
-      };
-    }
 
     // Helper mapping DB JSON back to strong React TypeScript Interfaces
     const applySessionToState = (dbRow: any) => {
@@ -461,6 +484,34 @@ export default function AnalysisPage() {
     );
   }
 
+  if (isDemoMode && isUnknownDemoSession) {
+    return (
+      <div className="omni-card text-center py-12 mt-8 mx-auto max-w-lg p-8">
+        <div className="mb-3">
+          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-700 dark:bg-blue-950/60 dark:text-blue-300">
+            Przykładowa lekcja — Demo
+          </span>
+        </div>
+        <h2 className="text-xl font-semibold text-[var(--omni-text)] mb-3">
+          Ta przykładowa lekcja nie jest dostępna. Wybierz Biologię lub Historię.
+        </h2>
+        <div className="flex flex-col sm:flex-row items-center justify-center gap-3 mt-6">
+          <Link to="/app/analysis/session-001" className="omni-btn-secondary w-full sm:w-auto">
+            Biologia — Budowa komórki
+          </Link>
+          <Link to="/app/analysis/session-002" className="omni-btn-secondary w-full sm:w-auto">
+            Historia — II wojna światowa
+          </Link>
+        </div>
+        <div className="mt-4">
+          <Link to="/app/dashboard" className="omni-btn-primary inline-flex">
+            Wróć do dashboardu
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
   if (!analysis) {
     return (
       <div className="text-center py-12">
@@ -477,26 +528,33 @@ export default function AnalysisPage() {
       {/* Header */}
       <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
         <div>
-          <div className="flex items-center gap-2 mb-2">
+          <div className="flex items-center gap-2 mb-2 flex-wrap">
             <span className="omni-chip bg-[var(--omni-lavender)] text-[var(--omni-text)]">
               {analysis.subject}
             </span>
-            <span className="text-sm text-[var(--omni-text-muted)]">
-              {t('analysis.header.confidence')} {Math.round(analysis.confidence * 100)}%
-            </span>
+            {!isDemoMode && (
+              <span className="text-sm text-[var(--omni-text-muted)]">
+                {t('analysis.header.confidence')} {Math.round(analysis.confidence * 100)}%
+              </span>
+            )}
             {isDemoMode && (
-              <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full font-medium">
-                {t('analysis.header.demo')}
+              <span className="text-xs bg-blue-100 text-blue-700 dark:bg-blue-950/60 dark:text-blue-300 px-2.5 py-0.5 rounded-full font-medium">
+                Przykładowa lekcja — Demo
               </span>
             )}
           </div>
           <h1 className="omni-heading-3 text-[var(--omni-text)] mb-3">
             {analysis.topic}
           </h1>
+          {isDemoMode && (
+            <p className="text-xs text-[var(--omni-text-muted)] mb-3">
+              To przygotowany przykład działania OmniNauka. Nie jest wynikiem analizy przesłanego dokumentu.
+            </p>
+          )}
 
           {/* Sprint 1 & 3: Lesson title editor */}
           <div className="flex flex-col gap-1">
-            {!lessonTitle && !isLoading && !analysisError && (
+            {!lessonTitle && !isLoading && !analysisError && !isDemoMode && (
               <p className="text-[10px] text-orange-500 font-medium animate-pulse flex items-center gap-1">
                 <Sparkles className="w-3 h-3" /> {t('analysis.header.namePrompt')}
               </p>

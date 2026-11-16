@@ -5,6 +5,7 @@ import Cropper from 'react-easy-crop';
 import imageCompression from 'browser-image-compression';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../lib/auth-context';
+import { getDemoLessonBySessionId } from '../../mock/data';
 import { captureUserClientState, createUserObjectURL, revokeUserObjectURL } from '../../lib/client-state-cleanup';
 import { useTranslation } from 'react-i18next';
 import {
@@ -718,7 +719,7 @@ export default function UploadPage() {
   // ── analyze (upload + DB insert) ──────────────────────────────────────────
 
   const handleAnalyze = async () => {
-    if (!isCurrentUser() || (images.length === 0 && !documentFile)) return;
+    if (isDemoMode || !user || !isCurrentUser() || (images.length === 0 && !documentFile)) return;
 
     const tStart = performance.now();
     const logTime = (stepName: string, meta?: any) => {
@@ -732,18 +733,6 @@ export default function UploadPage() {
 
     // ── DOCUMENT FLOW ──
     if (documentFile) {
-      if (!user || isDemoMode) {
-        logTime('demo_analysis_doc_start');
-        sessionStorage.setItem('demoImageBase64', 'document_placeholder');
-        sessionStorage.setItem('currentSessionId', 'demo-session');
-        await new Promise(r => setTimeout(r, 2000));
-        if (!isCurrentUser()) return;
-        logTime('navigation_start');
-        setAnalysisStep('navigating');
-        navigate('/app/analysis');
-        return;
-      }
-
       try {
         const safeName = documentFile.file.name
           .replace(/[^a-zA-Z0-9.-]/g, '_')
@@ -814,19 +803,6 @@ export default function UploadPage() {
     if (readyImages.length === 0) {
       uploadDebug('No ready images found');
       setAnalysisStep('idle');
-      return;
-    }
-
-    if (!user || isDemoMode) {
-      logTime('demo_analysis_images_start');
-      const demoSource = readyImages[0].compressedBase64 || readyImages[0].previewUrl;
-      sessionStorage.setItem('demoImageBase64', demoSource);
-      sessionStorage.setItem('currentSessionId', 'demo-session');
-      await new Promise(r => setTimeout(r, 2000));
-      if (!isCurrentUser()) return;
-      logTime('navigation_start');
-      setAnalysisStep('navigating');
-      navigate('/app/analysis');
       return;
     }
 
@@ -968,6 +944,68 @@ export default function UploadPage() {
   };
 
   // ── render ────────────────────────────────────────────────────────────────
+
+  const handleOpenDemoLesson = (sessionId: 'session-001' | 'session-002') => {
+    if (!isCurrentUser()) return;
+    const demoLesson = getDemoLessonBySessionId(sessionId);
+    if (!demoLesson) return;
+    sessionStorage.setItem('currentSessionId', sessionId);
+    sessionStorage.setItem('currentAnalysis', JSON.stringify(demoLesson));
+    const rawQuizResults = sessionStorage.getItem('quizResults');
+    if (rawQuizResults) {
+      try {
+        const parsed = JSON.parse(rawQuizResults) as { sessionId?: string };
+        if (parsed.sessionId !== sessionId) {
+          sessionStorage.removeItem('quizResults');
+        }
+      } catch {
+        sessionStorage.removeItem('quizResults');
+      }
+    }
+    navigate(`/app/analysis/${sessionId}`);
+  };
+
+  if (isDemoMode) {
+    return (
+      <div className="space-y-6 max-w-2xl mx-auto py-6">
+        <div className="omni-card p-6 lg:p-8">
+          <div className="mb-3">
+            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-700 dark:bg-blue-950/60 dark:text-blue-300">
+              Dane przykładowe — tryb Demo
+            </span>
+          </div>
+          <h1 className="omni-heading-3 text-[var(--omni-text)] mb-2">
+            Wypróbuj przykładową lekcję
+          </h1>
+          <p className="text-[var(--omni-text-muted)] mb-6">
+            W trybie Demo możesz sprawdzić naukę na gotowych przykładach. Aby analizować własne notatki, załóż konto.
+          </p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <button
+              type="button"
+              onClick={() => handleOpenDemoLesson('session-001')}
+              className="omni-card p-5 text-left hover:border-indigo-300 dark:hover:border-indigo-500/60 transition-all flex items-center justify-between gap-3 group cursor-pointer"
+            >
+              <span className="font-semibold text-[var(--omni-text)]">
+                Biologia — Budowa komórki
+              </span>
+              <ArrowRight className="w-5 h-5 text-[var(--omni-text-muted)] group-hover:translate-x-1 transition-transform flex-shrink-0" />
+            </button>
+            <button
+              type="button"
+              onClick={() => handleOpenDemoLesson('session-002')}
+              className="omni-card p-5 text-left hover:border-indigo-300 dark:hover:border-indigo-500/60 transition-all flex items-center justify-between gap-3 group cursor-pointer"
+            >
+              <span className="font-semibold text-[var(--omni-text)]">
+                Historia — II wojna światowa
+              </span>
+              <ArrowRight className="w-5 h-5 text-[var(--omni-text-muted)] group-hover:translate-x-1 transition-transform flex-shrink-0" />
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">

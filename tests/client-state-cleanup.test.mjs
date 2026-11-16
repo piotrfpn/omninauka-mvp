@@ -1366,3 +1366,197 @@ test('PF-03.3B (16) LoginPage handleDemoLogin blocks navigation and renders a cl
     assert.deepEqual(loadingStates, [true, false]);
   }
 });
+
+// ─── PF-03.3B.1: Demo Functional Repair & Direct Demo Entry from HowItWorksPage ───
+
+const [
+  mockDataSource,
+  dashboardPageSource,
+  analysisPageSource,
+  flashcardsPageSource,
+  resultsPageSource,
+  uploadPageSource,
+  howItWorksPageSource,
+  howItWorksDataSource,
+] = await Promise.all([
+  read('src/mock/data.ts'),
+  read('src/pages/app/DashboardPage.tsx'),
+  read('src/pages/app/AnalysisPage.tsx'),
+  read('src/pages/app/FlashcardsPage.tsx'),
+  read('src/pages/app/ResultsPage.tsx'),
+  read('src/pages/app/UploadPage.tsx'),
+  read('src/pages/HowItWorksPage.tsx'),
+  read('src/pages/how-it-works-data.ts'),
+]);
+
+function loadMockDataModule() {
+  const clean = mockDataSource
+    .replace(/^import [\s\S]*?from ['"][^'"]+['"];\r?\n/gm, '')
+    .replace(/^export /gm, '');
+  const js = ts.transpileModule(clean, {
+    compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.None },
+  }).outputText;
+  return new Function(`${js}\nreturn { mockStudySessions, mockAnalysisResults, getDemoLessonBySessionId, getDemoAnalysis };`)();
+}
+
+test('PF-03.3B.1 (17) getDemoLessonBySessionId resolves session-001 (Biologia) and session-002 (Historia) deterministically without randomness or mutation, and returns null for unknown IDs', () => {
+  const { getDemoLessonBySessionId, mockAnalysisResults } = loadMockDataModule();
+
+  const bio1 = getDemoLessonBySessionId('session-001');
+  const bio2 = getDemoLessonBySessionId('session-001');
+  assert.ok(bio1);
+  assert.equal(bio1, bio2, 'Repeated lookups must return the exact unmodified reference');
+  assert.equal(bio1, mockAnalysisResults[0]);
+  assert.equal(bio1.id, 'analysis-001');
+  assert.equal(bio1.subject, 'Biologia');
+  assert.equal(bio1.flashcards.length, 5);
+  assert.equal(bio1.quizQuestions.length, 3);
+  assert.equal(bio1.quizQuestions.some(q => q.type === 'true_false'), true);
+
+  const hist1 = getDemoLessonBySessionId('session-002');
+  const hist2 = getDemoLessonBySessionId('session-002');
+  assert.ok(hist1);
+  assert.equal(hist1, hist2);
+  assert.equal(hist1, mockAnalysisResults[1]);
+  assert.equal(hist1.id, 'analysis-002');
+  assert.equal(hist1.subject, 'Historia');
+  assert.equal(hist1.flashcards.length, 3);
+  assert.equal(hist1.quizQuestions.length, 2);
+
+  assert.equal(getDemoLessonBySessionId('demo-session'), null);
+  assert.equal(getDemoLessonBySessionId('unknown-demo-id'), null);
+  assert.equal(getDemoLessonBySessionId(''), null);
+  assert.equal(getDemoLessonBySessionId(null), null);
+  assert.equal(getDemoLessonBySessionId(undefined), null);
+});
+
+test('PF-03.3B.1 (18) Demo lesson flow uses sessionId as source of truth, blocks regeneration and fake upload, and isolates quizResults per session', async () => {
+  // 1. DashboardPage marks sample data and clears stale quizResults when switching Demo lessons
+  assert.match(dashboardPageSource, /Dane przykładowe — tryb Demo/);
+  assert.match(dashboardPageSource, /getDemoLessonBySessionId/);
+
+  // 2. AnalysisPage resolves Demo lessons strictly under isDemoMode, blocks legacy demo-session random analysis, and shows safe unknown-demo-id screen without querying Supabase
+  assert.match(analysisPageSource, /if \(!isDemoMode\) \{[\s\S]*?getDemoLessonBySessionId\(sessionId\)/);
+  assert.match(analysisPageSource, /Ta przykładowa lekcja nie jest dostępna\. Wybierz Biologię lub Historię\./);
+  assert.match(analysisPageSource, /Przykładowa lekcja — Demo/);
+  assert.match(analysisPageSource, /To przygotowany przykład działania OmniNauka\. Nie jest wynikiem analizy przesłanego dokumentu\./);
+  assert.doesNotMatch(analysisPageSource, /getDemoAnalysis\(\)/);
+
+  // 3. FlashcardsPage and QuizPage use getDemoLessonBySessionId in Demo mode, guard localStorage writes, and block handleRegenerate in Demo mode
+  assert.match(flashcardsPageSource, /if \(isDemoMode\) \{[\s\S]*?getDemoLessonBySessionId\(sessionId\)/);
+  assert.match(flashcardsPageSource, /if \(isDemoMode \|\| !isCurrentUser\(\) \|\| !sessionId \|\| flashcards\.length === 0\) return;/);
+  assert.match(flashcardsPageSource, /const handleRegenerate = async \(\) => \{\s*if \(typeof isDemoMode !== 'undefined' && isDemoMode\) return;/);
+
+  assert.match(quizPageSource, /if \(isDemoMode\) \{[\s\S]*?getDemoLessonBySessionId\(sessionId\)/);
+  assert.match(quizPageSource, /if \(isDemoMode \|\| !isCurrentUser\(\) \|\| !sessionId \|\| questions\.length === 0 \|\| !attemptId\) return;/);
+  assert.match(quizPageSource, /const handleRegenerate = async \(\) => \{\s*if \(typeof isDemoMode !== 'undefined' && isDemoMode\) return;/);
+
+  // 4. QuizPage saves sessionId in quizResults and ResultsPage isolates quizResults per sessionId
+  const bioQuiz = createQuizCompletionRunner({
+    isDemoMode: true,
+    user: mockDemoUser,
+    routeId: 'session-001',
+    currentSessionId: 'session-001',
+  });
+  await bioQuiz.run();
+  const savedBioQuiz = JSON.parse(bioQuiz.sessionStore.getItem('quizResults'));
+  assert.equal(savedBioQuiz.sessionId, 'session-001');
+  assert.equal(bioQuiz.dbUpdates.length, 0);
+  assert.match(resultsPageSource, /parsed\.sessionId === currentSessionId/);
+
+  // 5. UploadPage replaces fake Demo upload with two example lessons and guards handleAnalyze
+  assert.match(uploadPageSource, /const handleAnalyze = async \(\) => \{\s*if \(isDemoMode \|\| !user/);
+  assert.match(uploadPageSource, /Wypróbuj przykładową lekcję/);
+  assert.match(uploadPageSource, /W trybie Demo możesz sprawdzić naukę na gotowych przykładach\. Aby analizować własne notatki, załóż konto\./);
+  assert.match(uploadPageSource, /Biologia — Budowa komórki/);
+  assert.match(uploadPageSource, /Historia — II wojna światowa/);
+  assert.doesNotMatch(uploadPageSource, /demoImageBase64/);
+});
+
+test('PF-03.3B.1 (19) HowItWorksPage Hero CTA launches loginAsDemo() directly without /login redirect, preserves PF-03.3B identity protection on conflict, and supports PL/EN translations', async () => {
+  const cleanData = howItWorksDataSource
+    .replace(/^export interface [\s\S]*?\n\}\r?\n/gm, '')
+    .replace(/^export type [^\n]+\n/gm, '')
+    .replace(/^export /gm, '');
+  const dataJs = ts.transpileModule(cleanData, {
+    compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.None },
+  }).outputText;
+  const { landingPl, landingEn } = new Function(`${dataJs}\nreturn { landingPl, landingEn };`)();
+
+  assert.equal(landingPl.cta.primary, 'Zobacz, jak działa');
+  assert.equal(landingPl.cta.demo, 'Wypróbuj tryb demo');
+  assert.equal(landingPl.hero.note, 'Poznaj produkt bez zakładania konta.');
+  assert.equal(landingEn.cta.primary, 'See how it works');
+  assert.equal(landingEn.cta.demo, 'Try Demo');
+  assert.equal(landingEn.hero.note, 'Explore the product without creating an account.');
+
+  for (const reason of ['real_session_active', 'shared_owner_conflict', 'auth_unavailable']) {
+    assert.equal(typeof landingPl.demoErrors[reason], 'string');
+    assert.ok(landingPl.demoErrors[reason].length > 20);
+    assert.equal(typeof landingEn.demoErrors[reason], 'string');
+    assert.ok(landingEn.demoErrors[reason].length > 20);
+  }
+
+  const handleStartDemoMatch = howItWorksPageSource.match(/const handleStartDemo = async \(\) => \{[\s\S]*?\n  \};/);
+  assert.ok(handleStartDemoMatch, 'Expected handleStartDemo in HowItWorksPage.tsx');
+  const handleStartDemoJs = ts.transpileModule(handleStartDemoMatch[0], {
+    compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.None },
+  }).outputText;
+
+  // Success path: navigates directly to /app/dashboard and guards against concurrent clicks
+  {
+    const navigations = [];
+    const errorKeys = [];
+    const loadingStates = [];
+    const demoStartInFlightRef = { current: false };
+    let resolveLogin;
+    let loginCalls = 0;
+    const runHandleStartDemo = new Function(
+      'demoStartInFlightRef', 'setDemoErrorKey', 'setIsStartingDemo', 'loginAsDemo', 'navigate',
+      `${handleStartDemoJs}\nreturn handleStartDemo;`,
+    )(
+      demoStartInFlightRef,
+      k => errorKeys.push(k),
+      v => loadingStates.push(v),
+      () => new Promise(resolve => {
+        loginCalls++;
+        resolveLogin = resolve;
+      }),
+      to => navigations.push(to),
+    );
+
+    const p1 = runHandleStartDemo();
+    const p2 = runHandleStartDemo(); // Concurrent second click while in-flight
+    assert.equal(loginCalls, 1, 'Concurrent clicks must not invoke loginAsDemo twice');
+    resolveLogin({ success: true });
+    await Promise.all([p1, p2]);
+    assert.deepEqual(navigations, ['/app/dashboard']);
+    assert.deepEqual(errorKeys, [null]);
+    assert.deepEqual(loadingStates, [true, false]);
+    assert.equal(demoStartInFlightRef.current, false);
+  }
+
+  // Conflict / denial paths: stays on page, sets error key, allows retry
+  for (const reason of ['real_session_active', 'shared_owner_conflict', 'auth_unavailable']) {
+    const navigations = [];
+    const errorKeys = [];
+    const loadingStates = [];
+    const demoStartInFlightRef = { current: false };
+    const runHandleStartDemo = new Function(
+      'demoStartInFlightRef', 'setDemoErrorKey', 'setIsStartingDemo', 'loginAsDemo', 'navigate',
+      `${handleStartDemoJs}\nreturn handleStartDemo;`,
+    )(
+      demoStartInFlightRef,
+      k => errorKeys.push(k),
+      v => loadingStates.push(v),
+      async () => ({ success: false, reason }),
+      to => navigations.push(to),
+    );
+
+    await runHandleStartDemo();
+    assert.deepEqual(navigations, [], `Must stay on /jak-to-dziala when reason=${reason}`);
+    assert.deepEqual(errorKeys, [null, reason]);
+    assert.deepEqual(loadingStates, [true, false]);
+    assert.equal(demoStartInFlightRef.current, false);
+  }
+});

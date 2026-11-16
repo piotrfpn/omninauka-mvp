@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import type { FlashcardData } from '../../types';
+import { getDemoLessonBySessionId } from '../../mock/data';
 import { RotateCw, ChevronLeft, ChevronRight, BookOpen } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { supabase } from '../../lib/supabase';
@@ -50,6 +51,36 @@ export default function FlashcardsPage() {
     const fetchFlashcards = async () => {
       const sessionId = routeId || sessionStorage.getItem('currentSessionId');
       
+      if (isDemoMode) {
+        const demoLesson = getDemoLessonBySessionId(sessionId);
+        if (demoLesson && sessionId) {
+          sessionStorage.setItem('currentSessionId', sessionId);
+          sessionStorage.setItem('currentAnalysis', JSON.stringify(demoLesson));
+          const rawQuizResults = sessionStorage.getItem('quizResults');
+          if (rawQuizResults) {
+            try {
+              const parsed = JSON.parse(rawQuizResults) as { sessionId?: string };
+              if (parsed.sessionId !== sessionId) {
+                sessionStorage.removeItem('quizResults');
+              }
+            } catch {
+              sessionStorage.removeItem('quizResults');
+            }
+          }
+          setFlashcards(demoLesson.flashcards || []);
+        } else {
+          setFlashcards([]);
+        }
+        setCurrentIndex(0);
+        setKnownCards(new Set());
+        setDifficultCards([]);
+        setFlashcardProgress({});
+        setIsFlipped(false);
+        setIsReviewMode(false);
+        setIsLoading(false);
+        return;
+      }
+
       if (!sessionId) {
         navigate('/app/dashboard');
         return;
@@ -58,20 +89,6 @@ export default function FlashcardsPage() {
       // Check free regeneration usage
       const regenKey = `omninauka_free_flashcard_regen_used_${sessionId}`;
       setHasUsedFreeRegen(sessionStorage.getItem(regenKey) === 'true');
-
-      if (isDemoMode || sessionId === 'demo-session') {
-        const analysisStr = sessionStorage.getItem('currentAnalysis');
-        if (analysisStr) {
-          try {
-            const analysis = JSON.parse(analysisStr);
-            setFlashcards(analysis.flashcards || []);
-          } catch {
-            setFlashcards([]);
-          }
-        }
-        setIsLoading(false);
-        return;
-      }
 
       try {
         const { data, error } = await supabase
@@ -143,15 +160,16 @@ export default function FlashcardsPage() {
   // Persist progress when it changes
   useEffect(() => {
     const sessionId = routeId || sessionStorage.getItem('currentSessionId');
-    if (!isCurrentUser() || !sessionId || flashcards.length === 0) return;
+    if (isDemoMode || !isCurrentUser() || !sessionId || flashcards.length === 0) return;
     
     localStorage.setItem(`flashcards-progress-${sessionId}`, JSON.stringify({
       currentIndex,
       knownCards: Array.from(knownCards)
     }));
-  }, [currentIndex, knownCards, routeId, flashcards.length]);
+  }, [currentIndex, knownCards, routeId, flashcards.length, isDemoMode]);
 
   const handleRegenerate = async () => {
+    if (typeof isDemoMode !== 'undefined' && isDemoMode) return;
     const stateIsCurrent = () => typeof isCurrentUser === 'function' ? isCurrentUser() : true;
     if (!stateIsCurrent() || regenerationInFlight.current) return;
     const sessionId = routeId || sessionStorage.getItem('currentSessionId');
@@ -282,7 +300,7 @@ export default function FlashcardsPage() {
   }, [flashcards, flashcardProgress]);
 
   const persistDifficultCards = (cards: FlashcardData[]) => {
-    if (!isCurrentUser()) return;
+    if (isDemoMode || !isCurrentUser()) return;
     const sessionId = routeId || sessionStorage.getItem('currentSessionId');
     const userId = user?.id || 'anonymous';
     if (!sessionId) return;
@@ -292,7 +310,7 @@ export default function FlashcardsPage() {
 
   const updateProgress = (card: FlashcardData, status: 'know' | 'dont_know') => {
     const sessionId = routeId || sessionStorage.getItem('currentSessionId');
-    if (!sessionId || isDemoMode || sessionId === 'demo-session') return;
+    if (!sessionId || (!isDemoMode && sessionId === 'demo-session')) return;
 
     const now = new Date().toISOString();
     
@@ -326,14 +344,16 @@ export default function FlashcardsPage() {
         }
       };
 
-      // Optimistic persistence
-      supabase
-        .from('study_sessions')
-        .update({ flashcard_progress: nextProgress })
-        .eq('id', sessionId)
-        .then(({ error }) => {
-          if (error) console.error("Failed to update flashcard progress", error);
-        });
+      if (!isDemoMode) {
+        // Optimistic persistence for real users only
+        supabase
+          .from('study_sessions')
+          .update({ flashcard_progress: nextProgress })
+          .eq('id', sessionId)
+          .then(({ error }) => {
+            if (error) console.error("Failed to update flashcard progress", error);
+          });
+      }
 
       return nextProgress;
     });
@@ -393,6 +413,44 @@ export default function FlashcardsPage() {
   }
 
   if (flashcards.length === 0) {
+    if (isDemoMode) {
+      return (
+        <div className="flex flex-col items-center justify-center min-h-[60vh] px-4">
+          <div className="omni-card p-8 text-center max-w-lg w-full">
+            <div className="w-16 h-16 bg-[var(--omni-lavender)] rounded-2xl flex items-center justify-center mx-auto mb-6">
+              <BookOpen className="w-8 h-8 text-[var(--omni-text)]" />
+            </div>
+            <h2 className="omni-heading-3 text-[var(--omni-text)] mb-2">
+              Wybierz przykładową lekcję
+            </h2>
+            <p className="text-[var(--omni-text-muted)] mb-6">
+              W trybie Demo możesz przećwiczyć fiszki na jednym z dwóch przygotowanych tematów.
+            </p>
+            <div className="flex flex-col sm:flex-row gap-3 justify-center mb-4">
+              <button
+                onClick={() => navigate('/app/flashcards/session-001')}
+                className="omni-btn-secondary"
+              >
+                Biologia — Budowa komórki
+              </button>
+              <button
+                onClick={() => navigate('/app/flashcards/session-002')}
+                className="omni-btn-secondary"
+              >
+                Historia — II wojna światowa
+              </button>
+            </div>
+            <button
+              onClick={() => navigate('/app/dashboard')}
+              className="omni-btn-primary"
+            >
+              Wróć do dashboardu
+            </button>
+          </div>
+        </div>
+      );
+    }
+
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh]">
         <div className="w-16 h-16 bg-[var(--omni-lavender)] rounded-2xl flex items-center justify-center mb-6">
@@ -416,6 +474,7 @@ export default function FlashcardsPage() {
 
   if (currentIndex >= flashcards.length) {
     const hasDifficult = difficultCards.length > 0;
+    const currentId = routeId || sessionStorage.getItem('currentSessionId') || '';
     
     // Premium specific logic
     if (effectivePlan !== 'free') {
@@ -457,7 +516,7 @@ export default function FlashcardsPage() {
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              {hasDifficult ? (
+              {hasDifficult && (
                 <button
                   onClick={() => {
                     setFlashcards(difficultCards);
@@ -470,20 +529,32 @@ export default function FlashcardsPage() {
                 >
                   {t('flashcards.completion.repeatDifficult')}
                 </button>
-              ) : (
-                <button
-                  onClick={() => {
-                    const currentId = routeId || sessionStorage.getItem('currentSessionId');
-                    navigate(`/app/quiz/${currentId}`);
-                  }}
-                  className="omni-btn-primary py-4 text-sm"
-                >
-                  {t('flashcards.completion.goToQuiz')}
-                </button>
               )}
 
               <button
                 onClick={() => {
+                  navigate(`/app/quiz/${currentId}`);
+                }}
+                className="omni-btn-primary py-4 text-sm"
+              >
+                {t('flashcards.completion.goToQuiz')}
+              </button>
+
+              <button
+                onClick={() => {
+                  if (isDemoMode) {
+                    const demoLesson = getDemoLessonBySessionId(currentId);
+                    if (demoLesson) {
+                      setFlashcards(demoLesson.flashcards || []);
+                    }
+                    setCurrentIndex(0);
+                    setKnownCards(new Set());
+                    setDifficultCards([]);
+                    setFlashcardProgress({});
+                    setIsFlipped(false);
+                    setIsReviewMode(false);
+                    return;
+                  }
                   window.location.reload(); // Hard reload to reset state
                 }}
                 className="omni-btn-secondary py-4 text-sm"
@@ -491,18 +562,20 @@ export default function FlashcardsPage() {
                 {hasDifficult ? t('flashcards.completion.repeatAgain') : t('flashcards.completion.repeatSame')}
               </button>
 
-              <button
-                onClick={handleRegenerate}
-                disabled={isRegenerating}
-                className="omni-btn-secondary py-4 text-sm flex items-center justify-center gap-2"
-              >
-                {isRegenerating ? (
-                  <div className="w-4 h-4 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin" />
-                ) : (
-                  <RotateCw className="w-4 h-4" />
-                )}
-                {t('flashcards.completion.regenerate')}
-              </button>
+              {!isDemoMode && (
+                <button
+                  onClick={handleRegenerate}
+                  disabled={isRegenerating}
+                  className="omni-btn-secondary py-4 text-sm flex items-center justify-center gap-2"
+                >
+                  {isRegenerating ? (
+                    <div className="w-4 h-4 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin" />
+                  ) : (
+                    <RotateCw className="w-4 h-4" />
+                  )}
+                  {t('flashcards.completion.regenerate')}
+                </button>
+              )}
 
               <button
                 onClick={() => navigate('/app/results')}
@@ -511,6 +584,11 @@ export default function FlashcardsPage() {
                 {t('flashcards.completion.backToResults')}
               </button>
             </div>
+            {isDemoMode && (
+              <p className="text-xs text-[var(--omni-text-muted)] mt-4">
+                W trybie Demo dostępne są przygotowane fiszki.
+              </p>
+            )}
             
             {/* TODO: Persist difficult flashcards in database in future sprint. */}
           </div>

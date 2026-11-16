@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../lib/auth-context';
 import { supabase } from '../../lib/supabase';
-import { mockDashboardSummary, mockStudySessions } from '../../mock/data';
+import { getDemoLessonBySessionId, mockDashboardSummary, mockStudySessions } from '../../mock/data';
 import {
   Upload,
   BookOpen,
@@ -36,6 +36,27 @@ export default function DashboardPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [demoPendingTarget, setDemoPendingTarget] = useState<'flashcards' | 'quiz' | null>(null);
+
+  const openDemoSession = (sessionId: string, target: 'analysis' | 'flashcards' | 'quiz' = 'analysis') => {
+    const demoAnalysis = getDemoLessonBySessionId(sessionId);
+    if (!demoAnalysis) return;
+    sessionStorage.setItem('currentSessionId', sessionId);
+    sessionStorage.setItem('currentAnalysis', JSON.stringify(demoAnalysis));
+    const rawQuizResults = sessionStorage.getItem('quizResults');
+    if (rawQuizResults) {
+      try {
+        const parsed = JSON.parse(rawQuizResults) as { sessionId?: string };
+        if (parsed.sessionId !== sessionId) {
+          sessionStorage.removeItem('quizResults');
+        }
+      } catch {
+        sessionStorage.removeItem('quizResults');
+      }
+    }
+    setDemoPendingTarget(null);
+    navigate(`/app/${target}/${sessionId}`);
+  };
 
   // Stats derived from actual user data
   const [computedStats, setComputedStats] = useState({
@@ -217,6 +238,13 @@ export default function DashboardPage() {
       {/* Welcome Section */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
+          {isDemoMode && (
+            <div className="mb-2">
+              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-700 dark:bg-blue-950/60 dark:text-blue-300 border border-blue-200 dark:border-blue-800/60">
+                Dane przykładowe — tryb Demo
+              </span>
+            </div>
+          )}
           <h1 className="omni-heading-3 text-[var(--omni-text)] mb-1">
             {t('dashboard.welcome', 'Cześć')}, {user?.name?.split(' ')[0] || t('appShell.user', 'Użytkownik')}! 👋
           </h1>
@@ -252,6 +280,19 @@ export default function DashboardPage() {
             <Link
               key={index}
               to={action.href}
+              onClick={(e) => {
+                if (!isDemoMode) return;
+                if (action.href === '/app/flashcards' || action.href === '/app/quiz') {
+                  e.preventDefault();
+                  const target = action.href === '/app/flashcards' ? 'flashcards' : 'quiz';
+                  const storedSessionId = sessionStorage.getItem('currentSessionId');
+                  if (getDemoLessonBySessionId(storedSessionId)) {
+                    openDemoSession(storedSessionId!, target);
+                  } else {
+                    setDemoPendingTarget(target);
+                  }
+                }
+              }}
               className="omni-card p-4 lg:p-6 bg-white/85 dark:bg-[#121A2B]/85 border border-gray-100 dark:border-slate-700/60 flex flex-col items-start gap-3 hover:shadow-lg active:scale-[0.97] transition-all group"
             >
               <div className={`w-12 h-12 ${action.color} rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform flex-shrink-0`}>
@@ -261,6 +302,30 @@ export default function DashboardPage() {
             </Link>
           ))}
         </div>
+
+        {isDemoMode && demoPendingTarget && (
+          <div className="mt-4 omni-card p-4 bg-blue-50/70 dark:bg-slate-800/70 border border-blue-200 dark:border-slate-700">
+            <p className="text-sm font-medium text-[var(--omni-text)] mb-3">
+              Wybierz przykładową lekcję, aby otworzyć {demoPendingTarget === 'flashcards' ? 'fiszki' : 'quiz'}:
+            </p>
+            <div className="flex flex-col sm:flex-row gap-3">
+              <button
+                type="button"
+                onClick={() => openDemoSession('session-001', demoPendingTarget)}
+                className="omni-btn-secondary text-sm py-2.5 px-4 justify-start"
+              >
+                Biologia — Budowa komórki
+              </button>
+              <button
+                type="button"
+                onClick={() => openDemoSession('session-002', demoPendingTarget)}
+                className="omni-btn-secondary text-sm py-2.5 px-4 justify-start"
+              >
+                Historia — II wojna światowa
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Recent Sessions List */}
@@ -295,6 +360,10 @@ export default function DashboardPage() {
                       key={session.id} 
                       className="omni-card p-4 md:p-5 bg-white/85 dark:bg-[#121A2B]/85 border border-gray-100 dark:border-slate-700/60 flex items-center justify-between group cursor-pointer hover:border-indigo-200 dark:hover:border-indigo-500/50 active:scale-[0.99] transition-all"
                       onClick={() => {
+                        if (isDemoMode) {
+                          openDemoSession(session.id, 'analysis');
+                          return;
+                        }
                         sessionStorage.setItem('currentSessionId', session.id);
                         navigate('/app/analysis/' + session.id);
                       }}

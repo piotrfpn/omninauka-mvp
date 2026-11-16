@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import type { QuizQuestion, QuizAnswer } from '../../types';
+import { getDemoLessonBySessionId } from '../../mock/data';
 import { Check, X, ArrowRight, HelpCircle, Trophy, RotateCw } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { supabase } from '../../lib/supabase';
@@ -51,24 +52,42 @@ export default function QuizPage() {
     const fetchQuiz = async () => {
       const sessionId = routeId || sessionStorage.getItem('currentSessionId');
       
-      if (!sessionId) {
-        navigate('/app/dashboard');
+      if (isDemoMode) {
+        const demoLesson = getDemoLessonBySessionId(sessionId);
+        if (demoLesson && sessionId) {
+          sessionStorage.setItem('currentSessionId', sessionId);
+          sessionStorage.setItem('currentAnalysis', JSON.stringify(demoLesson));
+          const rawQuizResults = sessionStorage.getItem('quizResults');
+          if (rawQuizResults) {
+            try {
+              const parsed = JSON.parse(rawQuizResults) as { sessionId?: string };
+              if (parsed.sessionId !== sessionId) {
+                sessionStorage.removeItem('quizResults');
+              }
+            } catch {
+              sessionStorage.removeItem('quizResults');
+            }
+          }
+          const rawQs = demoLesson.quizQuestions || [];
+          setQuestions(rawQs.slice(0, quizQuestionCount));
+        } else {
+          setQuestions([]);
+        }
+        lastAnswerRef.current = null;
+        setCurrentIndex(0);
+        setAnswers([]);
+        setSelectedAnswer(null);
+        setShowFeedback(false);
+        setIsFinished(false);
+        setAttemptId(null);
+        setOrderMaps({});
+        setStartTime(Date.now());
+        setIsLoading(false);
         return;
       }
 
-      if (isDemoMode || sessionId === 'demo-session') {
-        const analysisStr = sessionStorage.getItem('currentAnalysis');
-        if (analysisStr) {
-          try {
-            const analysis = JSON.parse(analysisStr);
-            const rawQs = analysis.quizQuestions || [];
-            setQuestions(rawQs.slice(0, quizQuestionCount));
-            setStartTime(Date.now());
-          } catch {
-            setQuestions([]);
-          }
-        }
-        setIsLoading(false);
+      if (!sessionId) {
+        navigate('/app/dashboard');
         return;
       }
 
@@ -144,7 +163,7 @@ export default function QuizPage() {
   // Persist progress when it changes
   useEffect(() => {
     const sessionId = routeId || sessionStorage.getItem('currentSessionId');
-    if (!isCurrentUser() || !sessionId || questions.length === 0 || !attemptId) return;
+    if (isDemoMode || !isCurrentUser() || !sessionId || questions.length === 0 || !attemptId) return;
     
     localStorage.setItem(`quiz-progress-${sessionId}`, JSON.stringify({
       attemptId,
@@ -153,9 +172,10 @@ export default function QuizPage() {
       isFinished,
       orderMaps
     }));
-  }, [currentIndex, answers, isFinished, routeId, questions.length, attemptId, orderMaps]);
+  }, [currentIndex, answers, isFinished, routeId, questions.length, attemptId, orderMaps, isDemoMode]);
 
   const handleRegenerate = async () => {
+    if (typeof isDemoMode !== 'undefined' && isDemoMode) return;
     const stateIsCurrent = () => typeof isCurrentUser === 'function' ? isCurrentUser() : true;
     if (!stateIsCurrent() || regenerationInFlight.current) return;
     const sessionId = routeId || sessionStorage.getItem('currentSessionId');
@@ -331,15 +351,16 @@ export default function QuizPage() {
       const totalCount = questions.length;
       const percentage = totalCount > 0 ? Math.round((correctCount / totalCount) * 100) : 0;
       const completedAt = new Date().toISOString();
+      const sessionId = routeId || sessionStorage.getItem('currentSessionId');
 
       sessionStorage.setItem('quizResults', JSON.stringify({
+        ...(sessionId ? { sessionId } : {}),
         totalQuestions: totalCount,
         correctAnswers: correctCount,
         answers: allAnswers,
       }));
 
       // Phase 8A: Persist to DB (Isolated update)
-      const sessionId = routeId || sessionStorage.getItem('currentSessionId');
       if (sessionId && user && !isDemoMode && sessionId !== 'demo-session') {
         try {
           await supabase
@@ -380,6 +401,44 @@ export default function QuizPage() {
   }
 
   if (questions.length === 0) {
+    if (isDemoMode) {
+      return (
+        <div className="flex flex-col items-center justify-center min-h-[60vh] px-4">
+          <div className="omni-card p-8 text-center max-w-lg w-full">
+            <div className="w-16 h-16 bg-[var(--omni-blush)] rounded-2xl flex items-center justify-center mx-auto mb-6">
+              <HelpCircle className="w-8 h-8 text-[var(--omni-text)]" />
+            </div>
+            <h2 className="omni-heading-3 text-[var(--omni-text)] mb-2">
+              Wybierz przykładową lekcję
+            </h2>
+            <p className="text-[var(--omni-text-muted)] mb-6">
+              W trybie Demo możesz rozwiązać quiz na jednym z dwóch przygotowanych tematów.
+            </p>
+            <div className="flex flex-col sm:flex-row gap-3 justify-center mb-4">
+              <button
+                onClick={() => navigate('/app/quiz/session-001')}
+                className="omni-btn-secondary"
+              >
+                Biologia — Budowa komórki
+              </button>
+              <button
+                onClick={() => navigate('/app/quiz/session-002')}
+                className="omni-btn-secondary"
+              >
+                Historia — II wojna światowa
+              </button>
+            </div>
+            <button
+              onClick={() => navigate('/app/dashboard')}
+              className="omni-btn-primary"
+            >
+              Wróć do dashboardu
+            </button>
+          </div>
+        </div>
+      );
+    }
+
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh]">
         <div className="w-16 h-16 bg-[var(--omni-blush)] rounded-2xl flex items-center justify-center mb-6">
@@ -434,7 +493,7 @@ export default function QuizPage() {
             <button
               onClick={() => {
                 const sessionId = routeId || sessionStorage.getItem('currentSessionId');
-                if (sessionId) {
+                if (sessionId && !isDemoMode) {
                   localStorage.removeItem(`quiz-progress-${sessionId}`);
                   
                   // Start new attempt
@@ -453,29 +512,34 @@ export default function QuizPage() {
                   setAttemptId(newAttemptId);
                   setOrderMaps(newOrderMaps);
                 }
+                lastAnswerRef.current = null;
+                setSelectedAnswer(null);
                 setCurrentIndex(0);
                 setAnswers([]);
                 setIsFinished(false);
                 setShowFeedback(false);
+                setStartTime(Date.now());
               }}
               className="omni-btn-secondary py-3 text-sm"
             >
               {t('quiz.buttons.repeat')}
             </button>
+            {!isDemoMode && (
+              <button
+                onClick={handleRegenerate}
+                disabled={isRegenerating}
+                className="omni-btn-secondary border-2 border-[var(--omni-accent)]/10 hover:border-[var(--omni-accent)] text-[var(--omni-accent)] flex items-center justify-center gap-2 py-3 text-sm"
+              >
+                {isRegenerating ? (
+                  <div className="w-4 h-4 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin" />
+                ) : (
+                  <RotateCw className="w-4 h-4" />
+                )}
+                {t('quiz.buttons.regenerate')}
+              </button>
+            )}
             <button
-              onClick={handleRegenerate}
-              disabled={isRegenerating}
-              className="omni-btn-secondary border-2 border-[var(--omni-accent)]/10 hover:border-[var(--omni-accent)] text-[var(--omni-accent)] flex items-center justify-center gap-2 py-3 text-sm"
-            >
-              {isRegenerating ? (
-                <div className="w-4 h-4 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin" />
-              ) : (
-                <RotateCw className="w-4 h-4" />
-              )}
-              {t('quiz.buttons.regenerate')}
-            </button>
-            <button
-              onClick={() => navigate('/app/analysis/' + (routeId || ''))}
+              onClick={() => navigate('/app/analysis/' + (routeId || sessionStorage.getItem('currentSessionId') || ''))}
               className="omni-btn-secondary py-3 text-sm text-[var(--omni-text-muted)]"
             >
               {t('quiz.buttons.backToAnalysis')}
