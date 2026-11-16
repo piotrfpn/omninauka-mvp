@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import type { QuizAnswer } from '../../types';
+import { getDemoLessonBySessionId } from '../../mock/data';
 import { Trophy, Target, TrendingUp, Clock, ArrowRight, RotateCw, Bot, Check } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../lib/auth-context';
@@ -8,6 +9,7 @@ import { getEffectivePlan } from '../../lib/plan-utils';
 import { getFeatureAccess } from '../../lib/feature-access';
 
 interface QuizResults {
+  sessionId?: string;
   totalQuestions: number;
   correctAnswers: number;
   answers: QuizAnswer[];
@@ -19,8 +21,9 @@ export default function ResultsPage() {
   const [results, setResults] = useState<QuizResults | null>(null);
   const [topic, setTopic] = useState('');
   const [fullAnalysis, setFullAnalysis] = useState<any>(null);
+  const [activeSessionId, setActiveSessionId] = useState<string>('');
 
-  const { user } = useAuth();
+  const { user, isDemoMode } = useAuth();
   const effectivePlan = getEffectivePlan(user);
   const { mistakeReview } = getFeatureAccess(effectivePlan);
 
@@ -54,12 +57,48 @@ export default function ResultsPage() {
   };
 
   useEffect(() => {
+    const currentSessionId = sessionStorage.getItem('currentSessionId') || '';
+    setActiveSessionId(currentSessionId);
+
     const resultsStr = sessionStorage.getItem('quizResults');
     const analysisStr = sessionStorage.getItem('currentAnalysis');
+
+    if (isDemoMode) {
+      const demoLesson = getDemoLessonBySessionId(currentSessionId);
+      if (demoLesson) {
+        setTopic(demoLesson.topic);
+        setFullAnalysis(demoLesson);
+        sessionStorage.setItem('currentAnalysis', JSON.stringify(demoLesson));
+      } else {
+        setTopic('');
+        setFullAnalysis(null);
+      }
+
+      if (resultsStr && demoLesson) {
+        try {
+          const parsed = JSON.parse(resultsStr) as QuizResults;
+          if (parsed && parsed.sessionId === currentSessionId) {
+            setResults(parsed);
+          } else {
+            setResults(null);
+          }
+        } catch {
+          setResults(null);
+        }
+      } else {
+        setResults(null);
+      }
+      return;
+    }
     
     if (resultsStr) {
       try {
-        setResults(JSON.parse(resultsStr));
+        const parsed = JSON.parse(resultsStr) as QuizResults;
+        if (parsed?.sessionId && currentSessionId && parsed.sessionId !== currentSessionId) {
+          setResults(null);
+        } else {
+          setResults(parsed);
+        }
       } catch {
         setResults(null);
       }
@@ -74,9 +113,66 @@ export default function ResultsPage() {
         setTopic('');
       }
     }
-  }, []);
+  }, [isDemoMode]);
 
   if (!results) {
+    if (isDemoMode) {
+      const demoLesson = getDemoLessonBySessionId(activeSessionId);
+      return (
+        <div className="flex flex-col items-center justify-center min-h-[60vh] px-4">
+          <div className="omni-card p-8 text-center max-w-lg w-full">
+            <div className="mb-3">
+              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-700 dark:bg-blue-950/60 dark:text-blue-300">
+                Dane przykładowe — tryb Demo
+              </span>
+            </div>
+            <div className="w-16 h-16 bg-[var(--omni-peach)] rounded-2xl flex items-center justify-center mx-auto mb-6">
+              <Trophy className="w-8 h-8 text-[var(--omni-text)]" />
+            </div>
+            <h2 className="omni-heading-3 text-[var(--omni-text)] mb-2">
+              {t('results.empty.title')}
+            </h2>
+            <p className="text-[var(--omni-text-muted)] mb-6">
+              {demoLesson
+                ? `Rozwiąż przykładowy quiz dla lekcji „${demoLesson.topic}”, aby zobaczyć wynik.`
+                : 'Wybierz przykładową lekcję i rozwiąż quiz, aby zobaczyć podsumowanie odpowiedzi.'}
+            </p>
+            {demoLesson ? (
+              <div className="flex flex-col sm:flex-row gap-3 justify-center">
+                <button
+                  onClick={() => navigate(`/app/quiz/${activeSessionId}`)}
+                  className="omni-btn-primary"
+                >
+                  {t('results.empty.cta')}
+                </button>
+                <button
+                  onClick={() => navigate(`/app/analysis/${activeSessionId}`)}
+                  className="omni-btn-secondary"
+                >
+                  Wróć do podsumowania
+                </button>
+              </div>
+            ) : (
+              <div className="flex flex-col sm:flex-row gap-3 justify-center">
+                <button
+                  onClick={() => navigate('/app/quiz/session-001')}
+                  className="omni-btn-secondary"
+                >
+                  Biologia — Budowa komórki
+                </button>
+                <button
+                  onClick={() => navigate('/app/quiz/session-002')}
+                  className="omni-btn-secondary"
+                >
+                  Historia — II wojna światowa
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      );
+    }
+
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh]">
         <div className="w-16 h-16 bg-[var(--omni-peach)] rounded-2xl flex items-center justify-center mb-6">
@@ -89,7 +185,7 @@ export default function ResultsPage() {
           {t('results.empty.desc')}
         </p>
         <button
-          onClick={() => navigate('/app/quiz')}
+          onClick={() => navigate(activeSessionId ? `/app/quiz/${activeSessionId}` : '/app/quiz')}
           className="omni-btn-primary"
         >
           {t('results.empty.cta')}
@@ -121,6 +217,13 @@ export default function ResultsPage() {
     <div className="space-y-8 pb-12">
       {/* Header */}
       <div>
+        {isDemoMode && (
+          <div className="mb-2">
+            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-700 dark:bg-blue-950/60 dark:text-blue-300">
+              Dane przykładowe — tryb Demo
+            </span>
+          </div>
+        )}
         <h1 className="omni-heading-3 text-[var(--omni-text)] mb-2">
           {isPremium ? t('results.report.title') : t('quiz.titleFree')}
         </h1>
@@ -323,7 +426,7 @@ export default function ResultsPage() {
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <button
-            onClick={() => navigate('/app/quiz')}
+            onClick={() => navigate(activeSessionId ? `/app/quiz/${activeSessionId}` : '/app/quiz')}
             className="omni-btn-secondary py-4 flex items-center justify-center gap-2"
           >
             <RotateCw className="w-5 h-5" />

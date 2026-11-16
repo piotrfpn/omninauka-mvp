@@ -165,12 +165,17 @@ export const mockDashboardSummary: DashboardSummary = {
   recentUploads: [],
 };
 
-// Helper to get random analysis for demo
+export function getDemoLessonBySessionId(sessionId?: string | null): AnalysisResult | null {
+  if (!sessionId) return null;
+  const matchedSession = mockStudySessions.find((session) => session.id === sessionId);
+  return matchedSession ? matchedSession.analysis : null;
+}
+
+// Helper to get deterministic analysis for demo
 export function getDemoAnalysis(subject?: string): AnalysisResult {
   if (subject) {
     const found = mockAnalysisResults.find(a => a.subject.toLowerCase() === subject.toLowerCase());
-    if (found) return { ...found, id: `analysis-${Date.now()}`, createdAt: new Date() };
+    if (found) return found;
   }
-  const random = mockAnalysisResults[Math.floor(Math.random() * mockAnalysisResults.length)];
-  return { ...random, id: `analysis-${Date.now()}`, createdAt: new Date() };
+  return mockAnalysisResults[0];
 }

@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
+import { Sparkles } from 'lucide-react';
+import { useAuth } from '../lib/auth-context';
 import './how-it-works.css';
 import {
   captures,
@@ -96,11 +98,38 @@ function ProductFigure({
 
 export default function HowItWorksPage() {
   const { i18n } = useTranslation();
+  const navigate = useNavigate();
+  const { loginAsDemo } = useAuth();
   const [locale, setLocale] = useState<Locale>(() => {
     return i18n.language && i18n.language.startsWith('en') ? 'en' : 'pl';
   });
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isStartingDemo, setIsStartingDemo] = useState(false);
+  const [demoErrorKey, setDemoErrorKey] = useState<
+    'real_session_active' | 'shared_owner_conflict' | 'auth_unavailable' | null
+  >(null);
+  const demoStartInFlightRef = useRef(false);
   const mobileMenuRef = useRef<HTMLDivElement>(null);
+
+  const handleStartDemo = async () => {
+    if (demoStartInFlightRef.current) return;
+    demoStartInFlightRef.current = true;
+    setDemoErrorKey(null);
+    setIsStartingDemo(true);
+    try {
+      const result = await loginAsDemo();
+      if (result.success) {
+        navigate('/app/dashboard');
+      } else {
+        setDemoErrorKey(result.reason);
+      }
+    } catch {
+      setDemoErrorKey('auth_unavailable');
+    } finally {
+      demoStartInFlightRef.current = false;
+      setIsStartingDemo(false);
+    }
+  };
 
   const content = locale === 'en' ? landingEn : landingPl;
   const navItems = locale === 'en' ? navigationEn : navigation;
@@ -382,7 +411,7 @@ export default function HowItWorksPage() {
                 <span>{content.hero.headline[1]}</span>
               </h1>
               <p>{content.hero.description}</p>
-              <div className="actions">
+              <div className="actions hero-actions">
                 <a
                   className="action primary"
                   href="#jak-dziala"
@@ -390,14 +419,22 @@ export default function HowItWorksPage() {
                 >
                   {content.cta.primary}
                 </a>
-                <a
-                  className="action"
-                  href="#pilotaz"
-                  onClick={(e) => handleAnchorClick(e, '#pilotaz')}
+                <button
+                  type="button"
+                  className="action demo-action"
+                  onClick={handleStartDemo}
+                  disabled={isStartingDemo}
+                  aria-busy={isStartingDemo}
                 >
-                  {content.cta.secondary}
-                </a>
+                  <Sparkles className="demo-action-icon" aria-hidden="true" />
+                  <span>{isStartingDemo ? content.cta.demoLoading : content.cta.demo}</span>
+                </button>
               </div>
+              {demoErrorKey && (
+                <p className="demo-error" role="alert">
+                  {content.demoErrors[demoErrorKey]}
+                </p>
+              )}
               <p className="note">{content.hero.note}</p>
             </div>
             <div className="hero-proof" id="analiza" tabIndex={-1}>
